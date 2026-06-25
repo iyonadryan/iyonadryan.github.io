@@ -8,6 +8,7 @@ const mainContent = document.getElementById('mainContent');
 const lifeContainer = document.getElementById('lifeContainer');
 
 let countdownInterval = null;
+let countdownActive = false;
 
 if (!roomId || !playerName) {
   mainContent.style.display = '';
@@ -32,10 +33,11 @@ if (!roomId || !playerName) {
         clearInterval(countdownInterval);
         countdownInterval = null;
       }
+      countdownActive = false;
       countdownOverlay.style.display = 'none';
       mainContent.style.display = '';
       renderLatestRound(plays);
-    } else if (!mainContent.style.display) {
+    } else if (!countdownActive) {
       startCountdown();
     }
   });
@@ -100,6 +102,7 @@ function renderHearts(life) {
 }
 
 function startCountdown() {
+  countdownActive = true;
   let count = 5;
 
   function animateNum(n) {
@@ -125,6 +128,7 @@ function startCountdown() {
     } else {
       clearInterval(countdownInterval);
       countdownInterval = null;
+      countdownActive = false;
       countdownOverlay.style.display = 'none';
       mainContent.style.display = '';
     }
@@ -139,27 +143,42 @@ function renderLatestRound(plays) {
   const roundData = plays[latestRound];
 
   if (roundData.status === 'onprogress') {
-    const numbers = roundData.numbers.split(',').map(Number);
-    renderCards(numbers);
+    const items = roundData.numbers.split(',');
+    const numbers = items.map(item => parseInt(item));
+    const suits = items.map(item => item.replace(/[0-9]/g, ''));
+    renderCards(numbers, suits);
   }
 }
 
-function renderCards(numbers) {
+function isRedSuit(suit) {
+  return suit === '♥' || suit === '♦';
+}
+
+function cardLabel(n) {
+  return n === 1 ? 'A' : String(n);
+}
+
+function renderCards(numbers, suits) {
   const container = document.getElementById('cardsContainer');
   if (container) {
     container.innerHTML = '';
-    numbers.forEach((num) => {
+    numbers.forEach((num, i) => {
+      const suit = suits[i] || '';
+      const label = cardLabel(num);
       const card = document.createElement('div');
-      card.className = 'card suit-black';
+      card.className = 'card ' + (isRedSuit(suit) ? 'suit-red' : 'suit-black');
       card.innerHTML = `
         <div class="card-corner card-corner-top">
-          <span class="corner-value">${num}</span>
+          <span class="corner-value">${label}</span>
+          <span class="corner-suit">${suit}</span>
         </div>
         <div class="card-center">
-          <span class="center-value">${num}</span>
+          <span class="center-value">${label}</span>
+          <span class="center-suit">${suit}</span>
         </div>
         <div class="card-corner card-corner-bottom">
-          <span class="corner-value">${num}</span>
+          <span class="corner-suit">${suit}</span>
+          <span class="corner-value">${label}</span>
         </div>
       `;
       container.appendChild(card);

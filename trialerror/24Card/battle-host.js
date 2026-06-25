@@ -8,6 +8,7 @@ const countdownNumber = document.getElementById('countdownNumber');
 const mainContent = document.getElementById('mainContent');
 
 let countdownInterval = null;
+let countdownActive = false;
 
 if (!roomId) {
   mainContent.style.display = '';
@@ -22,16 +23,18 @@ if (!roomId) {
         clearInterval(countdownInterval);
         countdownInterval = null;
       }
+      countdownActive = false;
       countdownOverlay.style.display = 'none';
       mainContent.style.display = '';
       renderLatestRound(plays);
-    } else if (!mainContent.style.display) {
+    } else if (!countdownActive) {
       startCountdown();
     }
   });
 }
 
 function startCountdown() {
+  countdownActive = true;
   let count = 5;
 
   function animateNum(n) {
@@ -57,6 +60,7 @@ function startCountdown() {
     } else {
       clearInterval(countdownInterval);
       countdownInterval = null;
+      countdownActive = false;
       countdownOverlay.style.display = 'none';
       mainContent.style.display = '';
       createNewRound();
@@ -74,8 +78,9 @@ function renderLatestRound(plays) {
   document.getElementById('roundNumber').textContent = latestRound;
 
   if (roundData.status === 'onprogress') {
-    const numbers = roundData.numbers.split(',').map(Number);
-    const suits = roundData.suits ? roundData.suits.split(',') : [];
+    const items = roundData.numbers.split(',');
+    const numbers = items.map(item => parseInt(item));
+    const suits = items.map(item => item.replace(/[0-9]/g, ''));
     renderCards(numbers, suits);
   }
 }
@@ -106,9 +111,9 @@ function createNewRound() {
       const suits = generateSuits(cardCount);
       const now = Date.now();
 
+      const combined = numbers.map((n, i) => n + suits[i]).join(',');
       playsRef.child(String(round)).set({
-        numbers: numbers.join(','),
-        suits: suits.join(','),
+        numbers: combined,
         timestamp: now,
         status: 'onprogress'
       }).catch((err) => {
