@@ -251,7 +251,7 @@ btnJoinMobile.addEventListener('click', () => {
     db.ref('trial-error/24Card/battle/' + roomId + '/players/' + name).set({
       status: 'undready'
     }).then(() => {
-      window.location.href = 'mobile.html?roomId=' + roomId + '&name=' + encodeURIComponent(name);
+      window.location.href = 'lobby.html?roomId=' + roomId + '&name=' + encodeURIComponent(name);
     }).catch((err) => {
       console.error(err);
       alert('Gagal bergabung. Coba lagi.');
@@ -366,7 +366,7 @@ function loadRoomList() {
           db.ref('trial-error/24Card/battle/' + roomId + '/players/' + name).set({
             status: 'undready'
           }).then(() => {
-            window.location.href = 'mobile.html?roomId=' + roomId + '&name=' + encodeURIComponent(name);
+            window.location.href = 'lobby.html?roomId=' + roomId + '&name=' + encodeURIComponent(name);
           }).catch((err) => {
             console.error(err);
             alert('Gagal bergabung. Coba lagi.');
