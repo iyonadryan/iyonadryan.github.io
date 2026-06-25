@@ -290,10 +290,17 @@ function loadRoomList() {
     let html = '';
     const now = Date.now();
 
+    const expiredRooms = [];
+
     Object.keys(all).sort((a, b) => Number(a) - Number(b)).forEach((roomId) => {
       const room = all[roomId];
+
+      if (!room.expired || now > room.expired) {
+        expiredRooms.push(roomId);
+        return;
+      }
+
       if (room.status !== 'waiting') return;
-      if (room.expired && now > room.expired) return;
 
       const players = room.players || {};
       const playerCount = Object.keys(players).length;
@@ -309,6 +316,12 @@ function loadRoomList() {
           </div>
         </div>
       `;
+    });
+
+    expiredRooms.forEach((roomId) => {
+      db.ref('trial-error/24Card/battle/' + roomId).remove().catch((err) => {
+        console.error('Gagal hapus expired room ' + roomId, err);
+      });
     });
 
     if (!html) {
