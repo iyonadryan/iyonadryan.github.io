@@ -221,6 +221,13 @@ body{
 }
  
 /* --- Cards & Button Color --- */
+.card-24card>.iyon-card-container:after{
+    background-image: linear-gradient(135deg,#2b5876,#4e4376);
+}
+.iyon-card-button.button-24card{
+    background-image: linear-gradient(to right, #2b5876 0%, #4e4376 51%, #2b5876 100%);
+}
+
 .card-redamantine>.iyon-card-container:after{
     background-image: linear-gradient(135deg,#e73c6d,#F7BB97);
 }
