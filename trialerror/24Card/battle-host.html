@@ -24,14 +24,25 @@
   </script>
 </head>
 <body>
-  <div class="container" style="text-align:center">
-    <h1 style="color:#fff;font-size:2.2rem;margin-bottom:16px">🖥️ Battle Host</h1>
-    <p style="color:rgba(255,255,255,0.5)">Room #<span id="hostRoomId" style="color:#ffd54f;font-weight:700"></span></p>
-    <p style="color:rgba(255,255,255,0.3);margin-top:24px">⏳ Menunggu mekanik permainan...</p>
+  <div class="container" style="display:none" id="mainContent">
+    <header>
+      <h1>🖥️ Battle Host</h1>
+      <p class="subtitle">Room #<span id="hostRoomId" style="color:#ffd54f;font-weight:700"></span> · Mode <span id="hostModeDisplay">-</span></p>
+    </header>
+
+    <div class="challenge-header" style="display:flex;justify-content:center">
+      <span style="color:#fff;font-weight:700;font-size:1.1rem">Ronde #<span id="roundNumber">1</span></span>
+    </div>
+
+    <div id="cardsContainer" class="cards"></div>
+
+    <div id="infoArea" class="info">Menunggu player menyelesaikan...</div>
   </div>
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    document.getElementById('hostRoomId').textContent = params.get('roomId') || '----';
-  </script>
+
+  <div id="countdownOverlay" class="overlay overlay-countdown">
+    <div class="countdown-number" id="countdownNumber">5</div>
+  </div>
+
+  <script src="battle-host.js"></script>
 </body>
 </html>

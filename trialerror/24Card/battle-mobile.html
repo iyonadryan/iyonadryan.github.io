@@ -24,16 +24,15 @@
   </script>
 </head>
 <body>
-  <div class="container" style="text-align:center">
-    <h1 style="color:#fff;font-size:2.2rem;margin-bottom:16px">📱 Battle Mobile</h1>
-    <p style="color:rgba(255,255,255,0.5)">Room #<span id="mobileRoomId" style="color:#ffd54f;font-weight:700"></span></p>
-    <p style="color:rgba(255,255,255,0.4)">Player: <span id="mobilePlayerName" style="color:#fff;font-weight:600"></span></p>
-    <p style="color:rgba(255,255,255,0.3);margin-top:24px">⏳ Menunggu mekanik permainan...</p>
+  <div class="container" style="display:none;text-align:center" id="mainContent">
+    <div id="lifeContainer" class="life-container"></div>
+    <div id="cardsContainer" class="cards"></div>
   </div>
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    document.getElementById('mobileRoomId').textContent = params.get('roomId') || '----';
-    document.getElementById('mobilePlayerName').textContent = params.get('name') || '-';
-  </script>
+
+  <div id="countdownOverlay" class="overlay overlay-countdown">
+    <div class="countdown-number" id="countdownNumber">5</div>
+  </div>
+
+  <script src="battle-mobile.js"></script>
 </body>
 </html>

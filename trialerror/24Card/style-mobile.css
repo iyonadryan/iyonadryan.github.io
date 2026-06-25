@@ -118,6 +118,20 @@
   color: #fff;
 }
 
+.life-container {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 40px 0;
+}
+
+.heart {
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.3s;
+}
+
 @media (max-width: 500px) {
   .mobile-title {
     font-size: 1.6rem;
