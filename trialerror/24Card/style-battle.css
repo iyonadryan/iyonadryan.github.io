@@ -1,0 +1,361 @@
+.battle-screen {
+  max-width: 560px;
+}
+
+.battle-title {
+  color: #fff;
+  font-size: 2.2rem;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.battle-subtitle {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 1rem;
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.battle-options {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.battle-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 200px;
+  height: 240px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.battle-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-8px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.battle-btn-icon {
+  font-size: 4.2rem;
+  line-height: 1;
+  margin-bottom: 16px;
+}
+
+.battle-btn-label {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.battle-btn-desc {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 500;
+  margin-top: 6px;
+}
+
+.battle-popup-rules {
+  text-align: left;
+  margin-bottom: 28px;
+}
+
+.battle-popup-rules p {
+  color: rgba(255, 255, 255, 0.8);
+  padding: 8px 0;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.battle-popup-rules .rule-highlight {
+  color: #ffd54f;
+  font-weight: 600;
+}
+
+.btn-info-mode {
+  display: block;
+  margin: 0 auto 32px;
+  padding: 10px 28px;
+  background: #fff;
+  color: #000;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-info-mode:hover {
+  background: #e0e0e0;
+  transform: translateY(-2px);
+}
+
+.btn-info-mode .info-icon {
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.create-room-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  text-align: left;
+}
+
+.create-room-form .setup-error,
+.join-room-form .setup-error {
+  min-height: 0;
+}
+
+.create-room-form .setup-input,
+.join-room-form .setup-input {
+  padding: 8px 12px;
+  font-size: 0.95rem;
+}
+
+.mode-picker {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.mode-picker-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 90px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.mode-picker-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-4px);
+}
+
+.mode-picker-btn.active {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-color: transparent;
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+}
+
+.mode-picker-num {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.mode-picker-desc {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 500;
+}
+
+.mode-picker-btn.active .mode-picker-desc {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.btn-cancel {
+  width: 100%;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  background: linear-gradient(135deg, #e53935, #b71c1c);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(183, 28, 28, 0.4);
+}
+
+.btn-cancel:hover {
+  box-shadow: 0 6px 25px rgba(183, 28, 28, 0.6);
+  transform: translateY(-2px);
+}
+
+.btn-cancel:active {
+  transform: scale(0.96);
+}
+
+.btn-join {
+  width: 100%;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.15);
+}
+
+.btn-join:hover {
+  background: #e0e0e0;
+  transform: translateY(-2px);
+}
+
+.btn-join:active {
+  transform: scale(0.96);
+}
+
+.create-room-form .btn-start {
+  padding: 10px 20px;
+  font-size: 0.9rem;
+}
+
+.room-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.room-divider::before,
+.room-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.join-room-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.join-room-form .setup-input {
+  text-align: center;
+  font-size: 1.3rem;
+  letter-spacing: 8px;
+  font-family: 'Courier New', 'Consolas', monospace;
+  padding: 8px 12px;
+}
+
+.overlay-content-wide {
+  max-width: 520px;
+}
+
+.room-list-container {
+  max-height: 360px;
+  overflow-y: auto;
+  margin: 16px 0 8px;
+  text-align: left;
+}
+
+.room-list-loading,
+.room-list-empty {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  padding: 24px 0;
+  font-size: 0.95rem;
+}
+
+.room-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.room-list-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.room-list-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.room-list-id {
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-weight: 800;
+  color: #ffd54f;
+  font-size: 1rem;
+}
+
+.room-list-name {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.room-list-right {
+  flex-shrink: 0;
+}
+
+.room-list-players {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.room-list-player-icon {
+  color: #fff;
+}
+
+@media (max-width: 500px) {
+  .battle-btn {
+    width: 150px;
+    height: 180px;
+  }
+
+  .battle-btn-icon {
+    font-size: 3rem;
+  }
+
+  .battle-btn-label {
+    font-size: 1.1rem;
+  }
+
+  .battle-title {
+    font-size: 1.6rem;
+  }
+
+  .battle-options {
+    gap: 16px;
+  }
+}

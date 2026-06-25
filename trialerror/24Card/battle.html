@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>24Card - Mode Battle</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style-battle.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
+      authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
+      databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
+      projectId: "iyon-adryanlf-trialerror",
+      storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
+      messagingSenderId: "519669963248",
+      appId: "1:519669963248:web:feab50008d27c2a7226535",
+      measurementId: "G-4MFLB4B68F"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
+</head>
+<body>
+  <a href="index.html" class="btn-back-menu" title="Kembali ke menu">← Menu</a>
+
+  <div class="container battle-screen">
+    <h1 class="battle-title">🎮 Mode Battle</h1>
+    <p class="battle-subtitle">Bertarung melawan pemain lain secara real-time!</p>
+
+    <button id="btnInfoMode" class="btn-info-mode"><svg class="info-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Info Mode</button>
+
+    <div class="battle-options">
+      <a href="#" class="battle-btn" id="btnHost">
+        <span class="battle-btn-icon">🖥️</span>
+        <span class="battle-btn-label">Host</span>
+        <span class="battle-btn-desc">Room Master</span>
+      </a>
+      <a href="#" class="battle-btn" id="btnMobile">
+        <span class="battle-btn-icon">📱</span>
+        <span class="battle-btn-label">Mobile</span>
+        <span class="battle-btn-desc">Player</span>
+      </a>
+    </div>
+  </div>
+
+  <div id="infoOverlay" class="overlay" style="display:none">
+    <div class="overlay-content">
+      <h2>🎮 Mode Battle</h2>
+      <div class="battle-popup-rules">
+        <p>Selamat datang di <strong>Mode Battle</strong>!</p>
+        <p>📌 Diperlukan <span class="rule-highlight">1 Host</span> untuk menampilkan kartu di layar utama.</p>
+        <p>📌 Setiap <span class="rule-highlight">player</span> diusahakan menggunakan <span class="rule-highlight">HP</span> untuk bergabung dan bertarung.</p>
+        <p>📌 Pemain yang berhasil bertahan akan memenangkan ronde!</p>
+      </div>
+      <div class="challenge-buttons">
+        <button id="btnInfoOk" class="btn btn-challenge">👍 Mengerti</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="createRoomOverlay" class="overlay" style="display:none">
+    <div class="overlay-content">
+      <h2>🖥️ Buat Room</h2>
+      <div class="create-room-form">
+        <div class="setup-field">
+          <label class="setup-label">Nama Room</label>
+          <input type="text" id="inputRoomName" class="setup-input" maxlength="20" placeholder="Masukkan nama room..." autocomplete="off">
+        </div>
+        <div class="setup-field">
+          <label class="setup-label">Mode Permainan</label>
+          <div class="mode-picker">
+            <button class="mode-picker-btn" data-mode="24">
+              <span class="mode-picker-num">24</span>
+              <span class="mode-picker-desc">4 Kartu</span>
+            </button>
+            <button class="mode-picker-btn" data-mode="36">
+              <span class="mode-picker-num">36</span>
+              <span class="mode-picker-desc">5 Kartu</span>
+            </button>
+          </div>
+          <div id="modeError" class="setup-error"></div>
+        </div>
+        <div id="roomNameError" class="setup-error"></div>
+        <button id="btnCreateRoom" class="btn btn-primary btn-start">+ Create Room</button>
+        <button id="btnCreateCancel" class="btn btn-cancel">Batal</button>
+      </div>
+
+      <div class="room-divider"><span>atau</span></div>
+
+      <div class="join-room-form">
+        <div class="setup-field">
+          <label class="setup-label">Masukkan ID Room (4 angka)</label>
+          <input type="text" id="inputRoomId" class="setup-input" maxlength="4" placeholder="1234" autocomplete="off" inputmode="numeric" pattern="[0-9]*">
+        </div>
+        <div id="roomIdError" class="setup-error"></div>
+        <button id="btnJoinRoom" class="btn btn-join">Gunakan Room</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mobileOverlay" class="overlay" style="display:none">
+    <div class="overlay-content">
+      <h2>📱 Gabung Room</h2>
+      <div class="create-room-form">
+        <div class="setup-field">
+          <label class="setup-label">Nama Kamu</label>
+          <input type="text" id="inputPlayerName" class="setup-input" maxlength="20" placeholder="Masukkan nama..." autocomplete="off">
+        </div>
+        <div class="setup-field">
+          <label class="setup-label">ID Room</label>
+          <input type="text" id="inputMobileRoomId" class="setup-input" maxlength="4" placeholder="1234" autocomplete="off" inputmode="numeric" pattern="[0-9]*">
+        </div>
+        <div id="mobileError" class="setup-error"></div>
+        <button id="btnJoinMobile" class="btn btn-join">Join Room</button>
+        <button id="btnMobileCancel" class="btn btn-cancel">Batal</button>
+      </div>
+      <div class="room-divider"><span>atau</span></div>
+      <button id="btnBrowseRooms" class="btn btn-primary btn-start" style="margin-top:0">📋 Lihat Room Tersedia</button>
+    </div>
+  </div>
+
+  <div id="roomListOverlay" class="overlay" style="display:none">
+    <div class="overlay-content overlay-content-wide">
+      <h2>📋 Daftar Room</h2>
+      <div id="roomListContainer" class="room-list-container">
+        <p class="room-list-loading">⏳ Memuat daftar room...</p>
+      </div>
+      <div class="challenge-buttons" style="margin-top:16px">
+        <button id="btnRoomListClose" class="btn btn-secondary">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="battle.js"></script>
+</body>
+</html>

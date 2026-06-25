@@ -1,0 +1,249 @@
+.room-screen {
+  max-width: 600px;
+}
+
+.room-loading {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 60px 0;
+  font-size: 1.1rem;
+}
+
+.room-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.room-id {
+  font-size: 3.6rem;
+  font-weight: 900;
+  color: #ffd54f;
+  text-shadow: 0 0 40px rgba(255, 213, 79, 0.3);
+  letter-spacing: 6px;
+  margin-bottom: 8px;
+  font-family: 'Courier New', 'Consolas', monospace;
+}
+
+.room-name {
+  color: #fff;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.room-badge {
+  display: inline-block;
+  padding: 6px 18px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 20px;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.room-time {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-bottom: 36px;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.room-time-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.room-time-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.room-time-value {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.room-time-expired {
+  color: #e57373;
+}
+
+.room-players {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.room-players-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.room-players-count {
+  color: #ffd54f;
+  font-weight: 700;
+}
+
+.player-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.player-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.player-slot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 12px;
+  border-radius: 12px;
+  border: 1px solid;
+  transition: all 0.2s;
+}
+
+.player-slot:hover {
+  filter: brightness(1.3);
+}
+
+.player-icon {
+  flex-shrink: 0;
+  color: #fff;
+  display: flex;
+  align-items: center;
+}
+
+.player-name {
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-slot-empty {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  justify-content: center;
+}
+
+.player-slot-empty:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.player-check {
+  margin-left: auto;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.player-slot-empty-text {
+  color: rgba(255, 255, 255, 0.15);
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.btn-ready {
+  display: block;
+  margin: 24px auto 0;
+  padding: 14px 48px;
+  font-size: 1.1rem;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  background: linear-gradient(135deg, #43a047, #2e7d32);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
+}
+
+.btn-ready:hover {
+  box-shadow: 0 6px 25px rgba(46, 125, 50, 0.6);
+  transform: translateY(-2px);
+}
+
+.btn-ready:active {
+  transform: scale(0.96);
+}
+
+.btn-ready:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-ready:disabled:hover {
+  box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
+  transform: none;
+}
+
+.btn-delete-room {
+  display: block;
+  margin: 12px auto 0;
+  padding: 12px 36px;
+  font-size: 0.95rem;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  background: linear-gradient(135deg, #e53935, #b71c1c);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(183, 28, 28, 0.4);
+}
+
+.btn-delete-room:hover {
+  box-shadow: 0 6px 25px rgba(183, 28, 28, 0.6);
+  transform: translateY(-2px);
+}
+
+.btn-delete-room:active {
+  transform: scale(0.96);
+}
+
+@media (max-width: 500px) {
+  .room-id {
+    font-size: 2.6rem;
+    letter-spacing: 4px;
+  }
+
+  .room-name {
+    font-size: 1.4rem;
+  }
+
+  .room-time {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .player-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

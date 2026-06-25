@@ -1,0 +1,128 @@
+.mobile-screen {
+  max-width: 420px;
+  text-align: center;
+}
+
+.mobile-header {
+  margin-bottom: 48px;
+}
+
+.mobile-title {
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.mobile-room-info {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+.mobile-room-info span {
+  color: #ffd54f;
+  font-weight: 700;
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-size: 1.1rem;
+}
+
+.mobile-status {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.9rem;
+  margin-top: 6px;
+}
+
+.mobile-status span {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.mobile-status .status-ready {
+  color: #66bb6a;
+}
+
+.mobile-status .status-undready {
+  color: #ffa726;
+}
+
+.mobile-btn-orange {
+  background: linear-gradient(135deg, #ffa726, #ef6c00);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(239, 108, 0, 0.4);
+}
+
+.mobile-btn-orange:hover {
+  box-shadow: 0 6px 25px rgba(239, 108, 0, 0.6);
+  transform: translateY(-2px);
+}
+
+.mobile-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mobile-btn {
+  width: 100%;
+  padding: 16px 24px;
+  border: none;
+  border-radius: 14px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.mobile-btn:active {
+  transform: scale(0.97);
+}
+
+.mobile-btn-white {
+  background: #fff;
+  color: #000;
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.15);
+}
+
+.mobile-btn-white:hover {
+  background: #e0e0e0;
+  transform: translateY(-2px);
+}
+
+.mobile-btn-green {
+  background: linear-gradient(135deg, #43a047, #2e7d32);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
+}
+
+.mobile-btn-green:hover {
+  box-shadow: 0 6px 25px rgba(46, 125, 50, 0.6);
+  transform: translateY(-2px);
+}
+
+.mobile-btn-red {
+  background: linear-gradient(135deg, #e53935, #b71c1c);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(183, 28, 28, 0.4);
+}
+
+.mobile-btn-red:hover {
+  box-shadow: 0 6px 25px rgba(183, 28, 28, 0.6);
+  transform: translateY(-2px);
+}
+
+#petunjukOverlay .battle-popup-rules p {
+  color: #fff;
+}
+
+@media (max-width: 500px) {
+  .mobile-title {
+    font-size: 1.6rem;
+  }
+
+  .mobile-btn {
+    padding: 14px 20px;
+    font-size: 1rem;
+  }
+}

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>24Card - Player</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style-mobile.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📱</text></svg>">
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
+      authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
+      databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
+      projectId: "iyon-adryanlf-trialerror",
+      storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
+      messagingSenderId: "519669963248",
+      appId: "1:519669963248:web:feab50008d27c2a7226535",
+      measurementId: "G-4MFLB4B68F"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
+</head>
+<body>
+  <div class="container mobile-screen">
+    <div class="mobile-header">
+      <h1 class="mobile-title">📱 <span id="mobilePlayerName">-</span></h1>
+      <p class="mobile-room-info" id="mobileRoomInfo">Room #<span id="mobileRoomId">----</span></p>
+      <p class="mobile-status" id="mobileStatusDisplay">Status: <span id="mobileStatusText">-</span></p>
+    </div>
+
+    <div class="mobile-actions">
+      <button id="btnPetunjuk" class="mobile-btn mobile-btn-white">Petunjuk</button>
+      <button id="btnReady" class="mobile-btn mobile-btn-green">Ready</button>
+      <button id="btnLeave" class="mobile-btn mobile-btn-red">Leave Room</button>
+    </div>
+  </div>
+
+  <div id="leaveConfirmOverlay" class="overlay" style="display:none">
+    <div class="overlay-content">
+      <h2>🚪 Leave Room</h2>
+      <p style="color:rgba(255,255,255,0.8);margin-bottom:28px;line-height:1.6">Yakin mau keluar dari room ini?</p>
+      <div class="challenge-buttons">
+        <button id="btnLeaveCancel" class="btn btn-secondary">Batal</button>
+        <button id="btnLeaveConfirm" class="btn btn-challenge">🚪 Keluar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="petunjukOverlay" class="overlay" style="display:none">
+    <div class="overlay-content">
+      <h2>📖 Petunjuk</h2>
+      <div class="battle-popup-rules">
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+        <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+      </div>
+      <div class="challenge-buttons">
+        <button id="btnPetunjukOk" class="btn btn-primary">👍 Mengerti</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="mobile.js"></script>
+</body>
+</html>

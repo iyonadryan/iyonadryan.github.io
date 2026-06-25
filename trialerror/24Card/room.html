@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>24Card - Room</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style-room.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
+      authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
+      databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
+      projectId: "iyon-adryanlf-trialerror",
+      storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
+      messagingSenderId: "519669963248",
+      appId: "1:519669963248:web:feab50008d27c2a7226535",
+      measurementId: "G-4MFLB4B68F"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
+</head>
+<body>
+  <a href="index.html" class="btn-back-menu" title="Kembali ke menu">← Menu</a>
+
+  <div class="container room-screen">
+    <div id="roomLoading" class="room-loading">
+      <p>⏳ Memuat room...</p>
+    </div>
+
+    <div id="roomContent" style="display:none">
+      <div class="room-header">
+        <div class="room-id">#<span id="roomIdDisplay">----</span></div>
+        <h1 class="room-name" id="roomNameDisplay">-</h1>
+        <div class="room-badge" id="roomModeDisplay">Mode 24</div>
+      </div>
+
+      <div class="room-time">
+        <div class="room-time-item">
+          <span class="room-time-label">Dibuat</span>
+          <span class="room-time-value" id="roomCreatedDisplay">-</span>
+        </div>
+        <div class="room-time-item">
+          <span class="room-time-label">Kadaluarsa</span>
+          <span class="room-time-value room-time-expired" id="roomExpiredDisplay">-</span>
+        </div>
+      </div>
+
+      <div class="room-players">
+        <div class="room-players-header">
+          <span>Player</span>
+          <span class="room-players-count" id="playersCount">Ready: 0/0</span>
+        </div>
+        <div class="player-grid" id="playerGrid"></div>
+      </div>
+
+      <button id="btnReady" class="btn btn-ready">READY</button>
+      <button id="btnDeleteRoom" class="btn btn-delete-room">🗑️ Hapus Room</button>
+    </div>
+  </div>
+
+  <div id="deleteConfirmOverlay" class="overlay" style="display:none">
+    <div class="overlay-content">
+      <h2>🗑️ Hapus Room</h2>
+      <p style="color:rgba(255,255,255,0.8);margin-bottom:28px;line-height:1.6">Apakah Anda yakin ingin menghapus room ini?<br>Tindakan ini tidak dapat dibatalkan.</p>
+      <div class="challenge-buttons">
+        <button id="btnDeleteCancel" class="btn btn-secondary">Batal</button>
+        <button id="btnDeleteConfirm" class="btn btn-challenge">🗑️ Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="room.js"></script>
+</body>
+</html>

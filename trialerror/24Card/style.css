@@ -777,7 +777,7 @@ header h1 {
 
 .menu-options {
   display: flex;
-  gap: 20px;
+  gap: 16px;
   justify-content: center;
   flex-wrap: wrap;
 }
@@ -787,7 +787,7 @@ header h1 {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 180px;
+  width: 155px;
   height: 200px;
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid rgba(255, 255, 255, 0.08);
@@ -802,6 +802,15 @@ header h1 {
   border-color: rgba(255, 255, 255, 0.18);
   transform: translateY(-8px);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.menu-btn-battle {
+  border-width: 2px;
+  border-color: #ffd54f;
+}
+
+.menu-btn-battle:hover {
+  border-color: #ffb300;
 }
 
 .menu-btn-num {
@@ -897,8 +906,8 @@ header h1 {
   }
 
   .menu-btn {
-    width: 140px;
-    height: 160px;
+    width: 120px;
+    height: 150px;
   }
 
   .menu-btn-num {
