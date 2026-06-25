@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>24Card - Battle Mobile</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📱</text></svg>">
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
+      authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
+      databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
+      projectId: "iyon-adryanlf-trialerror",
+      storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
+      messagingSenderId: "519669963248",
+      appId: "1:519669963248:web:feab50008d27c2a7226535",
+      measurementId: "G-4MFLB4B68F"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
+</head>
+<body>
+  <div class="container" style="text-align:center">
+    <h1 style="color:#fff;font-size:2.2rem;margin-bottom:16px">📱 Battle Mobile</h1>
+    <p style="color:rgba(255,255,255,0.5)">Room #<span id="mobileRoomId" style="color:#ffd54f;font-weight:700"></span></p>
+    <p style="color:rgba(255,255,255,0.4)">Player: <span id="mobilePlayerName" style="color:#fff;font-weight:600"></span></p>
+    <p style="color:rgba(255,255,255,0.3);margin-top:24px">⏳ Menunggu mekanik permainan...</p>
+  </div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    document.getElementById('mobileRoomId').textContent = params.get('roomId') || '----';
+    document.getElementById('mobilePlayerName').textContent = params.get('name') || '-';
+  </script>
+</body>
+</html>

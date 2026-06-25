@@ -141,4 +141,32 @@ if (!roomId) {
     console.error(err);
     roomLoading.innerHTML = '<p>❌ Gagal memuat data room.</p><a href="index.html" class="btn btn-secondary" style="margin-top:16px">← Kembali</a>';
   });
+
+  btnReady.addEventListener('click', () => {
+    roomRef.once('value').then((snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+
+      const players = data.players || {};
+      const updates = {};
+
+      Object.keys(players).forEach((name) => {
+        updates['players/' + name + '/life'] = 100;
+      });
+
+      updates['status'] = 'play';
+
+      btnReady.disabled = true;
+      btnReady.textContent = '⏳ ...';
+
+      roomRef.update(updates).then(() => {
+        window.location.href = 'battle-host.html?roomId=' + roomId;
+      }).catch((err) => {
+        console.error(err);
+        alert('Gagal memulai game. Coba lagi.');
+        btnReady.disabled = false;
+        btnReady.textContent = 'READY';
+      });
+    });
+  });
 }

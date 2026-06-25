@@ -26,6 +26,16 @@ if (!roomId || !playerName) {
   mobilePlayerName.textContent = playerName;
 
   const playerRef = db.ref('trial-error/24Card/battle/' + roomId + '/players/' + playerName);
+  const roomRef = db.ref('trial-error/24Card/battle/' + roomId);
+
+  // Listen for game start
+  roomRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+    if (data.status === 'play') {
+      window.location.href = 'battle-mobile.html?roomId=' + roomId + '&name=' + encodeURIComponent(playerName);
+    }
+  });
 
   // Petunjuk
   btnPetunjuk.addEventListener('click', () => {
