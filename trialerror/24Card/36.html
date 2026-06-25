@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>24Card - Mode 36</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script>
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
+      authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
+      databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
+      projectId: "iyon-adryanlf-trialerror",
+      storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
+      messagingSenderId: "519669963248",
+      appId: "1:519669963248:web:feab50008d27c2a7226535",
+      measurementId: "G-4MFLB4B68F"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
+</head>
+<body data-mode="36">
+  <a href="index.html" class="btn-back-menu" title="Kembali ke menu">← Menu</a>
+
+  <div class="container">
+    <header>
+      <h1>🃏 Kartu 36</h1>
+      <p class="subtitle">Gabungkan 5 angka menjadi <strong>36</strong>!</p>
+    </header>
+
+    <div id="challengeHeader" class="challenge-header" style="display:none">
+      <span class="challenge-timer" id="timerDisplay">⏱️ 02:00</span>
+      <span class="challenge-score" id="scoreDisplay">⭐ 0</span>
+    </div>
+
+    <div class="controls">
+      <button id="btnChallenge" class="btn btn-challenge">🏆 Challenge</button>
+      <button id="btnGenerate" class="btn btn-primary">🎲 Generate</button>
+      <button id="btnReset" class="btn btn-secondary" disabled>↺ Reset</button>
+      <button id="btnShuffle" class="btn btn-secondary" disabled>🔀 Acak Posisi</button>
+    </div>
+
+    <div id="cardsContainer" class="cards"></div>
+
+    <div id="infoArea" class="info">Klik <strong>Generate</strong> untuk memulai!</div>
+
+    <div id="opsContainer" class="operations">
+      <button class="op-btn" data-op="+">+</button>
+      <button class="op-btn" data-op="-">−</button>
+      <button class="op-btn" data-op="×">×</button>
+      <button class="op-btn" data-op="÷">÷</button>
+    </div>
+
+    <div id="stepsContainer" class="steps">
+      <div class="steps-title">📜 Langkah-langkah</div>
+      <div id="stepsList"></div>
+    </div>
+  </div>
+
+  <div id="instructionsOverlay" class="overlay" style="display:none">
+    <div class="overlay-content">
+      <h2>🏆 Challenge Mode</h2>
+      <div class="challenge-rules">
+        <p>⏱️ <strong>120 detik</strong> — selesaikan sebanyak mungkin!</p>
+        <p>🔄 <strong>Generate cooldown 10 detik</strong> — gunakan jika stuck</p>
+        <p>✅ Berhasil <strong>36</strong> → <strong>+1 poin</strong>, kartu baru otomatis</p>
+        <p>❌ Gagal → kartu baru otomatis (tanpa poin)</p>
+      </div>
+      <div class="challenge-buttons">
+        <button id="btnChallengeCancel" class="btn btn-secondary">Belum</button>
+        <button id="btnChallengeReady" class="btn btn-primary">Siap!</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="countdownOverlay" class="overlay overlay-countdown" style="display:none">
+    <div class="countdown-number" id="countdownNumber">5</div>
+  </div>
+
+  <div id="resultOverlay" class="overlay" style="display:none">
+    <div class="overlay-content">
+      <h2>⏰ Waktu Habis!</h2>
+      <div class="result-score">
+        <span class="result-score-value" id="resultScore">0</span>
+        <span class="result-score-label">poin</span>
+      </div>
+      <div class="result-stars" id="resultStars"></div>
+      <div id="saveScoreForm" class="save-score" style="display:none">
+        <input type="text" id="nicknameInput" class="setup-input" maxlength="20" placeholder="Masukkan nickname...">
+        <button id="btnSaveScore" class="btn btn-challenge btn-save">💾 Simpan & Lihat Leaderboard</button>
+      </div>
+      <div class="challenge-buttons">
+        <button id="btnResultRetry" class="btn btn-challenge">🔄 Coba Lagi</button>
+        <a href="index.html" class="btn btn-secondary">← Menu</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
