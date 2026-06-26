@@ -854,15 +854,24 @@ header h1 {
     padding: 24px 16px;
   }
 
+  .cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    min-height: 120px;
+  }
+
   .card {
-    width: 78px;
-    height: 110px;
+    flex: 0 0 calc((100% - 16px) / 3);
+    height: auto;
+    aspect-ratio: 110 / 152;
     border-radius: 9px;
   }
 
-  .cards {
-    gap: 10px;
-    min-height: 120px;
+  [data-mode="24"] .card,
+  .cards.grid-4 .card {
+    flex: 0 0 calc((100% - 24px) / 4);
   }
 
   .card-corner-top {
@@ -912,6 +921,21 @@ header h1 {
 
   .menu-btn-num {
     font-size: 2.8rem;
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .controls.controls-custom {
+    grid-template-columns: 1fr;
+  }
+
+  .controls .btn {
+    width: 100%;
+    text-align: center;
   }
 }
 

@@ -81,13 +81,18 @@ function startGame() {
     setupError.textContent = '⚠️ Target harus di antara 1 - 100';
     return;
   }
-  if (isNaN(count) || count < 1 || count > 10) {
-    setupError.textContent = '⚠️ Jumlah kartu harus di antara 1 - 10';
+  if (isNaN(count) || count < 2 || count > 10) {
+    setupError.textContent = '⚠️ Jumlah kartu harus di antara 2 - 10';
     return;
   }
 
   CUSTOM_TARGET = target;
   CUSTOM_CARD_COUNT = count;
+
+  cardsContainer.classList.remove('grid-4');
+  if (count === 4 || count === 8 || count === 10) {
+    cardsContainer.classList.add('grid-4');
+  }
 
   setupScreen.style.display = 'none';
   gameScreen.style.display = '';
@@ -174,7 +179,10 @@ function handleCardClick(index) {
     if (index === state.selectedIdx) {
       state.selectedOp = null;
       state.interactionPhase = 'select-op';
-      render();
+if (CUSTOM_CARD_COUNT === 4 || CUSTOM_CARD_COUNT === 8 || CUSTOM_CARD_COUNT === 10) {
+  cardsContainer.classList.add('grid-4');
+}
+render();
       return;
     }
     const aVal = state.numbers[state.selectedIdx];
@@ -374,4 +382,7 @@ btnGenerate.addEventListener('click', generateNumbers);
 btnReset.addEventListener('click', resetGame);
 btnShuffle.addEventListener('click', shuffleWithAnimation);
 
+if (CUSTOM_CARD_COUNT === 4 || CUSTOM_CARD_COUNT === 8 || CUSTOM_CARD_COUNT === 10) {
+  cardsContainer.classList.add('grid-4');
+}
 render();
