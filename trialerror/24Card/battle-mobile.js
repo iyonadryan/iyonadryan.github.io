@@ -193,7 +193,17 @@ function renderLatestRound(plays) {
     gamePhase = 'idle';
     render();
     document.getElementById('mobileLastRound').textContent = currentRound;
-    renderDummyScoreboard('mobileScoreboardBody');
+    const playersRef = db.ref('trial-error/24Card/battle/' + roomId + '/players');
+    playersRef.once('value').then((snap) => {
+      const pd = snap.val() || {};
+      const players = Object.keys(pd).map(name => ({
+        name,
+        successTs: (roundData.success && roundData.success[name]) || null,
+        life: (pd[name] && pd[name].life) || 0
+      }));
+      const scores = calculateScores(players, roundData.timestamp || Date.now());
+      renderScoreboard('mobileScoreboardBody', scores);
+    });
     roundDoneOverlay.style.display = '';
     return;
   }
@@ -290,25 +300,22 @@ function heartsHTML(life, size) {
   return html;
 }
 
-function renderDummyScoreboard(bodyId) {
+function renderScoreboard(bodyId, scores) {
+  const colors = ['#64b5f6', '#ffb74d', '#ce93d8', '#ef9a9a', '#81c784', '#a1887f'];
   const clockSvg = '<svg class="clock-icon" viewBox="0 0 24 24" width="12" height="12" stroke="#fff" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2" stroke-linecap="round"/></svg>';
-  const dummy = [
-    { rank: 1, name: 'Player 1', color: '#64b5f6', time: '5  ' + clockSvg, score: '-0', scoreColor: '#66bb6a', life: 83 },
-    { rank: 2, name: 'Player 2', color: '#ffb74d', time: '8  ' + clockSvg, score: '-2', scoreColor: '#e57373', life: 47 },
-    { rank: 3, name: 'Player 3', color: '#ce93d8', time: '17  ' + clockSvg, score: '-3', scoreColor: '#e57373', life: 65 },
-    { rank: 4, name: 'Player 4', color: '#ef9a9a', time: '💣', score: '-10', scoreColor: '#e57373', life: 32 }
-  ];
   const tbody = document.getElementById(bodyId);
   if (!tbody) return;
   tbody.innerHTML = '';
-  dummy.forEach(p => {
+  scores.forEach((p, i) => {
+    const timeHtml = p.timeTaken != null ? p.timeTaken + '  ' + clockSvg : '💣';
+    const scoreColor = p.score === 0 ? '#66bb6a' : '#e57373';
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="col-rank">${p.rank}</td>
-      <td class="col-name" style="color:${p.color};font-weight:700">${p.name}</td>
-      <td class="col-time">${p.time}</td>
-      <td class="col-score" style="color:${p.scoreColor}">${p.score}</td>
-      <td class="col-life">${heartsHTML(p.life, 11)} ${p.life}</td>`;
+      <td class="col-rank">${i + 1}</td>
+      <td class="col-name" style="color:${colors[i % colors.length]};font-weight:700">${p.name}</td>
+      <td class="col-time">${timeHtml}</td>
+      <td class="col-score" style="color:${scoreColor}">${p.score}</td>
+      <td class="col-life">${heartsHTML(p.newLife, 11)} ${p.newLife}</td>`;
     tbody.appendChild(tr);
   });
 }
