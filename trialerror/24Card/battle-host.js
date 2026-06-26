@@ -39,6 +39,7 @@ if (!roomId) {
       countdownActive = false;
       countdownOverlay.style.display = 'none';
       nextRoundOverlay.style.display = 'none';
+      document.getElementById('endGameOverlay').style.display = 'none';
       mainContent.style.display = '';
       renderLatestRound(plays);
     } else if (!countdownActive) {
@@ -48,7 +49,14 @@ if (!roomId) {
 
   btnNextRound.addEventListener('click', createEmptyRound);
   document.getElementById('btnEndGame').addEventListener('click', () => {
+    document.getElementById('endGameRound').textContent = document.getElementById('roundNumber').textContent;
+    document.getElementById('endGameOverlay').style.display = '';
+  });
+  document.getElementById('btnEndConfirm').addEventListener('click', () => {
     window.location.href = 'room.html?roomId=' + roomId;
+  });
+  document.getElementById('btnEndCancel').addEventListener('click', () => {
+    document.getElementById('endGameOverlay').style.display = 'none';
   });
 }
 
@@ -181,6 +189,7 @@ function renderLatestRound(plays) {
       lastRoundScores = scores;
       lastCompletedRound = latestRound;
       renderScoreboard('scoreboardBody', scores);
+      document.getElementById('popupRoomId').textContent = roomId;
       nextRoundOverlay.style.display = '';
     });
   }

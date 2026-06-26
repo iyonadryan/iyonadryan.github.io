@@ -32,6 +32,7 @@ let interactPhase = 'select-first';
 let gameTarget = 24;
 let gameCardCount = 4;
 let currentRound = null;
+let playsRef = null;
 
 if (!roomId || !playerName) {
   mainContent.style.display = '';
@@ -40,14 +41,13 @@ if (!roomId || !playerName) {
 
   playerRef.on('value', (snap) => {
     const data = snap.val();
-    console.log('Player data:', data);
     if (!data) return;
 
     const life = data.life || 0;
     renderHearts(life);
   });
 
-  const playsRef = db.ref('trial-error/24Card/battle/' + roomId + '/plays');
+  playsRef = db.ref('trial-error/24Card/battle/' + roomId + '/plays');
 
   playsRef.on('value', (snap) => {
     const plays = snap.val();
@@ -203,13 +203,32 @@ function renderLatestRound(plays) {
       }));
       const scores = calculateScores(players, roundData.timestamp || Date.now());
       const myScore = scores.find(s => s.name === playerName) || { timeTaken: null, score: 0, newLife: 0 };
+      document.getElementById('mobilePopupRoomId').textContent = roomId;
       document.getElementById('mobilePopupName').textContent = '🃏 ' + playerName;
       const clockSvg = '<svg class="clock-icon" viewBox="0 0 24 24" width="14" height="14" stroke="#fff" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2" stroke-linecap="round"/></svg>';
-      document.getElementById('mobileStatTime').innerHTML = myScore.timeTaken != null ? myScore.timeTaken + '  ' + clockSvg : '💣';
-      const scoreEl = document.getElementById('mobileStatScore');
-      scoreEl.textContent = myScore.score;
-      scoreEl.style.color = myScore.score === 0 ? '#66bb6a' : '#e57373';
-      document.getElementById('mobileStatLife').innerHTML = heartsHTML(myScore.newLife, 14) + ' ' + myScore.newLife;
+
+      if (myScore.newLife <= 0) {
+        document.getElementById('mobilePlayerStats').innerHTML = `
+          <div class="stat-row">
+            <span class="stat-label">Last Round</span>
+            <span class="stat-value">${pd[playerName] ? pd[playerName].lastRound || currentRound : currentRound}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Life</span>
+            <span class="stat-value">${heartsHTML(0, 14)} 0</span>
+          </div>`;
+        const msg = document.getElementById('mobileStatusMsg');
+        msg.innerHTML = 'Anda sudah tidak dapat melanjutkan permainan karena anda sudah tidak memiliki point, tunggu permainan selesai untuk melihat hasil pertandingan';
+        msg.style.color = '#ffd54f';
+        msg.style.fontWeight = '700';
+        if (playsRef) playsRef.off();
+      } else {
+        document.getElementById('mobileStatTime').innerHTML = myScore.timeTaken != null ? myScore.timeTaken + '  ' + clockSvg : '💣';
+        const scoreEl = document.getElementById('mobileStatScore');
+        scoreEl.textContent = myScore.score;
+        scoreEl.style.color = myScore.score === 0 ? '#66bb6a' : '#e57373';
+        document.getElementById('mobileStatLife').innerHTML = heartsHTML(myScore.newLife, 14) + ' ' + myScore.newLife;
+      }
       roundDoneOverlay.style.display = '';
     });
     return;

@@ -53,7 +53,8 @@
 
   <div id="nextRoundOverlay" class="overlay" style="display:none">
     <div class="overlay-content overlay-content-wide">
-      <h2>⏰ Ronde #<span id="lastRoundNumber"> </span> Selesai!</h2>
+      <h2 style="margin-bottom:4px">⏰ Ronde #<span id="lastRoundNumber"> </span> Selesai!</h2>
+      <div style="font-size:0.85rem;color:rgba(255,255,255,0.35);margin-bottom:12px">Room #<span id="popupRoomId" style="color:#ffd54f;font-weight:700"></span></div>
       <div id="popupCards" class="popup-cards" style="display:flex;justify-content:center;gap:6px;margin-bottom:12px"></div>
       <div id="roundScoreboard" class="scoreboard">
         <table class="scoreboard-table">
@@ -73,6 +74,17 @@
         <button id="btnNextRound" class="btn btn-challenge">▶️ Ronde Selanjutnya</button>
         <div style="color:rgba(255,255,255,0.25);font-size:0.8rem;font-weight:600;text-align:center">ATAU</div>
         <button id="btnEndGame" class="btn btn-cancel">Permainan Selesai</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="endGameOverlay" class="overlay" style="display:none">
+    <div class="overlay-content">
+      <h2>Akhiri Permainan?</h2>
+      <p style="color:rgba(255,255,255,0.6);margin-bottom:28px;font-size:0.95rem">Yakin ingin menghentikan permainan di Ronde #<span id="endGameRound"> </span>?</p>
+      <div class="challenge-buttons">
+        <button id="btnEndConfirm" class="btn btn-cancel">Hentikan</button>
+        <button id="btnEndCancel" class="btn btn-secondary">Tidak</button>
       </div>
     </div>
   </div>
