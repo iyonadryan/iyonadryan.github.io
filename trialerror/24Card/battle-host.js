@@ -11,6 +11,8 @@ let countdownInterval = null;
 let countdownActive = false;
 let timerInterval = null;
 const roundTimer = document.getElementById('roundTimer');
+const successPlayers = document.getElementById('successPlayers');
+const successPlayersGrid = document.getElementById('successPlayersGrid');
 const ROUND_DURATION = 30000;
 
 if (!roomId) {
@@ -85,17 +87,61 @@ function renderLatestRound(plays) {
   document.getElementById('roundNumber').textContent = latestRound;
 
   if (roundData.status === 'onprogress') {
+    if (!roundData.numbers) {
+      console.error('roundData.numbers is missing', roundData);
+      return;
+    }
     const items = roundData.numbers.split(',');
     const numbers = items.map(item => parseInt(item));
     const suits = items.map(item => item.replace(/[0-9]/g, ''));
     renderCards(numbers, suits);
+    renderSuccessPlayers(roundData);
     if (roundData.expired) {
       startRoundTimer(roundData.expired, latestRound);
     }
   } else {
     roundTimer.style.display = '';
     roundTimer.innerHTML = '<div class="timer-circle expired"><span class="timer-circle-text">💣</span></div>';
+    renderSuccessPlayers(roundData);
   }
+}
+
+function getPlayerColor(index) {
+  const hue = (index * 47 + 17) % 360;
+  return {
+    bg: `hsla(${hue}, 55%, 45%, 0.25)`,
+    border: `hsla(${hue}, 55%, 55%, 0.3)`,
+    accent: `hsla(${hue}, 55%, 65%, 0.9)`
+  };
+}
+
+function renderSuccessPlayers(roundData) {
+  if (!roundData.success) {
+    successPlayers.style.display = 'none';
+    return;
+  }
+  const names = Object.keys(roundData.success);
+  if (names.length === 0) {
+    successPlayers.style.display = 'none';
+    return;
+  }
+  successPlayers.style.display = '';
+  successPlayersGrid.innerHTML = '';
+  names.sort((a, b) => (roundData.success[a] - roundData.timestamp) - (roundData.success[b] - roundData.timestamp));
+  names.forEach((name, i) => {
+    const colors = getPlayerColor(i);
+    const playerTs = roundData.success[name];
+    const roundTs = roundData.timestamp;
+    const timeTaken = Math.round((playerTs - roundTs) / 1000);
+    const slot = document.createElement('div');
+    slot.className = 'success-player-slot';
+    slot.style.cssText = `background:${colors.bg};border-color:${colors.border}`;
+    slot.innerHTML = `
+      <span class="success-player-name" style="color:${colors.accent}">${name}</span>
+      <span class="success-player-time">${timeTaken} 🕓</span>
+    `;
+    successPlayersGrid.appendChild(slot);
+  });
 }
 
 function startRoundTimer(expired, round) {

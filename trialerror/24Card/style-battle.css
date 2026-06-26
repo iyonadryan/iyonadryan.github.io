@@ -449,3 +449,53 @@
     right: -5px;
   }
 }
+
+.timer-goodjob {
+  text-align: center;
+  width: 100%;
+  padding: 10px 16px;
+  background: rgba(76, 175, 80, 0.2);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 1rem;
+  color: #66bb6a;
+  letter-spacing: 6px;
+  font-family: 'Courier New', 'Consolas', monospace;
+}
+
+.success-players {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.success-players-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.success-player-slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid;
+}
+
+.success-player-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.success-player-time {
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+}
