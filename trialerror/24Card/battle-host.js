@@ -17,6 +17,7 @@ const successPlayers = document.getElementById('successPlayers');
 const successPlayersGrid = document.getElementById('successPlayersGrid');
 const ROUND_DURATION = 30000;
 let lastRoundScores = null;
+let lastCompletedRound = null;
 
 if (!roomId) {
   mainContent.style.display = '';
@@ -178,6 +179,7 @@ function renderLatestRound(plays) {
       }));
       const scores = calculateScores(players, roundData.timestamp || Date.now());
       lastRoundScores = scores;
+      lastCompletedRound = latestRound;
       renderScoreboard('scoreboardBody', scores);
       nextRoundOverlay.style.display = '';
     });
@@ -188,12 +190,16 @@ function createEmptyRound() {
   nextRoundOverlay.style.display = 'none';
   const roomRef = db.ref('trial-error/24Card/battle/' + roomId);
 
-  if (lastRoundScores) {
+  if (lastRoundScores && lastCompletedRound) {
     const updates = {};
     lastRoundScores.forEach(p => {
+      if (p.currentLife <= 0) return;
       updates['players/' + p.name + '/life'] = p.newLife;
+      updates['players/' + p.name + '/lastRound'] = lastCompletedRound;
     });
-    roomRef.update(updates).catch(err => console.error(err));
+    if (Object.keys(updates).length > 0) {
+      roomRef.update(updates).catch(err => console.error(err));
+    }
   }
 
   const playsRef = db.ref('trial-error/24Card/battle/' + roomId + '/plays');
@@ -353,7 +359,9 @@ function renderScoreboard(bodyId, scores) {
   const tbody = document.getElementById(bodyId);
   if (!tbody) return;
   tbody.innerHTML = '';
-  scores.forEach((p, i) => {
+  const active = scores.filter(p => p.newLife > 0);
+  const eliminated = scores.filter(p => p.newLife <= 0);
+  active.forEach((p, i) => {
     const timeHtml = p.timeTaken != null ? p.timeTaken + '  ' + clockSvg : '💣';
     const scoreColor = p.score === 0 ? '#66bb6a' : '#e57373';
     const tr = document.createElement('tr');
@@ -363,6 +371,16 @@ function renderScoreboard(bodyId, scores) {
       <td class="col-time">${timeHtml}</td>
       <td class="col-score" style="color:${scoreColor}">${p.score}</td>
       <td class="col-life">${heartsHTML(p.newLife, 11)} ${p.newLife}</td>`;
+    tbody.appendChild(tr);
+  });
+  eliminated.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="col-rank">-</td>
+      <td class="col-name" style="color:rgba(255,255,255,0.35);font-weight:700">${p.name}</td>
+      <td class="col-time">-</td>
+      <td class="col-score">-</td>
+      <td class="col-life" style="color:#e57373;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px">Eliminated</td>`;
     tbody.appendChild(tr);
   });
 }
