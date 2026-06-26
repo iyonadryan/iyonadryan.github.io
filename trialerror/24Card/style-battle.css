@@ -516,3 +516,133 @@
   font-weight: 700;
   color: rgba(255, 255, 255, 0.7);
 }
+
+.scoreboard {
+  margin: 16px 0 20px;
+  overflow-x: auto;
+}
+
+.scoreboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.scoreboard-table th {
+  padding: 8px 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: center;
+}
+
+.scoreboard-table td {
+  padding: 7px 4px;
+  color: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  text-align: center;
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-size: 0.8rem;
+}
+
+.scoreboard-table .col-rank {
+  width: 36px;
+  font-weight: 700;
+}
+
+.scoreboard-table .col-name {
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.scoreboard-table .col-time {
+  width: 48px;
+  color: #fff;
+  font-weight: 700;
+  opacity: 1;
+}
+
+.scoreboard-table .col-time .clock-icon {
+  vertical-align: middle;
+  margin-left: 2px;
+}
+
+.scoreboard-table .col-score {
+  width: 44px;
+  font-weight: 700;
+}
+
+.scoreboard-table .col-life {
+  font-size: 0.7rem;
+  text-align: right;
+}
+
+@media (max-width: 500px) {
+  .scoreboard-table {
+    font-size: 0.75rem;
+  }
+
+  .scoreboard-table td {
+    padding: 5px 3px;
+    font-size: 0.7rem;
+  }
+
+  .scoreboard-table .col-name {
+    font-size: 0.75rem;
+  }
+
+  .scoreboard-table .col-life {
+    font-size: 0.6rem;
+  }
+}
+
+.popup-cards {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.popup-card {
+  width: 52px;
+  height: 68px;
+  background: linear-gradient(160deg, #ffffff, #f0f0f4);
+  border-radius: 7px;
+  border: 1px solid #c8c8d0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+  flex-shrink: 0;
+}
+
+.popup-card-value {
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.popup-card-suit {
+  font-size: 0.85rem;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+@media (max-width: 500px) {
+  .popup-card {
+    width: 42px;
+    height: 56px;
+  }
+  .popup-card-value {
+    font-size: 0.9rem;
+  }
+  .popup-card-suit {
+    font-size: 0.7rem;
+  }
+}

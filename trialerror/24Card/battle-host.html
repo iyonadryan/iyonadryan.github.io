@@ -52,8 +52,23 @@
   </div>
 
   <div id="nextRoundOverlay" class="overlay" style="display:none">
-    <div class="overlay-content">
+    <div class="overlay-content overlay-content-wide">
       <h2>⏰ Ronde #<span id="lastRoundNumber"> </span> Selesai!</h2>
+      <div id="popupCards" class="popup-cards" style="display:flex;justify-content:center;gap:6px;margin-bottom:12px"></div>
+      <div id="roundScoreboard" class="scoreboard">
+        <table class="scoreboard-table">
+          <thead>
+            <tr>
+              <th class="col-rank">Rank</th>
+              <th class="col-name">Name</th>
+              <th class="col-time">Time</th>
+              <th class="col-score">Score</th>
+              <th class="col-life">Life</th>
+            </tr>
+          </thead>
+          <tbody id="scoreboardBody"></tbody>
+        </table>
+      </div>
       <div class="challenge-buttons" style="flex-direction:column;gap:12px">
         <button id="btnNextRound" class="btn btn-challenge">▶️ Ronde Selanjutnya</button>
         <div style="color:rgba(255,255,255,0.25);font-size:0.8rem;font-weight:600;text-align:center">ATAU</div>

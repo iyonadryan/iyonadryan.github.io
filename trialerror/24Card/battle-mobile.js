@@ -193,6 +193,7 @@ function renderLatestRound(plays) {
     gamePhase = 'idle';
     render();
     document.getElementById('mobileLastRound').textContent = currentRound;
+    renderDummyScoreboard('mobileScoreboardBody');
     roundDoneOverlay.style.display = '';
     return;
   }
@@ -258,6 +259,58 @@ function startRoundTimer(expired) {
 
   tick();
   timerInterval = setInterval(tick, 200);
+}
+
+function heartsHTML(life, size) {
+  const total = 10;
+  const full = Math.floor(life / 10);
+  const remainder = life % 10;
+  const s = size || 12;
+  let html = '';
+  for (let i = 0; i < total; i++) {
+    let fill;
+    if (i < full) {
+      fill = '#e53935';
+    } else if (i === full && remainder > 0) {
+      const pct = (remainder / 10) * 100;
+      const gradId = 'hGrad_' + i + '_' + Date.now();
+      fill = 'url(#' + gradId + ')';
+      html += `<svg viewBox="0 0 24 24" width="${s}" height="${s}" style="vertical-align:middle;margin:0 1px">
+        <defs><linearGradient id="${gradId}" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="${pct}%" stop-color="#e53935"/>
+          <stop offset="${pct}%" stop-color="rgba(255,255,255,0.15)"/>
+        </linearGradient></defs>
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="${fill}"/></svg>`;
+      continue;
+    } else {
+      fill = 'rgba(255,255,255,0.15)';
+    }
+    html += `<svg viewBox="0 0 24 24" width="${s}" height="${s}" style="vertical-align:middle;margin:0 1px"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="${fill}"/></svg>`;
+  }
+  return html;
+}
+
+function renderDummyScoreboard(bodyId) {
+  const clockSvg = '<svg class="clock-icon" viewBox="0 0 24 24" width="12" height="12" stroke="#fff" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2" stroke-linecap="round"/></svg>';
+  const dummy = [
+    { rank: 1, name: 'Player 1', color: '#64b5f6', time: '5  ' + clockSvg, score: '-0', scoreColor: '#66bb6a', life: 83 },
+    { rank: 2, name: 'Player 2', color: '#ffb74d', time: '8  ' + clockSvg, score: '-2', scoreColor: '#e57373', life: 47 },
+    { rank: 3, name: 'Player 3', color: '#ce93d8', time: '17  ' + clockSvg, score: '-3', scoreColor: '#e57373', life: 65 },
+    { rank: 4, name: 'Player 4', color: '#ef9a9a', time: '💣', score: '-10', scoreColor: '#e57373', life: 32 }
+  ];
+  const tbody = document.getElementById(bodyId);
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  dummy.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="col-rank">${p.rank}</td>
+      <td class="col-name" style="color:${p.color};font-weight:700">${p.name}</td>
+      <td class="col-time">${p.time}</td>
+      <td class="col-score" style="color:${p.scoreColor}">${p.score}</td>
+      <td class="col-life">${heartsHTML(p.life, 11)} ${p.life}</td>`;
+    tbody.appendChild(tr);
+  });
 }
 
 function isRedSuit(suit) {

@@ -63,7 +63,21 @@
   <div id="roundDoneOverlay" class="overlay" style="display:none">
     <div class="overlay-content">
       <h2>⏰ Ronde #<span id="mobileLastRound"> </span> Selesai!</h2>
-      <p style="color:rgba(255,255,255,0.6);margin-bottom:28px;font-size:0.95rem">Menunggu host...</p>
+      <div id="mobileScoreboard" class="scoreboard">
+        <table class="scoreboard-table">
+          <thead>
+            <tr>
+              <th class="col-rank">Rank</th>
+              <th class="col-name">Name</th>
+              <th class="col-time">Time</th>
+              <th class="col-score">Score</th>
+              <th class="col-life">Life</th>
+            </tr>
+          </thead>
+          <tbody id="mobileScoreboardBody"></tbody>
+        </table>
+      </div>
+      <p style="color:rgba(255,255,255,0.6);margin-bottom:0;font-size:0.95rem">Menunggu host...</p>
     </div>
   </div>
 
