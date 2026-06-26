@@ -202,9 +202,16 @@ function renderLatestRound(plays) {
         life: (pd[name] && pd[name].life) || 0
       }));
       const scores = calculateScores(players, roundData.timestamp || Date.now());
-      renderScoreboard('mobileScoreboardBody', scores);
+      const myScore = scores.find(s => s.name === playerName) || { timeTaken: null, score: 0, newLife: 0 };
+      document.getElementById('mobilePopupName').textContent = '🃏 ' + playerName;
+      const clockSvg = '<svg class="clock-icon" viewBox="0 0 24 24" width="14" height="14" stroke="#fff" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2" stroke-linecap="round"/></svg>';
+      document.getElementById('mobileStatTime').innerHTML = myScore.timeTaken != null ? myScore.timeTaken + '  ' + clockSvg : '💣';
+      const scoreEl = document.getElementById('mobileStatScore');
+      scoreEl.textContent = myScore.score;
+      scoreEl.style.color = myScore.score === 0 ? '#66bb6a' : '#e57373';
+      document.getElementById('mobileStatLife').innerHTML = heartsHTML(myScore.newLife, 14) + ' ' + myScore.newLife;
+      roundDoneOverlay.style.display = '';
     });
-    roundDoneOverlay.style.display = '';
     return;
   }
 
