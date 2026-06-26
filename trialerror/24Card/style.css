@@ -497,6 +497,19 @@ header h1 {
   user-select: none;
 }
 
+.countdown-number.loading {
+  font-size: 5rem;
+  animation: cardSpin 2s infinite;
+}
+
+@keyframes cardSpin {
+  0% { transform: rotate(0deg); animation-timing-function: ease-in-out; }
+  25% { transform: rotate(180deg); animation-timing-function: linear; }
+  50% { transform: rotate(180deg); animation-timing-function: ease-in-out; }
+  75% { transform: rotate(360deg); animation-timing-function: linear; }
+  100% { transform: rotate(360deg); }
+}
+
 @keyframes countdownPulse {
   0% { transform: scale(1.5); opacity: 0.2; }
   40% { transform: scale(1); opacity: 1; }
@@ -1035,6 +1048,10 @@ header h1 {
 
   .countdown-number.go {
     font-size: 4rem;
+  }
+
+  .countdown-number.loading {
+    font-size: 3rem;
   }
 
   .overlay-content {
