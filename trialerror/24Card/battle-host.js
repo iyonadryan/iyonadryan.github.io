@@ -9,6 +9,9 @@ const mainContent = document.getElementById('mainContent');
 
 let countdownInterval = null;
 let countdownActive = false;
+let timerInterval = null;
+const roundTimer = document.getElementById('roundTimer');
+const ROUND_DURATION = 30000;
 
 if (!roomId) {
   mainContent.style.display = '';
@@ -22,6 +25,10 @@ if (!roomId) {
       if (countdownInterval) {
         clearInterval(countdownInterval);
         countdownInterval = null;
+      }
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
       }
       countdownActive = false;
       countdownOverlay.style.display = 'none';
@@ -82,7 +89,49 @@ function renderLatestRound(plays) {
     const numbers = items.map(item => parseInt(item));
     const suits = items.map(item => item.replace(/[0-9]/g, ''));
     renderCards(numbers, suits);
+    if (roundData.expired) {
+      startRoundTimer(roundData.expired, latestRound);
+    }
+  } else {
+    roundTimer.style.display = '';
+    roundTimer.innerHTML = '<div class="timer-circle expired"><span class="timer-circle-text">💣</span></div>';
   }
+}
+
+function startRoundTimer(expired, round) {
+  roundTimer.style.display = '';
+  roundTimer.innerHTML = `
+    <div class="timer-circle">
+      <span class="timer-circle-text" id="timerCircleText">30</span>
+    </div>
+    <div class="timer-bar-track">
+      <div class="timer-bar-fill" id="timerBarFill">
+        <span class="timer-bomb">💣</span>
+      </div>
+    </div>
+  `;
+
+  const circleText = document.getElementById('timerCircleText');
+  const barFill = document.getElementById('timerBarFill');
+
+  function tick() {
+    const remaining = expired - Date.now();
+    if (remaining <= 0) {
+      roundTimer.innerHTML = '<div class="timer-circle expired"><span class="timer-circle-text">💣</span></div>';
+      clearInterval(timerInterval);
+      timerInterval = null;
+      const playsRef = db.ref('trial-error/24Card/battle/' + roomId + '/plays');
+      playsRef.child(String(round)).update({ status: 'done' }).catch(err => console.error(err));
+      return;
+    }
+    const remainingSec = Math.ceil(remaining / 1000);
+    const pct = Math.max(0, Math.min(100, (remaining / ROUND_DURATION) * 100));
+    circleText.textContent = remainingSec;
+    barFill.style.width = pct + '%';
+  }
+
+  tick();
+  timerInterval = setInterval(tick, 200);
 }
 
 function createNewRound() {
@@ -115,6 +164,7 @@ function createNewRound() {
       playsRef.child(String(round)).set({
         numbers: combined,
         timestamp: now,
+        expired: now + 30000,
         status: 'onprogress'
       }).catch((err) => {
         console.error(err);

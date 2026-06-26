@@ -9,6 +9,10 @@ const lifeContainer = document.getElementById('lifeContainer');
 
 let countdownInterval = null;
 let countdownActive = false;
+let timerInterval = null;
+const roundTimer = document.getElementById('roundTimer');
+const cardsContainer = document.getElementById('cardsContainer');
+const ROUND_DURATION = 30000;
 
 if (!roomId || !playerName) {
   mainContent.style.display = '';
@@ -33,12 +37,24 @@ if (!roomId || !playerName) {
         clearInterval(countdownInterval);
         countdownInterval = null;
       }
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
       countdownActive = false;
       countdownOverlay.style.display = 'none';
       mainContent.style.display = '';
       renderLatestRound(plays);
     } else if (!countdownActive) {
       startCountdown();
+    }
+  });
+
+  const roomRef = db.ref('trial-error/24Card/battle/' + roomId);
+  roomRef.once('value').then((snap) => {
+    const data = snap.val();
+    if (data && data.mode === '24' && cardsContainer) {
+      cardsContainer.classList.add('grid-4');
     }
   });
 }
@@ -147,7 +163,47 @@ function renderLatestRound(plays) {
     const numbers = items.map(item => parseInt(item));
     const suits = items.map(item => item.replace(/[0-9]/g, ''));
     renderCards(numbers, suits);
+    if (roundData.expired) {
+      startRoundTimer(roundData.expired);
+    }
+  } else {
+    roundTimer.style.display = '';
+    roundTimer.innerHTML = '<div class="timer-circle expired"><span class="timer-circle-text">💣</span></div>';
   }
+}
+
+function startRoundTimer(expired) {
+  roundTimer.style.display = '';
+  roundTimer.innerHTML = `
+    <div class="timer-circle">
+      <span class="timer-circle-text" id="timerCircleText">30</span>
+    </div>
+    <div class="timer-bar-track">
+      <div class="timer-bar-fill" id="timerBarFill">
+        <span class="timer-bomb">💣</span>
+      </div>
+    </div>
+  `;
+
+  const circleText = document.getElementById('timerCircleText');
+  const barFill = document.getElementById('timerBarFill');
+
+  function tick() {
+    const remaining = expired - Date.now();
+    if (remaining <= 0) {
+      roundTimer.innerHTML = '<div class="timer-circle expired"><span class="timer-circle-text">💣</span></div>';
+      clearInterval(timerInterval);
+      timerInterval = null;
+      return;
+    }
+    const remainingSec = Math.ceil(remaining / 1000);
+    const pct = Math.max(0, Math.min(100, (remaining / ROUND_DURATION) * 100));
+    circleText.textContent = remainingSec;
+    barFill.style.width = pct + '%';
+  }
+
+  tick();
+  timerInterval = setInterval(tick, 200);
 }
 
 function isRedSuit(suit) {
