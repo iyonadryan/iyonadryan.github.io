@@ -17,6 +17,7 @@ const stepsList = document.getElementById('stepsList');
 const infoArea = document.getElementById('infoArea');
 const btnReset = document.getElementById('btnReset');
 const btnShuffle = document.getElementById('btnShuffle');
+const roundDoneOverlay = document.getElementById('roundDoneOverlay');
 const ROUND_DURATION = 30000;
 
 let gameNumbers = [];
@@ -61,6 +62,7 @@ if (!roomId || !playerName) {
       }
       countdownActive = false;
       countdownOverlay.style.display = 'none';
+      roundDoneOverlay.style.display = 'none';
       mainContent.style.display = '';
       renderLatestRound(plays);
     } else if (!countdownActive) {
@@ -68,11 +70,15 @@ if (!roomId || !playerName) {
     }
   });
 
+  document.getElementById('mobilePlayerName').textContent = playerName;
+  document.getElementById('mobileRoomId').textContent = roomId;
+
   const roomRef = db.ref('trial-error/24Card/battle/' + roomId);
   roomRef.once('value').then((snap) => {
     const data = snap.val();
     if (!data) return;
     const mode = data.mode || '24';
+    document.getElementById('mobileModeDisplay').textContent = mode;
     gameTarget = mode === '36' ? 36 : 24;
     gameCardCount = mode === '36' ? 5 : 4;
     if (mode === '24' && cardsContainer) {
@@ -181,6 +187,18 @@ function renderLatestRound(plays) {
   currentRound = latestRound;
   const roundData = plays[latestRound];
 
+  if (roundData.status !== 'onprogress') {
+    roundTimer.style.display = '';
+    roundTimer.innerHTML = '<div class="timer-circle expired"><span class="timer-circle-text">💣</span></div>';
+    gamePhase = 'idle';
+    render();
+    document.getElementById('mobileLastRound').textContent = currentRound;
+    roundDoneOverlay.style.display = '';
+    return;
+  }
+
+  roundDoneOverlay.style.display = 'none';
+
   if (roundData.success && roundData.success[playerName]) {
     roundTimer.style.display = '';
     roundTimer.innerHTML = '<div class="timer-goodjob">GOOD JOB</div>';
@@ -189,19 +207,22 @@ function renderLatestRound(plays) {
     return;
   }
 
-  if (roundData.status === 'onprogress') {
-    const items = roundData.numbers.split(',');
-    const numbers = items.map(item => parseInt(item));
-    const suits = items.map(item => item.replace(/[0-9]/g, ''));
-    initRound(numbers, suits);
-    if (roundData.expired) {
-      startRoundTimer(roundData.expired);
-    }
-  } else {
-    roundTimer.style.display = '';
-    roundTimer.innerHTML = '<div class="timer-circle expired"><span class="timer-circle-text">💣</span></div>';
+  if (!roundData.numbers) {
+    gameNumbers = [];
+    gameSuits = [];
     gamePhase = 'idle';
+    roundTimer.style.display = 'none';
+    infoArea.innerHTML = 'Menunggu host memulai ronde...';
+    infoArea.className = 'info';
     render();
+    return;
+  }
+  const items = roundData.numbers.split(',');
+  const numbers = items.map(item => parseInt(item));
+  const suits = items.map(item => item.replace(/[0-9]/g, ''));
+  initRound(numbers, suits);
+  if (roundData.expired) {
+    startRoundTimer(roundData.expired);
   }
 }
 
@@ -482,7 +503,7 @@ function renderInfo() {
 
 function renderButtons() {
   if (!btnReset || !btnShuffle) return;
-  btnReset.disabled = gamePhase !== 'playing';
+  btnReset.disabled = gamePhase === 'idle' || gamePhase === 'won';
   btnShuffle.disabled = gamePhase !== 'playing';
 }
 

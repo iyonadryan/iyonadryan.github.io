@@ -226,6 +226,23 @@
   transform: scale(0.96);
 }
 
+#btnReset {
+  background: #fff !important;
+  color: #000 !important;
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.15) !important;
+}
+
+#btnReset:hover {
+  background: #e0e0e0 !important;
+  transform: translateY(-2px);
+}
+
+#btnReset:disabled {
+  opacity: 0.3 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
 .create-room-form .btn-start {
   padding: 10px 20px;
   font-size: 0.9rem;

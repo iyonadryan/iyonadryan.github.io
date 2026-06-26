@@ -27,7 +27,7 @@
 <body>
   <div class="container" style="display:none" id="mainContent">
     <header>
-      <h1>🖥️ Battle Host</h1>
+      <h1>🃏 Battle</h1>
       <p class="subtitle">Room #<span id="hostRoomId" style="color:#ffd54f;font-weight:700"></span> · Mode <span id="hostModeDisplay">-</span></p>
     </header>
 
@@ -49,6 +49,17 @@
 
   <div id="countdownOverlay" class="overlay overlay-countdown">
     <div class="countdown-number loading" id="countdownNumber">🃏</div>
+  </div>
+
+  <div id="nextRoundOverlay" class="overlay" style="display:none">
+    <div class="overlay-content">
+      <h2>⏰ Ronde #<span id="lastRoundNumber"> </span> Selesai!</h2>
+      <div class="challenge-buttons" style="flex-direction:column;gap:12px">
+        <button id="btnNextRound" class="btn btn-challenge">▶️ Ronde Selanjutnya</button>
+        <div style="color:rgba(255,255,255,0.25);font-size:0.8rem;font-weight:600;text-align:center">ATAU</div>
+        <button id="btnEndGame" class="btn btn-cancel">Permainan Selesai</button>
+      </div>
+    </div>
   </div>
 
   <script src="battle-host.js"></script>

@@ -26,6 +26,10 @@
 </head>
 <body>
   <div class="container" style="display:none;text-align:center" id="mainContent">
+    <div class="battle-mobile-header" style="margin-bottom:16px">
+      <div style="font-size:1.2rem;font-weight:800;color:#fff">🃏 <span id="mobilePlayerName"></span></div>
+      <div style="font-size:0.85rem;color:rgba(255,255,255,0.45);margin-top:2px">Room #<span id="mobileRoomId" style="color:#ffd54f;font-weight:700"></span> · Mode <span id="mobileModeDisplay" style="color:#ffd54f;font-weight:700"></span></div>
+    </div>
     <div id="lifeContainer" class="life-container"></div>
 
     <div id="roundTimer" class="round-timer" style="display:none"></div>
@@ -54,6 +58,13 @@
 
   <div id="countdownOverlay" class="overlay overlay-countdown">
     <div class="countdown-number loading" id="countdownNumber">🃏</div>
+  </div>
+
+  <div id="roundDoneOverlay" class="overlay" style="display:none">
+    <div class="overlay-content">
+      <h2>⏰ Ronde #<span id="mobileLastRound"> </span> Selesai!</h2>
+      <p style="color:rgba(255,255,255,0.6);margin-bottom:28px;font-size:0.95rem">Menunggu host...</p>
+    </div>
   </div>
 
   <script src="battle-mobile.js"></script>

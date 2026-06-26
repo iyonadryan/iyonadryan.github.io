@@ -6,6 +6,8 @@ document.getElementById('hostRoomId').textContent = roomId || '----';
 const countdownOverlay = document.getElementById('countdownOverlay');
 const countdownNumber = document.getElementById('countdownNumber');
 const mainContent = document.getElementById('mainContent');
+const nextRoundOverlay = document.getElementById('nextRoundOverlay');
+const btnNextRound = document.getElementById('btnNextRound');
 
 let countdownInterval = null;
 let countdownActive = false;
@@ -34,11 +36,17 @@ if (!roomId) {
       }
       countdownActive = false;
       countdownOverlay.style.display = 'none';
+      nextRoundOverlay.style.display = 'none';
       mainContent.style.display = '';
       renderLatestRound(plays);
     } else if (!countdownActive) {
       startCountdown();
     }
+  });
+
+  btnNextRound.addEventListener('click', createEmptyRound);
+  document.getElementById('btnEndGame').addEventListener('click', () => {
+    window.location.href = 'room.html?roomId=' + roomId;
   });
 }
 
@@ -77,6 +85,43 @@ function startCountdown() {
   }, 1000);
 }
 
+function startNextRoundCountdown(round) {
+  countdownActive = true;
+  countdownOverlay.style.display = '';
+  mainContent.style.display = 'none';
+  let count = 3;
+
+  function animateNum(n) {
+    countdownNumber.className = 'countdown-number';
+    countdownNumber.textContent = String(n);
+    countdownNumber.style.animation = 'none';
+    void countdownNumber.offsetWidth;
+    countdownNumber.style.animation = 'countdownPulse 1s ease-in-out';
+  }
+
+  animateNum(count);
+
+  countdownInterval = setInterval(() => {
+    count--;
+    if (count > 0) {
+      animateNum(count);
+    } else if (count === 0) {
+      countdownNumber.className = 'countdown-number go';
+      countdownNumber.textContent = 'GO!';
+      countdownNumber.style.animation = 'none';
+      void countdownNumber.offsetWidth;
+      countdownNumber.style.animation = 'countdownPulse 1s ease-in-out';
+    } else {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+      countdownActive = false;
+      countdownOverlay.style.display = 'none';
+      mainContent.style.display = '';
+      fillRoundWithData(round);
+    }
+  }, 1000);
+}
+
 function renderLatestRound(plays) {
   const roundNumbers = Object.keys(plays).map(Number).filter(n => !isNaN(n));
   if (roundNumbers.length === 0) return;
@@ -88,7 +133,7 @@ function renderLatestRound(plays) {
 
   if (roundData.status === 'onprogress') {
     if (!roundData.numbers) {
-      console.error('roundData.numbers is missing', roundData);
+      startNextRoundCountdown(latestRound);
       return;
     }
     const items = roundData.numbers.split(',');
@@ -103,7 +148,95 @@ function renderLatestRound(plays) {
     roundTimer.style.display = '';
     roundTimer.innerHTML = '<div class="timer-circle expired"><span class="timer-circle-text">💣</span></div>';
     renderSuccessPlayers(roundData);
+    document.getElementById('lastRoundNumber').textContent = latestRound;
+    nextRoundOverlay.style.display = '';
   }
+}
+
+function createEmptyRound() {
+  nextRoundOverlay.style.display = 'none';
+  const playsRef = db.ref('trial-error/24Card/battle/' + roomId + '/plays');
+
+  playsRef.once('value').then((playsSnap) => {
+    const plays = playsSnap.val() || {};
+    const roundNumbers = Object.keys(plays).map(Number).filter(n => !isNaN(n));
+    const round = roundNumbers.length > 0 ? Math.max(...roundNumbers) + 1 : 1;
+
+    document.getElementById('roundNumber').textContent = round;
+    playsRef.child(String(round)).set({ status: 'onprogress' }).catch((err) => {
+      console.error(err);
+    });
+  });
+}
+
+function fillRoundWithData(round) {
+  const roomRef = db.ref('trial-error/24Card/battle/' + roomId);
+
+  roomRef.once('value').then((snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+
+    const mode = data.mode || '24';
+    document.getElementById('hostModeDisplay').textContent = mode;
+
+    const target = mode === '36' ? 36 : 24;
+    const cardCount = mode === '36' ? 5 : 4;
+
+    const numbers = generateSolvableNumbers(cardCount, target);
+    const suits = generateSuits(cardCount);
+    const now = Date.now();
+
+    const combined = numbers.map((n, i) => n + suits[i]).join(',');
+    const playsRef = db.ref('trial-error/24Card/battle/' + roomId + '/plays');
+    playsRef.child(String(round)).update({
+      numbers: combined,
+      timestamp: now,
+      expired: now + 30000
+    }).catch((err) => {
+      console.error(err);
+      document.getElementById('infoArea').textContent = '❌ Gagal memulai ronde.';
+    });
+  });
+}
+
+function createNewRound() {
+  const roomRef = db.ref('trial-error/24Card/battle/' + roomId);
+
+  roomRef.once('value').then((snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+
+    const mode = data.mode || '24';
+    document.getElementById('hostModeDisplay').textContent = mode;
+
+    const target = mode === '36' ? 36 : 24;
+    const cardCount = mode === '36' ? 5 : 4;
+
+    const playsRef = db.ref('trial-error/24Card/battle/' + roomId + '/plays');
+
+    playsRef.once('value').then((playsSnap) => {
+      const plays = playsSnap.val() || {};
+      const roundNumbers = Object.keys(plays).map(Number).filter(n => !isNaN(n));
+      const round = roundNumbers.length > 0 ? Math.max(...roundNumbers) + 1 : 1;
+
+      document.getElementById('roundNumber').textContent = round;
+
+      const numbers = generateSolvableNumbers(cardCount, target);
+      const suits = generateSuits(cardCount);
+      const now = Date.now();
+
+      const combined = numbers.map((n, i) => n + suits[i]).join(',');
+      playsRef.child(String(round)).set({
+        numbers: combined,
+        timestamp: now,
+        expired: now + 30000,
+        status: 'onprogress'
+      }).catch((err) => {
+        console.error(err);
+        document.getElementById('infoArea').textContent = '❌ Gagal memulai ronde.';
+      });
+    });
+  });
 }
 
 function getPlayerColor(index) {
@@ -178,46 +311,6 @@ function startRoundTimer(expired, round) {
 
   tick();
   timerInterval = setInterval(tick, 200);
-}
-
-function createNewRound() {
-  const roomRef = db.ref('trial-error/24Card/battle/' + roomId);
-
-  roomRef.once('value').then((snapshot) => {
-    const data = snapshot.val();
-    if (!data) return;
-
-    const mode = data.mode || '24';
-    document.getElementById('hostModeDisplay').textContent = mode;
-
-    const target = mode === '36' ? 36 : 24;
-    const cardCount = mode === '36' ? 5 : 4;
-
-    const playsRef = db.ref('trial-error/24Card/battle/' + roomId + '/plays');
-
-    playsRef.once('value').then((playsSnap) => {
-      const plays = playsSnap.val() || {};
-      const roundNumbers = Object.keys(plays).map(Number).filter(n => !isNaN(n));
-      const round = roundNumbers.length > 0 ? Math.max(...roundNumbers) + 1 : 1;
-
-      document.getElementById('roundNumber').textContent = round;
-
-      const numbers = generateSolvableNumbers(cardCount, target);
-      const suits = generateSuits(cardCount);
-      const now = Date.now();
-
-      const combined = numbers.map((n, i) => n + suits[i]).join(',');
-      playsRef.child(String(round)).set({
-        numbers: combined,
-        timestamp: now,
-        expired: now + 30000,
-        status: 'onprogress'
-      }).catch((err) => {
-        console.error(err);
-        document.getElementById('infoArea').textContent = '❌ Gagal memulai ronde.';
-      });
-    });
-  });
 }
 
 function isSolvable(nums, target) {
