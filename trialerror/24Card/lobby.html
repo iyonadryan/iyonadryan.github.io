@@ -51,12 +51,20 @@
   </div>
 
   <div id="petunjukOverlay" class="overlay" style="display:none">
-    <div class="overlay-content">
+    <div class="overlay-content" style="max-height:80vh;overflow-y:auto">
       <h2>📖 Petunjuk</h2>
-      <div class="battle-popup-rules">
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-        <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+      <div class="battle-popup-rules" style="text-align:left;color:rgba(255,255,255,0.85);font-size:0.9rem;line-height:1.7">
+        <p style="margin-bottom:6px">📌 Setiap player memiliki <span style="color:#ffd54f;font-weight:700">life score 100</span></p>
+        <p style="margin-bottom:6px">📌 Setiap ronde memiliki waktu <span style="color:#ffd54f;font-weight:700">30 detik</span> untuk menyelesaikan kartu</p>
+        <p style="margin-bottom:6px">📌 Bagi yang terlambat menyelesaikan akan mengalami penurunan poin</p>
+        <p style="margin-bottom:6px">📌 Berikut penentuan skor penurunan:</p>
+        <p style="padding-left:24px;margin-bottom:4px"><span style="color:#ffd54f">▸</span> Yang berhasil pertama kali jawab: tidak ada penurunan life score</p>
+        <p style="padding-left:24px;margin-bottom:4px"><span style="color:#ffd54f">▸</span> Pemain berikutnya: penalti bertambah 2 poin, ditambah 1 poin per 5 detik selisih waktu dari pemain sebelumnya (setelah 5 detik pertama)</p>
+        <p style="padding-left:24px;margin-bottom:6px"><span style="color:#ffd54f">▸</span> Yang tidak menyelesaikan: terkena penalti (jumlah player × -2.5) poin</p>
+        <p style="margin-bottom:6px">📌 Apabila tidak ada yang menyelesaikan ronde tersebut, semua akan terkena penalti setengah dari penalti tidak menyelesaikan</p>
+        <p style="margin-bottom:6px">📌 Apabila life score sudah habis, maka pemain tidak bisa melanjutkan permainan di ronde selanjutnya dan menunggu permainan selesai untuk melihat hasil akhirnya</p>
+        <p style="margin-bottom:6px">📌 Player yang bertahan sampai akhir menjadi pemenang</p>
+        <p>📌 Have fun!</p>
       </div>
       <div class="challenge-buttons">
         <button id="btnPetunjukOk" class="btn btn-primary">👍 Mengerti</button>
