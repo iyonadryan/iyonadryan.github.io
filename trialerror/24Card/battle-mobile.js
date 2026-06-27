@@ -34,6 +34,8 @@ let gameCardCount = 4;
 let currentRound = null;
 let playsRef = null;
 
+let gameEnded = false;
+
 if (!roomId || !playerName) {
   mainContent.style.display = '';
 } else {
@@ -50,6 +52,7 @@ if (!roomId || !playerName) {
   playsRef = db.ref('trial-error/24Card/battle/' + roomId + '/plays');
 
   playsRef.on('value', (snap) => {
+    if (gameEnded) return;
     const plays = snap.val();
     if (plays) {
       if (countdownInterval) {
@@ -83,6 +86,39 @@ if (!roomId || !playerName) {
     gameCardCount = mode === '36' ? 5 : 4;
     if (mode === '24' && cardsContainer) {
       cardsContainer.classList.add('grid-4');
+    }
+  });
+
+  roomRef.child('status').on('value', (snap) => {
+    const status = snap.val();
+    if (status === 'finished') {
+      gameEnded = true;
+      if (playsRef) playsRef.off();
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
+      countdownOverlay.style.display = 'none';
+      roundDoneOverlay.style.display = 'none';
+      mainContent.style.display = 'none';
+
+      document.getElementById('finishedPlayerName').textContent = playerName;
+      document.getElementById('finishedRoomId').textContent = roomId;
+
+      db.ref('trial-error/24Card/battle/' + roomId + '/result/' + playerName).once('value').then((rsnap) => {
+        const result = rsnap.val();
+        if (!result) {
+          document.getElementById('finishedResult').textContent = 'Data hasil tidak ditemukan.';
+        } else {
+          document.getElementById('finishedResult').innerHTML =
+            'Selamat Anda berada di posisi #' + result.rank + ' dan bertahan mencapai ronde ' + result.lastRound;
+        }
+        document.getElementById('finishedOverlay').style.display = '';
+      });
     }
   });
 }

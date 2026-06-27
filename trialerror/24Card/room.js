@@ -80,7 +80,7 @@ function renderPlayers(playerObj) {
 
   playersCount.textContent = `Ready: ${readyCount}/${count}`;
 
-  const allReady = count > 0 && readyCount === count;
+  const allReady = count >= 2 && readyCount === count;
   btnReady.disabled = !allReady;
 }
 

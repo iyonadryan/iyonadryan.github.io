@@ -52,9 +52,7 @@ if (!roomId) {
     document.getElementById('endGameRound').textContent = document.getElementById('roundNumber').textContent;
     document.getElementById('endGameOverlay').style.display = '';
   });
-  document.getElementById('btnEndConfirm').addEventListener('click', () => {
-    window.location.href = 'room.html?roomId=' + roomId;
-  });
+  document.getElementById('btnEndConfirm').addEventListener('click', gameFinished);
   document.getElementById('btnEndCancel').addEventListener('click', () => {
     document.getElementById('endGameOverlay').style.display = 'none';
   });
@@ -190,6 +188,14 @@ function renderLatestRound(plays) {
       lastCompletedRound = latestRound;
       renderScoreboard('scoreboardBody', scores);
       document.getElementById('popupRoomId').textContent = roomId;
+
+      const alivePlayers = scores.filter(p => p.newLife > 0);
+      if (alivePlayers.length <= 1) {
+        nextRoundOverlay.style.display = 'none';
+        gameFinished();
+        return;
+      }
+
       nextRoundOverlay.style.display = '';
     });
   }
@@ -475,6 +481,66 @@ function isRedSuit(suit) {
 
 function cardLabel(n) {
   return n === 1 ? 'A' : String(n);
+}
+
+function gameFinished() {
+  document.getElementById('btnEndConfirm').disabled = true;
+  document.getElementById('btnEndConfirm').textContent = '⏳ ...';
+
+  const roomRef = db.ref('trial-error/24Card/battle/' + roomId);
+
+  roomRef.once('value').then((snap) => {
+    const data = snap.val();
+    if (!data) return;
+
+    const players = data.players || {};
+    const updates = {};
+
+    let playerList;
+    if (lastRoundScores) {
+      playerList = lastRoundScores.map(p => ({
+        name: p.name,
+        life: p.newLife,
+        lastRound: p.currentLife > 0 ? lastCompletedRound : (players[p.name]?.lastRound || 0)
+      }));
+    } else {
+      playerList = Object.keys(players).map(name => ({
+        name,
+        life: players[name].life || 0,
+        lastRound: players[name].lastRound || 0
+      }));
+    }
+
+    playerList.sort((a, b) => {
+      if (b.life !== a.life) return b.life - a.life;
+      return b.lastRound - a.lastRound;
+    });
+
+    playerList.forEach((p, i) => {
+      const rank = i + 1;
+      updates['players/' + p.name + '/life'] = p.life;
+      updates['players/' + p.name + '/lastRound'] = p.lastRound;
+      updates['result/' + p.name + '/rank'] = rank;
+      updates['result/' + p.name + '/lastRound'] = p.lastRound;
+      updates['result/' + p.name + '/life'] = p.life;
+    });
+
+    updates['status'] = 'finished';
+
+    roomRef.update(updates).then(() => {
+      window.location.href = 'battle-result.html?roomId=' + roomId;
+    }).catch((err) => {
+      console.error(err);
+      alert('Gagal menyelesaikan game. Coba lagi.');
+      document.getElementById('btnEndConfirm').disabled = false;
+      document.getElementById('btnEndConfirm').textContent = 'Hentikan';
+    });
+  }).catch((err) => {
+    console.error(err);
+    alert('Gagal membaca data room.');
+    document.getElementById('btnEndConfirm').disabled = false;
+    document.getElementById('btnEndConfirm').textContent = 'Hentikan';
+  });
 }
 
 function renderCards(numbers, suits) {

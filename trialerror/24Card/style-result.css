@@ -1,0 +1,171 @@
+.result-table-parent {
+  text-align: center;
+}
+
+.result-table {
+  width: auto;
+  min-width: 320px;
+  display: inline-table;
+}
+
+.result-table .col-time {
+  white-space: nowrap;
+}
+
+.result-table .col-life {
+  text-align: left;
+  padding-left: 12px;
+}
+
+.podium {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 16px;
+  margin: 30px 0 24px;
+  padding: 0 16px;
+}
+
+.podium-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  max-width: 120px;
+}
+
+.podium-name {
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.podium-block {
+  width: 100%;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 40px;
+}
+
+.podium-medal {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.podium-1 .podium-block {
+  height: 120px;
+  background: linear-gradient(180deg, rgba(255,215,0,0.3) 0%, rgba(255,215,0,0.12) 100%);
+  border: 1px solid rgba(255,215,0,0.3);
+}
+
+.podium-2 .podium-block {
+  height: 90px;
+  background: linear-gradient(180deg, rgba(192,192,192,0.25) 0%, rgba(192,192,192,0.1) 100%);
+  border: 1px solid rgba(192,192,192,0.25);
+}
+
+.track-record {
+  text-align: center;
+}
+
+.track-record-title {
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.track-record-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.track-record-table {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin: 0 auto;
+  min-width: 300px;
+}
+
+.track-record-table th,
+.track-record-table td {
+  padding: 6px 8px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  white-space: nowrap;
+}
+
+.track-record-table th {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255,255,255,0.3);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.track-record-table .tr-round {
+  color: rgba(255,255,255,0.5);
+  font-weight: 700;
+  min-width: 48px;
+}
+
+.track-record-table .tr-cards {
+  min-width: 120px;
+}
+
+.tr-cards-inner {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.tr-cards-inner .popup-card {
+  width: 36px;
+  height: 48px;
+  border-radius: 5px;
+  border-width: 1px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.tr-cards-inner .popup-card-value {
+  font-size: 0.8rem;
+}
+
+.tr-cards-inner .popup-card-suit {
+  font-size: 0.6rem;
+  margin-top: 1px;
+}
+
+.track-record-table .tr-success {
+  color: #66bb6a;
+  font-size: 1rem;
+}
+
+.track-record-table .tr-fail {
+  color: #e57373;
+  font-size: 1rem;
+}
+
+.track-record-table .tr-eliminated {
+  color: rgba(255,255,255,0.2);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.podium-3 .podium-block {
+  height: 65px;
+  background: linear-gradient(180deg, rgba(205,127,50,0.25) 0%, rgba(205,127,50,0.1) 100%);
+  border: 1px solid rgba(205,127,50,0.25);
+}
