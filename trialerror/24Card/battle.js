@@ -26,8 +26,11 @@ const btnBrowseRooms = document.getElementById('btnBrowseRooms');
 const roomListOverlay = document.getElementById('roomListOverlay');
 const roomListContainer = document.getElementById('roomListContainer');
 const btnRoomListClose = document.getElementById('btnRoomListClose');
+const btnRefreshRooms = document.getElementById('btnRefreshRooms');
+const roomSearchInput = document.getElementById('roomSearchInput');
 
 let selectedMode = null;
+let cachedRooms = [];
 
 function showOverlay(el) {
   el.style.display = 'flex';
@@ -234,7 +237,7 @@ btnJoinMobile.addEventListener('click', () => {
     const players = data.players || {};
     const playerCount = Object.keys(players).length;
     if (playerCount >= 6) {
-      mobileError.textContent = 'Room sudah penuh (6/6)!';
+      mobileError.textContent = 'Room penuh (6/6)! Masukkan ID lain atau cari room lain.';
       btnJoinMobile.disabled = false;
       btnJoinMobile.textContent = 'Join Room';
       return;
@@ -277,8 +280,18 @@ btnRoomListClose.addEventListener('click', () => {
   hideOverlay(roomListOverlay);
 });
 
+btnRefreshRooms.addEventListener('click', () => {
+  loadRoomList();
+});
+
+roomSearchInput.addEventListener('input', () => {
+  renderRoomList(roomSearchInput.value.trim().toLowerCase());
+});
+
 function loadRoomList() {
   roomListContainer.innerHTML = '<p class="room-list-loading">⏳ Memuat daftar room...</p>';
+  roomSearchInput.value = '';
+  cachedRooms = [];
 
   db.ref('trial-error/24Card/battle/').once('value').then((snapshot) => {
     const all = snapshot.val();
@@ -287,9 +300,7 @@ function loadRoomList() {
       return;
     }
 
-    let html = '';
     const now = Date.now();
-
     const expiredRooms = [];
 
     Object.keys(all).sort((a, b) => Number(a) - Number(b)).forEach((roomId) => {
@@ -304,18 +315,9 @@ function loadRoomList() {
 
       const players = room.players || {};
       const playerCount = Object.keys(players).length;
+      if (playerCount >= 6) return;
 
-      html += `
-        <div class="room-list-item" data-room-id="${roomId}">
-          <div class="room-list-left">
-            <span class="room-list-id">#${roomId}</span>
-            <span class="room-list-name">${room.name}</span>
-          </div>
-          <div class="room-list-right">
-            <span class="room-list-players"><svg class="room-list-player-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> ${playerCount}/6</span>
-          </div>
-        </div>
-      `;
+      cachedRooms.push({ roomId, name: room.name, playerCount });
     });
 
     expiredRooms.forEach((roomId) => {
@@ -324,62 +326,89 @@ function loadRoomList() {
       });
     });
 
-    if (!html) {
-      roomListContainer.innerHTML = '<p class="room-list-empty">Tidak ada room yang tersedia saat ini.</p>';
-      return;
-    }
-
-    roomListContainer.innerHTML = html;
-
-    roomListContainer.querySelectorAll('.room-list-item').forEach((item) => {
-      item.addEventListener('click', () => {
-        const roomId = item.dataset.roomId;
-        const name = inputPlayerName.value.trim();
-
-        if (!name) {
-          hideOverlay(roomListOverlay);
-          showOverlay(mobileOverlay);
-          inputMobileRoomId.value = roomId;
-          mobileError.textContent = 'Masukkan nama terlebih dahulu!';
-          inputPlayerName.style.borderColor = '#e57373';
-          return;
-        }
-
-        hideOverlay(roomListOverlay);
-
-        const roomRef = db.ref('trial-error/24Card/battle/' + roomId);
-        roomRef.once('value').then((snapshot) => {
-          const data = snapshot.val();
-          if (!data || data.status !== 'waiting') {
-            alert('Room tidak tersedia.');
-            return;
-          }
-          const players = data.players || {};
-          if (Object.keys(players).length >= 6) {
-            alert('Room sudah penuh!');
-            return;
-          }
-          if (players[name]) {
-            alert('Nama sudah dipakai di room ini!');
-            return;
-          }
-          db.ref('trial-error/24Card/battle/' + roomId + '/players/' + name).set({
-            status: 'undready'
-          }).then(() => {
-            window.location.href = 'lobby.html?roomId=' + roomId + '&name=' + encodeURIComponent(name);
-          }).catch((err) => {
-            console.error(err);
-            alert('Gagal bergabung. Coba lagi.');
-          });
-        }).catch((err) => {
-          console.error(err);
-          alert('Gagal memeriksa room.');
-        });
-      });
-    });
+    renderRoomList('');
   }).catch((err) => {
     console.error(err);
     roomListContainer.innerHTML = '<p class="room-list-empty">Gagal memuat daftar room.</p>';
+  });
+}
+
+function renderRoomList(filter) {
+  let filtered = cachedRooms;
+
+  if (filter) {
+    filtered = cachedRooms.filter((r) => {
+      return r.roomId.includes(filter) || r.name.toLowerCase().includes(filter);
+    });
+  }
+
+  if (!filtered.length) {
+    roomListContainer.innerHTML = '<p class="room-list-empty">Tidak ada room yang cocok.</p>';
+    return;
+  }
+
+  let html = '';
+  filtered.forEach((r) => {
+    html += `
+      <div class="room-list-item" data-room-id="${r.roomId}">
+        <div class="room-list-left">
+          <span class="room-list-id">#${r.roomId}</span>
+          <span class="room-list-name">${r.name}</span>
+        </div>
+        <div class="room-list-right">
+          <span class="room-list-players"><svg class="room-list-player-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> ${r.playerCount}/6</span>
+        </div>
+      </div>
+    `;
+  });
+
+  roomListContainer.innerHTML = html;
+
+  roomListContainer.querySelectorAll('.room-list-item').forEach((item) => {
+    item.addEventListener('click', () => {
+      const roomId = item.dataset.roomId;
+      const name = inputPlayerName.value.trim();
+
+      if (!name) {
+        hideOverlay(roomListOverlay);
+        showOverlay(mobileOverlay);
+        inputMobileRoomId.value = roomId;
+        mobileError.textContent = 'Masukkan nama terlebih dahulu!';
+        inputPlayerName.style.borderColor = '#e57373';
+        return;
+      }
+
+      hideOverlay(roomListOverlay);
+
+      const roomRef = db.ref('trial-error/24Card/battle/' + roomId);
+      roomRef.once('value').then((snapshot) => {
+        const data = snapshot.val();
+        if (!data || data.status !== 'waiting') {
+          alert('Room tidak tersedia.');
+          return;
+        }
+        const players = data.players || {};
+        if (Object.keys(players).length >= 6) {
+          alert('Room sudah penuh (6/6)! Silakan pilih room lain.');
+          return;
+        }
+        if (players[name]) {
+          alert('Nama sudah dipakai di room ini!');
+          return;
+        }
+        db.ref('trial-error/24Card/battle/' + roomId + '/players/' + name).set({
+          status: 'undready'
+        }).then(() => {
+          window.location.href = 'lobby.html?roomId=' + roomId + '&name=' + encodeURIComponent(name);
+        }).catch((err) => {
+          console.error(err);
+          alert('Gagal bergabung. Coba lagi.');
+        });
+      }).catch((err) => {
+        console.error(err);
+        alert('Gagal memeriksa room.');
+      });
+    });
   });
 }
 

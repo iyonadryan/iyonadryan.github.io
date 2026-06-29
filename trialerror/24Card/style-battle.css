@@ -285,10 +285,12 @@
   max-width: 520px;
 }
 
+.room-list-search {
+  margin: 12px 0 4px;
+}
+
 .room-list-container {
-  max-height: 360px;
-  overflow-y: auto;
-  margin: 16px 0 8px;
+  margin: 8px 0 8px;
   text-align: left;
 }
 

@@ -124,13 +124,17 @@
   </div>
 
   <div id="roomListOverlay" class="overlay" style="display:none">
-    <div class="overlay-content overlay-content-wide">
+    <div class="overlay-content overlay-content-wide" style="max-height:80vh;overflow-y:auto">
       <h2>📋 Daftar Room</h2>
-      <div id="roomListContainer" class="room-list-container">
+      <div class="room-list-search">
+        <input type="text" id="roomSearchInput" class="setup-input" placeholder="Cari nama atau ID room..." autocomplete="off" style="width:100%">
+      </div>
+      <div id="roomListContainer" class="room-list-container" style="max-height:none">
         <p class="room-list-loading">⏳ Memuat daftar room...</p>
       </div>
-      <div class="challenge-buttons" style="margin-top:16px">
-        <button id="btnRoomListClose" class="btn btn-secondary">Tutup</button>
+      <div class="challenge-buttons" style="margin-top:16px;display:flex;gap:8px">
+        <button id="btnRefreshRooms" class="btn btn-secondary" style="flex:1">🔄 Refresh</button>
+        <button id="btnRoomListClose" class="btn btn-cancel" style="flex:1">Tutup</button>
       </div>
     </div>
   </div>
