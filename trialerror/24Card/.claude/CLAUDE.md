@@ -29,6 +29,8 @@ Dokumen ini mendeskripsikan pola, konvensi, dan arsitektur proyek 24Card agar se
 ├── battle-result.html      # Hasil akhir battle
 ├── duel.html               # Mode duel 1v1
 ├── duel-room.html          # Room waiting duel
+├── duel-play.html          # Layar permainan duel (host & enemy)
+├── duel-result.html        # Hasil akhir duel
 ├── leaderboard-score.html  # Top 25 skor
 ├── style.css               # Global styles (dipakai semua halaman)
 ├── style-battle.css        # Battle-specific styles
@@ -37,6 +39,7 @@ Dokumen ini mendeskripsikan pola, konvensi, dan arsitektur proyek 24Card agar se
 ├── style-battle-result.css # Result page styles
 ├── style-duel.css          # Duel mode styles
 ├── style-duel-room.css     # Duel room styles
+├── style-duel-play.css     # Duel play styles
 ├── script.js               # Core game logic (mode 24 & 36)
 ├── custom-mode.js          # Custom game mode logic
 ├── battle.js               # Battle navigation & room creation
@@ -48,6 +51,9 @@ Dokumen ini mendeskripsikan pola, konvensi, dan arsitektur proyek 24Card agar se
 ├── battle-score.js         # Score calculation (shared utility)
 ├── duel.js                 # Duel navigation & room creation
 ├── duel-room.js            # Duel room logic
+├── duel-play.js            # Duel gameplay logic (host & enemy)
+├── duel-score.js           # Duel scoring formula (calculateDuelScores)
+├── duel-result.js          # Duel result page rendering
 └── leaderboard-score.js    # Leaderboard rendering
 ```
 
@@ -64,6 +70,8 @@ Setiap halaman selalu include `style.css` + CSS spesifiknya:
 | battle-result.html | style-battle.css + style-battle-result.css |
 | duel.html | style-battle.css + style-duel.css |
 | duel-room.html | style-battle-room.css + style-duel-room.css |
+| duel-play.html | style-battle.css + style-duel-play.css |
+| duel-result.html | style-battle.css + style-battle-result.css |
 
 ---
 
@@ -269,6 +277,72 @@ File: `battle-score.js` → fungsi `calculateScores(players, roundTimestamp)`
 - **Tidak solve:** `floor(jumlahPemain × -2.5)` penalti
 - **Tidak ada yang solve:** semua dapat setengah penalti
 - **Eliminasi:** life = 0
+
+---
+
+## Sistem Skor Duel
+
+File: `duel-score.js` → fungsi `calculateDuelScores(host, enemy, roundTimestamp)`
+
+- **Life awal:** 100
+- **Waktu per ronde:** 30 detik
+- **Keduanya tidak solve:** keduanya -5
+- **Satu player solve dalam T detik:** lawan menerima `-(5 + ((30-T)/30) × 15)` → range **-5 s/d -20**; solver tidak kena penalti
+- **Keduanya solve:** masing-masing menerima penalti dari waktu solve lawan
+- **Game over:** player dengan life lebih tinggi menang; seri jika sama
+
+### Struktur Room Duel di Firebase
+
+```
+duel/{roomId}:
+  host: string
+  enemy: string
+  mode: "24" | "36"
+  status: "waiting" | "play" | "finished"
+  created: timestamp
+  expired: timestamp
+  players:
+    {playerName}:
+      life: number
+      status: string
+  plays:
+    {roundNum}:
+      status: "onprogress" | "done"
+      numbers: string (e.g. "3♠,7♥,2♦,12♣")
+      timestamp: number
+      expired: number
+      success:
+        {playerName}: timestamp
+      result:
+        hostDealt: number
+        enemyDealt: number
+        hostFinalLife: number
+        enemyFinalLife: number
+  result:
+    {playerName}:
+      life: number
+      rank: number
+      role: "host" | "enemy"
+```
+
+### Alur Duel
+
+```
+duel-room.html (waiting) → host klik READY → status: 'play'
+  → keduanya redirect ke duel-play.html
+  → countdown ronde pertama (5 detik), berikutnya (3 detik)
+  → 30 detik per ronde, siapa solve duluan → ronde langsung done
+  → popup ronde selesai (host bisa lanjut atau akhiri)
+  → salah satu life = 0 → showGameOver → tulis result + status: 'finished'
+  → keduanya redirect ke duel-result.html
+```
+
+### Identifikasi Peran di duel-play.html
+
+- URL host: `?roomId=XXXX&host=NAME`
+- URL enemy: `?roomId=XXXX&enemy=NAME`
+- `isHost = !!params.get('host')`
+- Host = ♦ biru, Enemy = ♠ merah
 
 ---
 
