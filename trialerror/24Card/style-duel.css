@@ -10,19 +10,6 @@
   margin-bottom: 24px;
 }
 
-.duel-name-field {
-  margin-bottom: 24px;
-  text-align: center;
-}
-
-.duel-name-field .setup-input {
-  width: 100%;
-  max-width: 300px;
-  text-align: center;
-  font-size: 1.1rem;
-  padding: 10px 12px;
-}
-
 .duel-options {
   display: flex;
   gap: 16px;

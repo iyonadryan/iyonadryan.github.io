@@ -1,0 +1,143 @@
+.duel-room-screen {
+  max-width: 480px;
+}
+
+.duel-room-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.duel-room-id {
+  color: #ff7043;
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.duel-room-name {
+  color: #fff;
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.duel-room-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  background: linear-gradient(135deg, #ff7043, #e64a19);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.duel-vs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 28px 0;
+}
+
+.duel-vs-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 140px;
+  height: 160px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid;
+  border-radius: 20px;
+  cursor: default;
+  pointer-events: none;
+}
+
+.duel-vs-host {
+  border-color: #42a5f5;
+}
+
+.duel-vs-enemy {
+  border-color: #ef5350;
+}
+
+.duel-vs-empty {
+  opacity: 0.4;
+  justify-content: center;
+}
+
+.duel-vs-icon {
+  color: #fff;
+  margin-bottom: 12px;
+  line-height: 1;
+}
+
+.duel-vs-name {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
+  max-width: 100%;
+  padding: 0 8px;
+  word-break: break-word;
+}
+
+.duel-vs-check {
+  color: #66bb6a;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 4px;
+}
+
+.duel-vs-divider {
+  font-size: 2rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.btn-ready-duel {
+  background: linear-gradient(135deg, #43a047, #2e7d32) !important;
+}
+
+.btn-ready-duel:hover {
+  box-shadow: 0 6px 25px rgba(46, 125, 50, 0.5) !important;
+}
+
+.btn-ready-unready {
+  background: linear-gradient(135deg, #f9a825, #f57f17) !important;
+}
+
+.btn-ready-unready:hover {
+  box-shadow: 0 6px 25px rgba(245, 127, 23, 0.5) !important;
+}
+
+.btn-ready-duel:disabled {
+  background: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+@media (max-width: 500px) {
+  .duel-vs-card {
+    width: 120px;
+    height: 140px;
+  }
+
+  .duel-vs-divider {
+    font-size: 1.6rem;
+  }
+
+  .duel-vs-icon svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .duel-vs-name {
+    font-size: 0.9rem;
+  }
+}

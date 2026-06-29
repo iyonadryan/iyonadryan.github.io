@@ -119,23 +119,29 @@ btnCreateRoom.addEventListener('click', () => {
 
   if (!valid) return;
 
-  const roomId = generateRoomId();
-  const now = Date.now();
-
   btnCreateRoom.disabled = true;
   btnCreateRoom.textContent = '⏳ Membuat...';
 
-  db.ref('trial-error/24Card/battle/' + roomId).set({
-    name: name,
-    mode: selectedMode,
-    status: 'waiting',
-    created: now,
-    expired: now + 3600000
-  }).then(() => {
-      window.location.href = 'battle-room.html?roomId=' + roomId;
-    }).catch((err) => {
-      console.error(err);
-      alert('Gagal membuat room. Coba lagi.');
+  generateUniqueRoomId('trial-error/24Card/battle/').then((roomId) => {
+    const now = Date.now();
+
+    db.ref('trial-error/24Card/battle/' + roomId).set({
+      name: name,
+      mode: selectedMode,
+      status: 'waiting',
+      created: now,
+      expired: now + 3600000
+    }).then(() => {
+        window.location.href = 'battle-room.html?roomId=' + roomId;
+      }).catch((err) => {
+        console.error(err);
+        alert('Gagal membuat room. Coba lagi.');
+      btnCreateRoom.disabled = false;
+      btnCreateRoom.textContent = '+ Create Room';
+    });
+  }).catch((err) => {
+    console.error(err);
+    alert('Gagal membuat room. Coba lagi.');
     btnCreateRoom.disabled = false;
     btnCreateRoom.textContent = '+ Create Room';
   });
@@ -413,10 +419,26 @@ function renderRoomList(filter) {
 }
 
 // --- Utility ---
-function generateRoomId() {
+function randomRoomId() {
   let id = '';
   for (let i = 0; i < 4; i++) {
     id += Math.floor(Math.random() * 10);
   }
   return id;
+}
+
+function generateUniqueRoomId(basePath) {
+  return new Promise((resolve, reject) => {
+    function tryGenerate() {
+      const id = randomRoomId();
+      db.ref(basePath + id).once('value').then((snap) => {
+        if (snap.val()) {
+          tryGenerate();
+        } else {
+          resolve(id);
+        }
+      }).catch(reject);
+    }
+    tryGenerate();
+  });
 }
