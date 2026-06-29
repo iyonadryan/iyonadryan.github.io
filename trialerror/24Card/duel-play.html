@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>24Card - Duel</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style-battle.css">
+  <link rel="stylesheet" href="style-duel-play.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚔️</text></svg>">
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
+      authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
+      databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
+      projectId: "iyon-adryanlf-trialerror",
+      storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
+      messagingSenderId: "519669963248",
+      appId: "1:519669963248:web:feab50008d27c2a7226535",
+      measurementId: "G-4MFLB4B68F"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
+</head>
+<body>
+
+  <!-- Countdown overlay: spinning card → 5,4,3,2,1,GO! -->
+  <div id="countdownOverlay" class="overlay overlay-countdown">
+    <div class="countdown-number loading" id="countdownNumber">🃏</div>
+  </div>
+
+  <!-- Main game screen -->
+  <div class="container duel-play-screen" id="mainContent" style="display:none;text-align:center">
+
+    <!-- Life bar header: blue (host) vs red (enemy) -->
+    <div class="duel-play-header">
+      <div class="duel-life-section">
+        <span class="duel-life-name" id="hostNameDisplay">—</span>
+        <div class="duel-life-row">
+          <div class="duel-life-bar-track">
+            <div class="duel-life-bar-fill duel-life-fill-blue" id="hostLifeBar" style="width:100%"></div>
+          </div>
+          <span class="duel-life-value" id="hostLifeValue">100</span>
+        </div>
+      </div>
+
+      <div class="duel-play-vs">⚔️</div>
+
+      <div class="duel-life-section">
+        <span class="duel-life-name" id="enemyNameDisplay">—</span>
+        <div class="duel-life-row">
+          <div class="duel-life-bar-track">
+            <div class="duel-life-bar-fill duel-life-fill-red" id="enemyLifeBar" style="width:100%"></div>
+          </div>
+          <span class="duel-life-value" id="enemyLifeValue">100</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Round number (big) + mode below -->
+    <div class="duel-round-header">
+      <div class="duel-round-number">Ronde #<span id="roundNumber">1</span></div>
+      <div class="duel-round-mode" id="modeDisplay"></div>
+    </div>
+
+    <!-- Round timer bar -->
+    <div id="roundTimer" class="round-timer" style="display:none"></div>
+
+    <!-- Reset + Acak Posisi -->
+    <div class="controls controls-battle">
+      <button id="btnReset" class="btn btn-secondary" disabled>↺ Reset</button>
+      <button id="btnShuffle" class="btn btn-secondary" disabled>🔀 Acak Posisi</button>
+    </div>
+
+    <!-- Cards -->
+    <div id="cardsContainer" class="cards"></div>
+
+    <!-- Info / feedback text -->
+    <div id="infoArea" class="info">Klik salah satu kartu untuk memulai</div>
+
+    <!-- Operations -->
+    <div id="opsContainer" class="operations">
+      <button class="op-btn" data-op="+" disabled>+</button>
+      <button class="op-btn" data-op="-" disabled>−</button>
+      <button class="op-btn" data-op="×" disabled>×</button>
+      <button class="op-btn" data-op="÷" disabled>÷</button>
+    </div>
+
+    <!-- Calculation steps -->
+    <div id="stepsContainer" class="steps">
+      <div class="steps-title">📜 Langkah-langkah</div>
+      <div id="stepsList"></div>
+    </div>
+  </div>
+
+  <!-- Round done overlay -->
+  <div id="roundDoneOverlay" class="overlay" style="display:none">
+    <div class="overlay-content overlay-content-wide">
+      <h2 style="margin-bottom:16px">⏰ Ronde #<span id="doneRoundNum">1</span> Selesai!</h2>
+      <div class="duel-round-result" id="roundResultContent"></div>
+      <div id="hostControls" style="display:none">
+        <div class="challenge-buttons" style="flex-direction:column;gap:10px">
+          <button id="btnNextRound" class="btn btn-challenge">▶️ Ronde Selanjutnya</button>
+          <button id="btnEndDuel" class="btn btn-cancel">🏁 Akhiri Duel</button>
+        </div>
+      </div>
+      <div id="enemyWaiting" style="display:none">
+        <p class="duel-enemy-wait">⏳ Menunggu host...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game over overlay -->
+  <div id="gameOverOverlay" class="overlay" style="display:none">
+    <div class="overlay-content">
+      <div class="duel-winner-label" id="gameOverEmoji">🏆</div>
+      <div id="gameOverTitle" style="font-size:1.1rem;font-weight:700;text-align:center;margin-bottom:6px;color:rgba(255,255,255,0.7)"></div>
+      <div class="duel-winner-name" id="gameOverWinner"></div>
+      <a href="index.html" class="btn btn-primary" style="display:block;text-align:center">← Kembali ke Menu</a>
+    </div>
+  </div>
+
+  <script src="duel-score.js"></script>
+  <script src="duel-play.js"></script>
+</body>
+</html>

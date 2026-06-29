@@ -165,6 +165,12 @@ if (!roomId) {
 
     renderPlayers(data.players || {}, data.enemy || '', data.host || '');
 
+    if (data.status === 'play') {
+      const roleParam = myRole === 'host' ? 'host' : 'enemy';
+      window.location.href = 'duel-play.html?roomId=' + roomId + '&' + roleParam + '=' + encodeURIComponent(myName);
+      return;
+    }
+
     if (myRole === 'enemy') {
       const myStatus = data.players && data.players[myName] ? data.players[myName].status : '';
       const isReady = myStatus === 'ready';
@@ -198,6 +204,26 @@ if (!roomId) {
       return;
     }
 
-    alert('Fitur Duel masih dalam pengembangan. Silakan tunggu update selanjutnya.');
+    btnReady.disabled = true;
+    btnReady.textContent = '⏳ Memulai...';
+
+    db.ref('trial-error/24Card/duel/' + roomId).once('value').then((snap) => {
+      const roomData = snap.val();
+      if (!roomData) throw new Error('Room tidak ditemukan');
+
+      const updates = {};
+      updates['players/' + roomData.host + '/life'] = 100;
+      if (roomData.enemy) updates['players/' + roomData.enemy + '/life'] = 100;
+      updates['status'] = 'play';
+
+      return db.ref('trial-error/24Card/duel/' + roomId).update(updates);
+    }).then(() => {
+      window.location.href = 'duel-play.html?roomId=' + roomId + '&host=' + encodeURIComponent(myName);
+    }).catch((err) => {
+      console.error(err);
+      alert('Gagal memulai permainan. Coba lagi.');
+      btnReady.disabled = false;
+      btnReady.textContent = 'READY';
+    });
   });
 }

@@ -1,0 +1,282 @@
+/* ===== Duel Play Screen ===== */
+
+.duel-play-screen {
+  max-width: 480px;
+  padding: 16px;
+}
+
+/* Life bar header */
+.duel-play-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  margin-bottom: 12px;
+}
+
+.duel-life-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.duel-life-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.duel-life-name.is-me::after {
+  content: 'YOU';
+  background: #388e3c;
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 5px;
+  vertical-align: middle;
+  letter-spacing: 0.04em;
+}
+
+.you-badge {
+  display: inline-block;
+  background: #388e3c;
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 5px;
+  vertical-align: middle;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+}
+
+.duel-life-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.duel-life-bar-track {
+  flex: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.duel-life-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.duel-life-fill-blue {
+  background: linear-gradient(90deg, #1976d2, #64b5f6);
+}
+
+.duel-life-fill-red {
+  background: linear-gradient(90deg, #c62828, #ef5350);
+}
+
+.duel-life-value {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fff;
+  min-width: 24px;
+  text-align: right;
+}
+
+.duel-play-vs {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+/* Round number header */
+.duel-round-header {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.duel-round-number {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1.1;
+}
+
+.duel-round-mode {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 3px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Round done overlay */
+.duel-round-result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.duel-round-result-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  column-gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  margin-bottom: 6px;
+}
+
+/* col 1 – name di atas, time di bawah */
+.duel-result-player {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.duel-result-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.duel-result-blue { color: #64b5f6; }
+.duel-result-red  { color: #ef5350; }
+
+.duel-result-time {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: 'Courier New', 'Consolas', monospace;
+  white-space: nowrap;
+}
+
+/* col 2 – score */
+.duel-result-score {
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.duel-result-score.dealt { color: #ef5350; }
+.duel-result-score.safe  { color: #66bb6a; }
+
+/* col 3 – life */
+.duel-result-life {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #fff;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Enemy waiting label */
+.duel-enemy-wait {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.85rem;
+  margin-top: 8px;
+}
+
+/* Game over overlay */
+.duel-winner-label {
+  font-size: 2rem;
+  font-weight: 900;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.duel-winner-name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  text-align: center;
+  color: #ffd54f;
+  margin-bottom: 24px;
+}
+
+/* ── Card sizing: always use mobile-scale sizes ────────── */
+
+.duel-play-screen .cards {
+  gap: 8px;
+  min-height: 120px;
+}
+
+/* Default: 3 kartu per baris (untuk mode 36 → 3+2 centered) */
+.duel-play-screen .cards .card {
+  flex: 0 0 calc((100% - 16px) / 3);
+  width: auto;
+  height: auto;
+  aspect-ratio: 110 / 152;
+  border-radius: 9px;
+}
+
+/* Mode 24 (grid-4): 4 kartu sejajar 1 baris */
+.duel-play-screen .cards.grid-4 .card {
+  flex: 0 0 calc((100% - 24px) / 4);
+}
+
+.duel-play-screen .card-corner-top {
+  top: 5px;
+  left: 6px;
+}
+
+.duel-play-screen .card-corner-bottom {
+  bottom: 5px;
+  right: 6px;
+}
+
+.duel-play-screen .corner-value {
+  font-size: 0.7rem;
+}
+
+.duel-play-screen .corner-suit {
+  font-size: 0.5rem;
+}
+
+.duel-play-screen .center-value {
+  font-size: 1.6rem;
+}
+
+.duel-play-screen .center-suit {
+  font-size: 1.2rem;
+}
+
+@media (max-width: 400px) {
+  .duel-play-header {
+    gap: 7px;
+    padding: 10px 10px;
+  }
+
+  .duel-life-name {
+    font-size: 0.68rem;
+  }
+
+  .duel-life-value {
+    font-size: 0.72rem;
+  }
+
+  .duel-play-vs {
+    font-size: 1rem;
+  }
+}
