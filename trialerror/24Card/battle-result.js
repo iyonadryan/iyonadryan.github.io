@@ -124,10 +124,15 @@ function renderPodium(result) {
   const container = document.getElementById('podiumContainer');
   container.innerHTML = '';
 
-  const top3 = [2, 1, 3];
-  top3.forEach((rank) => {
-    const name = Object.keys(result).find(n => result[n].rank === rank);
-    if (!name) return;
+  const names = Object.keys(result);
+  names.sort((a, b) => result[a].rank - result[b].rank);
+
+  names.forEach((name) => {
+    const p = result[name];
+    const rank = p.rank;
+    if (rank > 3) return;
+
+    const medal = medals[rank];
 
     const item = document.createElement('div');
     item.className = 'podium-item podium-' + rank;
@@ -139,11 +144,11 @@ function renderPodium(result) {
     const block = document.createElement('div');
     block.className = 'podium-block';
 
-    const medal = document.createElement('span');
-    medal.className = 'podium-medal';
-    medal.textContent = medals[rank];
+    const medalEl = document.createElement('span');
+    medalEl.className = 'podium-medal';
+    medalEl.textContent = medal;
+    block.appendChild(medalEl);
 
-    block.appendChild(medal);
     item.appendChild(nameEl);
     item.appendChild(block);
     container.appendChild(item);

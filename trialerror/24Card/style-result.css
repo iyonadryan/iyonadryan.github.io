@@ -24,6 +24,7 @@
   gap: 16px;
   margin: 30px 0 24px;
   padding: 0 16px;
+  flex-wrap: wrap;
 }
 
 .podium-item {

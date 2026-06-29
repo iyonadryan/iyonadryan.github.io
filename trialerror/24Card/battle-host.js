@@ -516,11 +516,14 @@ function gameFinished() {
       return b.lastRound - a.lastRound;
     });
 
+    let currentRank = 0;
     playerList.forEach((p, i) => {
-      const rank = i + 1;
+      if (i === 0 || p.life !== playerList[i - 1].life || p.lastRound !== playerList[i - 1].lastRound) {
+        currentRank = i + 1;
+      }
       updates['players/' + p.name + '/life'] = p.life;
       updates['players/' + p.name + '/lastRound'] = p.lastRound;
-      updates['result/' + p.name + '/rank'] = rank;
+      updates['result/' + p.name + '/rank'] = currentRank;
       updates['result/' + p.name + '/lastRound'] = p.lastRound;
       updates['result/' + p.name + '/life'] = p.life;
     });
