@@ -1,0 +1,88 @@
+.duel-screen {
+  max-width: 560px;
+}
+
+.duel-title {
+  color: #fff;
+  font-size: 2.2rem;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.duel-name-field {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.duel-name-field .setup-input {
+  width: 100%;
+  max-width: 300px;
+  text-align: center;
+  font-size: 1.1rem;
+  padding: 10px 12px;
+}
+
+.duel-options {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.duel-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  max-width: 160px;
+  height: 170px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.duel-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-8px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.duel-btn-icon {
+  font-size: 3.2rem;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.duel-btn-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+@media (max-width: 500px) {
+  .duel-title {
+    font-size: 1.6rem;
+  }
+
+  .duel-options {
+    gap: 10px;
+  }
+
+  .duel-btn {
+    height: 130px;
+  }
+
+  .duel-btn-icon {
+    font-size: 2.4rem;
+  }
+
+  .duel-btn-label {
+    font-size: 0.8rem;
+  }
+}

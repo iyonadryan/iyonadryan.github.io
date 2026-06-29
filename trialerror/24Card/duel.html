@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>24Card - Mode Duel</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style-battle.css">
+  <link rel="stylesheet" href="style-duel.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚔️</text></svg>">
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
+      authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
+      databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
+      projectId: "iyon-adryanlf-trialerror",
+      storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
+      messagingSenderId: "519669963248",
+      appId: "1:519669963248:web:feab50008d27c2a7226535",
+      measurementId: "G-4MFLB4B68F"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
+</head>
+<body>
+  <a href="index.html" class="btn-back-menu" title="Kembali ke menu">← Menu</a>
+
+  <div class="container duel-screen">
+    <h1 class="duel-title">⚔️ Mode Duel</h1>
+
+    <div class="duel-name-field">
+      <input type="text" id="duelPlayerName" class="setup-input" maxlength="20" placeholder="Nama Kamu..." autocomplete="off">
+    </div>
+
+    <button id="btnDuelInfo" class="btn-info-mode">
+      <svg class="info-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      Petunjuk
+    </button>
+
+    <div class="duel-options">
+      <a href="#" class="duel-btn" id="btnDuelCreate">
+        <span class="duel-btn-icon">🪧</span>
+        <span class="duel-btn-label">Create Room</span>
+      </a>
+      <a href="#" class="duel-btn" id="btnDuelJoin">
+        <span class="duel-btn-icon">🗡️</span>
+        <span class="duel-btn-label">Join Room</span>
+      </a>
+      <a href="#" class="duel-btn" id="btnDuelQuick">
+        <span class="duel-btn-icon">🏹</span>
+        <span class="duel-btn-label">Quick Match</span>
+      </a>
+    </div>
+  </div>
+
+  <div id="duelInfoOverlay" class="overlay" style="display:none">
+    <div class="overlay-content">
+      <h2>📖 Petunjuk Mode Duel</h2>
+      <div class="battle-popup-rules" style="text-align:left;color:rgba(255,255,255,0.85);font-size:0.9rem;line-height:1.7">
+        <p>📌 Mode ini khusus untuk <span class="rule-highlight">1 vs 1</span></p>
+        <p>📌 Player memiliki <span class="rule-highlight">life score 100</span></p>
+        <p>📌 Player yang berhasil menjawab dalam waktu kurang dari 30 detik maka akan <span class="rule-highlight">mengurangi life score musuh</span></p>
+        <p>📌 Semakin cepat player menjawab <span class="rule-highlight">semakin besar pengurangan life score musuh</span></p>
+        <p>📌 Player yang bertahan yang <span class="rule-highlight">memenangkan permainan</span></p>
+      </div>
+      <div class="challenge-buttons">
+        <button id="btnDuelInfoOk" class="btn btn-primary">👍 Mengerti</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="duel.js"></script>
+</body>
+</html>

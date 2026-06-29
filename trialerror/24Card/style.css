@@ -800,8 +800,8 @@ header h1 {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 155px;
-  height: 200px;
+  width: 120px;
+  height: 170px;
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
@@ -824,6 +824,15 @@ header h1 {
 
 .menu-btn-battle:hover {
   border-color: #ffb300;
+}
+
+.menu-btn-duel {
+  border-width: 2px;
+  border-color: #ff7043;
+}
+
+.menu-btn-duel:hover {
+  border-color: #e64a19;
 }
 
 .menu-btn-num {
@@ -927,13 +936,25 @@ header h1 {
     font-size: 2rem;
   }
 
+  .menu-options {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+
   .menu-btn {
-    width: 120px;
-    height: 150px;
+    width: 30%;
+    max-width: 120px;
+    height: 120px;
   }
 
   .menu-btn-num {
-    font-size: 2.8rem;
+    font-size: 2.2rem;
+  }
+
+  .menu-btn-desc {
+    font-size: 0.8rem;
   }
 
   .controls {
