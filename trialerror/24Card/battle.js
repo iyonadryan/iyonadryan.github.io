@@ -132,10 +132,10 @@ btnCreateRoom.addEventListener('click', () => {
     created: now,
     expired: now + 3600000
   }).then(() => {
-    window.location.href = 'room.html?roomId=' + roomId;
-  }).catch((err) => {
-    console.error(err);
-    alert('Gagal membuat room. Coba lagi.');
+      window.location.href = 'battle-room.html?roomId=' + roomId;
+    }).catch((err) => {
+      console.error(err);
+      alert('Gagal membuat room. Coba lagi.');
     btnCreateRoom.disabled = false;
     btnCreateRoom.textContent = '+ Create Room';
   });
@@ -164,7 +164,7 @@ btnJoinRoom.addEventListener('click', () => {
       btnJoinRoom.disabled = false;
       btnJoinRoom.textContent = 'Gunakan Room';
     } else {
-      window.location.href = 'room.html?roomId=' + roomId;
+      window.location.href = 'battle-room.html?roomId=' + roomId;
     }
   }).catch((err) => {
     console.error(err);
@@ -254,7 +254,7 @@ btnJoinMobile.addEventListener('click', () => {
     db.ref('trial-error/24Card/battle/' + roomId + '/players/' + name).set({
       status: 'undready'
     }).then(() => {
-      window.location.href = 'lobby.html?roomId=' + roomId + '&name=' + encodeURIComponent(name);
+      window.location.href = 'battle-lobby.html?roomId=' + roomId + '&name=' + encodeURIComponent(name);
     }).catch((err) => {
       console.error(err);
       alert('Gagal bergabung. Coba lagi.');
@@ -399,7 +399,7 @@ function renderRoomList(filter) {
         db.ref('trial-error/24Card/battle/' + roomId + '/players/' + name).set({
           status: 'undready'
         }).then(() => {
-          window.location.href = 'lobby.html?roomId=' + roomId + '&name=' + encodeURIComponent(name);
+          window.location.href = 'battle-lobby.html?roomId=' + roomId + '&name=' + encodeURIComponent(name);
         }).catch((err) => {
           console.error(err);
           alert('Gagal bergabung. Coba lagi.');
