@@ -615,6 +615,42 @@ button, input, select {
   margin-bottom: 8px;
 }
 
+.plan-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.plan-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.plan-btn:active {
+  transform: scale(0.9);
+}
+
+.plan-btn.plan-edit {
+  border-color: var(--color-warning);
+  background: var(--color-warning-bg);
+}
+
+.plan-btn.plan-delete {
+  border-color: var(--color-expense);
+  background: var(--color-expense-bg);
+}
+
 .plan-category {
   font-weight: 700;
   font-size: 14px;
@@ -658,14 +694,6 @@ button, input, select {
   font-size: 12px;
   font-weight: 700;
   color: var(--color-text-muted);
-}
-
-.plan-delete {
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  font-size: 13px;
-  cursor: pointer;
 }
 
 /* ---------- Settings ---------- */

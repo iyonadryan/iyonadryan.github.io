@@ -415,7 +415,10 @@
       card.innerHTML = `
         <div class="plan-top">
           <span class="plan-category">${cat.icon} ${cat.label}</span>
-          <button class="plan-delete" data-id="${plan.id}">Hapus</button>
+          <div class="plan-actions">
+            <button class="plan-btn plan-edit" data-id="${plan.id}" aria-label="Edit">✏️</button>
+            <button class="plan-btn plan-delete" data-id="${plan.id}" aria-label="Hapus">🗑️</button>
+          </div>
         </div>
         <div class="plan-progress-track">
           <div class="plan-progress-fill ${fillClass}" style="width:${pct}%"></div>
@@ -428,9 +431,17 @@
       container.appendChild(card);
     });
 
+    container.querySelectorAll(".plan-edit").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const plan = plans.find((p) => p.id === btn.dataset.id);
+        if (plan) openEditPlanModal(plan);
+      });
+    });
+
     container.querySelectorAll(".plan-delete").forEach((btn) => {
       btn.addEventListener("click", () => {
-        deletePlan(btn.dataset.id); // render diperbarui otomatis oleh listener
+        const plan = plans.find((p) => p.id === btn.dataset.id);
+        if (plan) openDeletePlanConfirm(plan);
       });
     });
   }
@@ -574,16 +585,31 @@
   /* ================= Delete confirmation modal ================= */
 
   const confirmModal = document.getElementById("confirmModal");
+  const confirmTitle = document.getElementById("confirmTitle");
+  const confirmText = document.getElementById("confirmText");
   let pendingDeleteTx = null;
+  let pendingDeletePlan = null;
 
   function openDeleteConfirm(tx) {
     pendingDeleteTx = tx;
+    pendingDeletePlan = null;
+    confirmTitle.textContent = "Hapus Transaksi?";
+    confirmText.textContent = "Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.";
+    confirmModal.classList.add("open");
+  }
+
+  function openDeletePlanConfirm(plan) {
+    pendingDeletePlan = plan;
+    pendingDeleteTx = null;
+    confirmTitle.textContent = "Hapus Rencana?";
+    confirmText.textContent = "Apakah Anda yakin ingin menghapus rencana anggaran untuk kategori ini?";
     confirmModal.classList.add("open");
   }
 
   function closeDeleteConfirm() {
     confirmModal.classList.remove("open");
     pendingDeleteTx = null;
+    pendingDeletePlan = null;
   }
 
   document.getElementById("cancelDeleteBtn").addEventListener("click", closeDeleteConfirm);
@@ -593,6 +619,11 @@
       deleteTransaction(pendingDeleteTx).catch((err) => {
         console.error("Gagal menghapus transaksi:", err);
         alert("Gagal menghapus transaksi. Cek koneksi internet.");
+      });
+    } else if (pendingDeletePlan) {
+      deletePlan(pendingDeletePlan.id).catch((err) => {
+        console.error("Gagal menghapus rencana:", err);
+        alert("Gagal menghapus rencana. Cek koneksi internet.");
       });
     }
     closeDeleteConfirm();
@@ -604,14 +635,27 @@
   const planForm = document.getElementById("planForm");
   const planCategoryInput = document.getElementById("planCategoryInput");
 
+  let editingPlan = null;
+
   function openPlanModal() {
+    editingPlan = null;
     populateCategorySelect(planCategoryInput, "expense");
     planForm.reset();
     planModal.classList.add("open");
   }
 
+  function openEditPlanModal(plan) {
+    editingPlan = plan;
+    populateCategorySelect(planCategoryInput, "expense");
+    planForm.reset();
+    planCategoryInput.value = plan.category;
+    document.getElementById("planLimitInput").value = Math.round(plan.limit).toLocaleString("id-ID");
+    planModal.classList.add("open");
+  }
+
   function closePlanModal() {
     planModal.classList.remove("open");
+    editingPlan = null;
   }
 
   planForm.addEventListener("submit", (e) => {
