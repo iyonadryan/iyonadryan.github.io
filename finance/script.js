@@ -375,9 +375,6 @@
       el.classList.toggle("active", el.dataset.nav === pageId);
     });
 
-    // FAB tambah transaksi hanya di Dashboard (Transaksi cuma menampilkan history).
-    document.getElementById("fabAdd").style.display = pageId === "dashboard" ? "" : "none";
-
     if (pageId === "transactions") renderAllTransactions();
     if (pageId === "plans") renderPlans();
     if (pageId === "dashboard") renderDashboard();
@@ -842,16 +839,18 @@
       date: dateInput.value,
     };
 
+    const isAdd = !editingTx;
     const op = editingTx ? updateTransaction(editingTx, data) : addTransaction(data);
     op.catch((err) => {
       console.error("Gagal menyimpan transaksi:", err);
       alert("Gagal menyimpan transaksi. Cek koneksi internet.");
     });
     closeTransactionModal();
+    if (isAdd) goToPage("dashboard"); // habis tambah transaksi → ke Dashboard (edit tetap di halaman asal)
   });
 
   document.getElementById("cancelTransactionBtn").addEventListener("click", closeTransactionModal);
-  document.getElementById("fabAdd").addEventListener("click", openTransactionModal);
+  document.getElementById("navAdd").addEventListener("click", openTransactionModal);
   document.getElementById("amountInput").addEventListener("input", function () {
     formatAmountInput(this);
   });
