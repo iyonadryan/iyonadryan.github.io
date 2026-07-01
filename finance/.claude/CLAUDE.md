@@ -51,9 +51,12 @@ Catatan: user awalnya menuliskan struktur transaksi hanya `{ category, transaksi
 - `index.html` — struktur halaman (single-page, section di-toggle lewat JS, bukan multi-page).
 - `style.css` — semua styling, mobile-first, pakai CSS variables untuk theming (light/dark).
 - `script.js` — semua logic (state, render, event handler, layer data Firebase). IIFE tunggal, vanilla JS tanpa framework/build tool.
+- `generate-excel.js` — helper pembuatan/unduh file Excel `.xlsx` (`window.FinanceExcel`), memakai SheetJS. Generik & tanpa state app: menerima data mentah dari `script.js`. Di-load setelah SheetJS CDN, sebelum `script.js`.
 - `.claude/CLAUDE.md` — file ini, dokumentasi project untuk Claude.
 
 Belum ada build tool (tidak ada npm/bundler). Cukup buka `index.html` langsung di browser atau lewat live server.
+
+**Dependensi eksternal (CDN, di `<head>`/akhir `body`):** Firebase compat v8.10.1 (app+database) dan **SheetJS** (`xlsx.full.min.js`) untuk export Excel.
 
 ## Fitur yang sudah ada
 
@@ -77,6 +80,7 @@ Belum ada build tool (tidak ada npm/bundler). Cukup buka `index.html` langsung d
    - Tiap card punya tombol ✏️ edit & 🗑️ hapus (lihat bagian "Edit & hapus (transaksi & rencana)").
 4. **Pengaturan** (`#settings`)
    - Toggle tema light/dark.
+   - **Export ke Excel** (tombol `#exportBtn` → popup `#exportModal`): lihat bagian "Export Excel".
    - Info "Tentang". (Tombol "Hapus Semua Data" sudah dihapus sejak data pindah ke Firebase.)
 5. **Tambah transaksi** lewat tombol **+ di tengah bottom nav** (`#navAdd`, `.nav-add` — bulat bergradient, menonjol ke atas, **selalu tampil di semua halaman**) → modal bottom-sheet, pilih tipe (income/expense), kategori, jumlah, catatan. **Tanggal otomatis** (field `#dateInput` `disabled`, di-set ke hari ini saat tambah; label "Tanggal (otomatis)"). Jumlah diformat ribuan realtime saat diketik (`formatAmountInput`). Setelah **tambah** transaksi berhasil, app otomatis pindah ke Dashboard (`goToPage("dashboard")`); **edit** tetap di halaman asal.
 6. **Navigasi**: bottom navigation bar ala aplikasi mobile — Dashboard, Transaksi, **[+]**, Rencana, Pengaturan (tombol + tambah transaksi ada di slot tengah, di antara Transaksi & Rencana).
@@ -136,6 +140,15 @@ Urutan card rencana bisa diatur dengan menggeser handle ⠿ (`.plan-drag`) di pa
 - `onPlanDragMove`: card yang di-hold di-`translateY(dy)` mengikuti pointer; slot tujuan (`to`) dihitung dari pusatnya vs `centers`; card lain di-`translateY(±shift)` untuk membuka ruang — bergeser **mulus** karena `.plan-card { transition: transform 0.18s }`.
 - `endPlanDrag`: matikan transisi sesaat (`.plans-list.reordering`), bersihkan semua `transform`, susun ulang DOM sesuai `from`→`to` (via `appendChild` berurutan), reflow, lalu hidupkan transisi lagi — supaya rekonsiliasi tidak berkedip. Terakhir panggil `commitPlanOrder()`.
 - `commitPlanOrder()` membaca urutan DOM card lalu menulis field `sort` (0,1,2,…) untuk tiap `plans/<period>/<category>/sort` lewat satu `financeRef.update()` multi-path (hanya menulis yang berubah).
+
+## Export Excel
+
+Unduh data ke file `.xlsx` asli, 100% di browser via **SheetJS** (CDN). Pemisahan tanggung jawab karena `script.js` IIFE tertutup: **data mengalir keluar** dari `script.js` ke helper global.
+- `generate-excel.js` mendefinisikan `window.FinanceExcel` — `available()` (cek `typeof XLSX`) & `download(fileName, sheetName, rows)` (rows = array of objects → `XLSX.utils.json_to_sheet` → `book_new`/`book_append_sheet` → `writeFile` yang memicu unduhan). Tanpa akses/tahu state app.
+- `script.js` (dalam IIFE) memegang UI + penyiapan data: tombol `#exportBtn` buka popup `#exportModal` (bottom-sheet, 2 opsi):
+  - **Transaksi bulan aktif** (`exportActiveMonthTransactions`): `transactions` di bulan `viewDate`, urut menaik, kolom `Tanggal/Waktu/Tipe/Kategori/Nominal/Catatan`. `Nominal` **angka** (bukan string "Rp") supaya bisa dihitung di Excel. File `transaksi-<YYYY-MM>.xlsx`.
+  - **Ringkasan per bulan** (`exportMonthlySummary`): semua `transactions` dikelompokkan per `ym`, kolom `Bulan/Pemasukan/Pengeluaran/Saldo`, satu baris per bulan (urut kronologis). File `ringkasan-per-bulan.xlsx`.
+  - Guard: modul SheetJS gagal dimuat (offline) → alert; data kosong → alert "Tidak ada data untuk diekspor".
 - `renderPlans` mengurutkan list per periode dengan `a.sort - b.sort` (tie-break `id`). Rencana baru dapat `sort` paling akhir (`nextSortForPeriod`); saat edit, `sort` lama dipertahankan (submit form mencari plan yang sudah ada by `id`). **Penting**: `savePlan` memakai `.set()` sehingga menulis ulang seluruh node — field `sort` **harus** ikut dikirim tiap simpan supaya urutan tidak ke-reset.
 
 ## Catatan implementasi

@@ -160,6 +160,14 @@
           <button id="settingsThemeToggle" class="btn-secondary">Ganti Tema</button>
         </div>
 
+        <div class="settings-item">
+          <div>
+            <p class="settings-title">Export ke Excel</p>
+            <p class="settings-desc">Unduh transaksi atau ringkasan ke file .xlsx</p>
+          </div>
+          <button id="exportBtn" class="btn-primary">Download</button>
+        </div>
+
         <div class="settings-item settings-info">
           <div>
             <p class="settings-title">Tentang</p>
@@ -293,8 +301,39 @@
     </div>
   </div>
 
+  <!-- ===================== MODAL: EXPORT EXCEL ===================== -->
+  <div id="exportModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h3>Download Excel</h3>
+      <p class="export-hint">Pilih data yang ingin diunduh ke file .xlsx</p>
+      <div class="export-options">
+        <button type="button" class="export-option" id="exportTransactionsBtn">
+          <span class="export-option-icon">📋</span>
+          <span>
+            <span class="export-option-title">Transaksi bulan aktif</span>
+            <span class="export-option-desc">Semua transaksi pada bulan yang sedang dipilih</span>
+          </span>
+        </button>
+        <button type="button" class="export-option" id="exportSummaryBtn">
+          <span class="export-option-icon">📊</span>
+          <span>
+            <span class="export-option-title">Ringkasan per bulan</span>
+            <span class="export-option-desc">Rekap pemasukan, pengeluaran &amp; saldo tiap bulan</span>
+          </span>
+        </button>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="cancelExportBtn">Batal</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
+<!-- SheetJS (untuk export .xlsx) + helper export, di-load sebelum script.js -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="generate-excel.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

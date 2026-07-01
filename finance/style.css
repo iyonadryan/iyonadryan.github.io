@@ -1023,6 +1023,59 @@ button, input, select {
   overflow-y: auto;
 }
 
+/* ---------- Export options (modal download) ---------- */
+
+.export-hint {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0 0 14px;
+}
+
+.export-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.export-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.export-option:active {
+  transform: scale(0.98);
+  border-color: var(--color-primary);
+}
+
+.export-option-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.export-option-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.export-option-desc {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
 .modal-overlay.open .modal-sheet {
   transform: translateY(0);
 }

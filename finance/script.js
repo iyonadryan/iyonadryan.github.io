@@ -1047,6 +1047,88 @@
   document.getElementById("themeToggle").addEventListener("click", toggleTheme);
   document.getElementById("settingsThemeToggle").addEventListener("click", toggleTheme);
 
+  /* ================= Export Excel ================= */
+
+  // UI + penyiapan data ada di sini (butuh state internal IIFE); pembuatan
+  // file .xlsx didelegasikan ke window.FinanceExcel (generate-excel.js).
+
+  const exportModal = document.getElementById("exportModal");
+
+  function openExportModal() {
+    exportModal.classList.add("open");
+  }
+  function closeExportModal() {
+    exportModal.classList.remove("open");
+  }
+
+  function monthLabel(date) {
+    return MONTH_NAMES[date.getMonth()] + " " + date.getFullYear();
+  }
+
+  function excelReady() {
+    if (window.FinanceExcel && FinanceExcel.available()) return true;
+    alert("Gagal memuat modul Excel. Cek koneksi internet.");
+    return false;
+  }
+
+  function exportActiveMonthTransactions() {
+    if (!excelReady()) return;
+    const monthTx = transactions
+      .filter((t) => isSameMonth(t.date, viewDate))
+      .sort((a, b) => {
+        const byDate = new Date(a.date) - new Date(b.date);
+        return byDate !== 0 ? byDate : txTime(a) - txTime(b);
+      });
+    if (monthTx.length === 0) {
+      alert("Tidak ada data untuk diekspor.");
+      return;
+    }
+    const rows = monthTx.map((t) => ({
+      Tanggal: t.date,
+      Waktu: formatTime(txTime(t), true),
+      Tipe: t.type === "income" ? "Pemasukan" : "Pengeluaran",
+      Kategori: findCategory(t.type, t.category).label,
+      Nominal: t.amount,
+      Catatan: t.note || "",
+    }));
+    const ym = viewDate.getFullYear() + "-" + pad2(viewDate.getMonth() + 1);
+    FinanceExcel.download("transaksi-" + ym + ".xlsx", "Transaksi " + monthLabel(viewDate), rows);
+    closeExportModal();
+  }
+
+  function exportMonthlySummary() {
+    if (!excelReady()) return;
+    if (transactions.length === 0) {
+      alert("Tidak ada data untuk diekspor.");
+      return;
+    }
+    // Kelompokkan total income/expense per bulan (ym = "YYYY-MM").
+    const byMonth = {};
+    transactions.forEach((t) => {
+      if (!byMonth[t.ym]) byMonth[t.ym] = { income: 0, expense: 0 };
+      byMonth[t.ym][t.type] += t.amount;
+    });
+    const rows = Object.keys(byMonth)
+      .sort() // "YYYY-MM" → urut kronologis
+      .map((ym) => {
+        const parts = ym.split("-");
+        const d = new Date(Number(parts[0]), Number(parts[1]) - 1, 1);
+        const inc = byMonth[ym].income;
+        const exp = byMonth[ym].expense;
+        return { Bulan: monthLabel(d), Pemasukan: inc, Pengeluaran: exp, Saldo: inc - exp };
+      });
+    FinanceExcel.download("ringkasan-per-bulan.xlsx", "Ringkasan", rows);
+    closeExportModal();
+  }
+
+  document.getElementById("exportBtn").addEventListener("click", openExportModal);
+  document.getElementById("cancelExportBtn").addEventListener("click", closeExportModal);
+  document.getElementById("exportTransactionsBtn").addEventListener("click", exportActiveMonthTransactions);
+  document.getElementById("exportSummaryBtn").addEventListener("click", exportMonthlySummary);
+  exportModal.addEventListener("click", (e) => {
+    if (e.target === exportModal) closeExportModal();
+  });
+
   /* ================= Init ================= */
 
   initTheme();
