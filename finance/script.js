@@ -375,9 +375,8 @@
       el.classList.toggle("active", el.dataset.nav === pageId);
     });
 
-    // FAB tambah transaksi hanya relevan di Dashboard & Transaksi.
-    const showFab = pageId === "dashboard" || pageId === "transactions";
-    document.getElementById("fabAdd").style.display = showFab ? "" : "none";
+    // FAB tambah transaksi hanya di Dashboard (Transaksi cuma menampilkan history).
+    document.getElementById("fabAdd").style.display = pageId === "dashboard" ? "" : "none";
 
     if (pageId === "transactions") renderAllTransactions();
     if (pageId === "plans") renderPlans();

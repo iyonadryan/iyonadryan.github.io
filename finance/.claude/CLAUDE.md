@@ -78,7 +78,7 @@ Belum ada build tool (tidak ada npm/bundler). Cukup buka `index.html` langsung d
 4. **Pengaturan** (`#settings`)
    - Toggle tema light/dark.
    - Info "Tentang". (Tombol "Hapus Semua Data" sudah dihapus sejak data pindah ke Firebase.)
-5. **Tambah transaksi** lewat FAB (tombol +) di kanan bawah → modal bottom-sheet, pilih tipe (income/expense), kategori, jumlah, catatan. **Tanggal otomatis** (field `#dateInput` `disabled`, di-set ke hari ini saat tambah; label "Tanggal (otomatis)"). Jumlah diformat ribuan realtime saat diketik (`formatAmountInput`). **FAB hanya tampil di Dashboard & Transaksi** — disembunyikan di Rencana & Pengaturan (di-toggle di `goToPage`).
+5. **Tambah transaksi** lewat FAB (tombol +) di kanan bawah → modal bottom-sheet, pilih tipe (income/expense), kategori, jumlah, catatan. **Tanggal otomatis** (field `#dateInput` `disabled`, di-set ke hari ini saat tambah; label "Tanggal (otomatis)"). Jumlah diformat ribuan realtime saat diketik (`formatAmountInput`). **FAB hanya tampil di Dashboard** — disembunyikan di Transaksi (fokus menampilkan history), Rencana, & Pengaturan (di-toggle di `goToPage`).
 6. **Navigasi**: bottom navigation bar ala aplikasi mobile (Dashboard, Transaksi, Rencana, Pengaturan).
 7. **Tema light/dark**: pakai atribut `data-theme` di `<html>`, variabel warna di `:root` dan `[data-theme="dark"]` pada `style.css`. Preferensi tersimpan di localStorage, fallback ke `prefers-color-scheme`.
 
