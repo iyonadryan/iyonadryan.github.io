@@ -117,6 +117,7 @@
         <button class="filter-tab active" data-filter="all">Semua</button>
         <button class="filter-tab" data-filter="income">Pemasukan</button>
         <button class="filter-tab" data-filter="expense">Pengeluaran</button>
+        <button id="filterBtn" class="btn-filter" title="Filter kategori">🔍</button>
       </div>
 
       <div id="allTransactions" class="transaction-list">
@@ -257,6 +258,19 @@
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="cancelDeleteBtn">Batal</button>
         <button type="button" class="btn-danger-solid" id="confirmDeleteBtn">Ya, Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: FILTER CATEGORY ===================== -->
+  <div id="filterModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h3>Filter Kategori</h3>
+      <div id="filterCategoryList" class="filter-category-list"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="cancelFilterBtn">Batal</button>
+        <button type="button" class="btn-primary" id="applyFilterBtn">Terapkan</button>
       </div>
     </div>
   </div>

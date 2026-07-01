@@ -53,6 +53,7 @@
   let viewDate = new Date(); // controls which month is shown on dashboard
   let currentTxType = "expense";
   let currentFilter = "all";
+  let selectedCategories = [];
 
   /* ================= Firebase data layer ================= */
 
@@ -321,6 +322,9 @@
     if (currentFilter !== "all") {
       list = list.filter((t) => t.type === currentFilter);
     }
+    if (selectedCategories.length > 0) {
+      list = list.filter((t) => selectedCategories.includes(t.category));
+    }
     renderTransactionList(document.getElementById("allTransactions"), list, "Belum ada transaksi bulan ini.", true);
   }
 
@@ -441,6 +445,53 @@
       opt.textContent = cat.icon + " " + cat.label;
       selectEl.appendChild(opt);
     });
+  }
+
+  /* ================= Category filter modal ================= */
+
+  function openFilterModal() {
+    const list = document.getElementById("filterCategoryList");
+    list.innerHTML = "";
+
+    let cats = currentFilter === "all"
+      ? [...CATEGORIES.expense, ...CATEGORIES.income]
+      : CATEGORIES[currentFilter];
+
+    cats.forEach((cat) => {
+      const div = document.createElement("div");
+      div.className = "filter-category-item";
+      const checked = selectedCategories.includes(cat.id) ? "checked" : "";
+      div.innerHTML = `
+        <label>
+          <input type="checkbox" value="${cat.id}" ${checked}>
+          <span>${cat.icon} ${cat.label}</span>
+        </label>
+      `;
+      list.appendChild(div);
+    });
+
+    document.getElementById("filterModal").classList.add("open");
+  }
+
+  function closeFilterModal() {
+    document.getElementById("filterModal").classList.remove("open");
+  }
+
+  function applyFilter() {
+    const checks = document.querySelectorAll("#filterCategoryList input[type='checkbox']:checked");
+    selectedCategories = Array.from(checks).map((cb) => cb.value);
+    updateFilterButton();
+    closeFilterModal();
+    renderAllTransactions();
+  }
+
+  function updateFilterButton() {
+    const btn = document.getElementById("filterBtn");
+    if (selectedCategories.length > 0) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
+    }
   }
 
   /* ================= Transaction modal ================= */
@@ -598,8 +649,17 @@
     tab.addEventListener("click", () => {
       currentFilter = tab.dataset.filter;
       document.querySelectorAll(".filter-tab").forEach((t) => t.classList.toggle("active", t === tab));
+      selectedCategories = [];
+      updateFilterButton();
       renderAllTransactions();
     });
+  });
+
+  document.getElementById("filterBtn").addEventListener("click", openFilterModal);
+  document.getElementById("applyFilterBtn").addEventListener("click", applyFilter);
+  document.getElementById("cancelFilterBtn").addEventListener("click", closeFilterModal);
+  document.getElementById("filterModal").addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) closeFilterModal();
   });
 
   /* ================= Month navigation ================= */
