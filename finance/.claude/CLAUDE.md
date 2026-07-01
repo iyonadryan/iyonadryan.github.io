@@ -66,7 +66,7 @@ Belum ada build tool (tidak ada npm/bundler). Cukup buka `index.html` langsung d
    - List transaksi terbaru: **maks 3**, diurut paling baru berdasarkan waktu pembuatan (`txTime`, dari timestamp). Tiap item tampil tanggal singkat + jam:menit.
 2. **Transaksi** (`#transactions`)
    - Punya selector bulan sendiri (prev/next) — **per-bulan, beda bulan beda data**. List difilter ke bulan yang sedang dipilih.
-   - **Filter dua tingkat** (lihat bagian "Filter transaksi"): tab tipe Semua / Pemasukan / Pengeluaran, plus tombol 🔍 → modal filter kategori multi-select.
+   - **Filter bertingkat** (lihat bagian "Filter transaksi"): tab tipe Semua / Pemasukan / Pengeluaran, plus tombol 🔍 → modal filter berisi **rentang tanggal** (start & end, dibatasi ke bulan aktif) + kategori multi-select.
    - Tampilan lebih detail (`detailed=true` di `renderTransactionList`): tanggal + tahun & jam:menit:**detik**. Urut per tanggal desc, tie-break waktu pembuatan.
    - Edit & hapus transaksi langsung dari list (lihat bagian "Edit & hapus (transaksi & rencana)").
 3. **Rencana Anggaran / Plans** (`#plans`)
@@ -111,13 +111,16 @@ Saat app dibuka, ada overlay `#loadingOverlay` (animasi ikon uang 💰💵🪙 m
 
 ## Filter transaksi
 
-Halaman Transaksi punya filter **dua tingkat** yang bekerja bersama; keduanya dipakai di `renderAllTransactions()` di atas list yang sudah difilter per bulan.
+Halaman Transaksi punya filter bertingkat yang bekerja bersama; semuanya dipakai di `renderAllTransactions()` di atas list yang sudah difilter per bulan.
 
-1. **Tab tipe** (`.filter-tab`, `data-filter` = `all`/`income`/`expense`) → state `currentFilter`. Klik tab: set `currentFilter`, tandai tab aktif, **reset `selectedCategories` ke `[]`** (filter kategori dibatalkan tiap ganti tab), lalu re-render.
-2. **Filter kategori** (tombol 🔍 `#filterBtn` → modal `#filterModal`) → state `selectedCategories[]` (array id kategori).
-   - `openFilterModal()` mengisi `#filterCategoryList` dengan checkbox kategori. Kategori yang ditampilkan **mengikuti tab aktif**: tab `all` → gabungan expense + income; tab income/expense → kategori tipe itu saja. Checkbox yang sudah terpilih di-`checked`.
-   - `applyFilter()` mengumpulkan checkbox tercentang → `selectedCategories`, update indikator tombol (`updateFilterButton()` menambah class `.active` di `#filterBtn` kalau ada kategori terpilih), tutup modal, re-render.
-   - Di `renderAllTransactions`, list difilter: kalau `currentFilter !== "all"` filter per `type`, lalu kalau `selectedCategories.length > 0` filter per `category`.
+1. **Tab tipe** (`.filter-tab`, `data-filter` = `all`/`income`/`expense`) → state `currentFilter`. Klik tab: set `currentFilter`, tandai tab aktif, **reset `selectedCategories` ke `[]`** (filter kategori dibatalkan tiap ganti tab), lalu re-render. (Rentang tanggal **tidak** direset di sini karena tidak bergantung tipe.)
+2. **Modal filter** (tombol 🔍 `#filterBtn` → modal `#filterModal`) berisi dua bagian:
+   - **Rentang tanggal** (`#filterStartInput` & `#filterEndInput`, `<select>` **pilihan hari** 1..akhir bulan — karena tampilan sudah per-bulan, cukup tanggalnya saja; native dropdown, scroll otomatis) → state `filterStartDate`/`filterEndDate` disimpan penuh "YYYY-MM-DD". `openFilterModal()` mengisi opsi via `fillDaySelect()` (opsi "—" = tanpa filter) & prefill hari dari state (`dayOf`). `applyFilter()` membentuk tanggal penuh dari hari + bulan aktif (`dateFromDay`), menukar start/end bila terbalik. List kategori dibatasi ~3 baris (`max-height`, scroll).
+   - **Tiga tombol** di modal: **Batal** (`closeFilterModal`), **Reset** (`resetFilter` — hapus SEMUA filter: tipe→"all" + tab-nya, kategori, rentang tanggal, lalu tutup & re-render), **Terapkan** (`applyFilter`).
+   - **Kategori** (`selectedCategories[]`): `openFilterModal()` mengisi `#filterCategoryList` dengan checkbox mengikuti tab aktif (tab `all` → expense+income; income/expense → tipe itu saja); yang terpilih di-`checked`.
+   - `applyFilter()` membaca tanggal + checkbox → state, `updateFilterButton()` menandai `#filterBtn` `.active` kalau **ada** kategori terpilih **atau** rentang tanggal terisi, tutup modal, re-render.
+   - Di `renderAllTransactions`, urutan filter: `currentFilter` (type) → `selectedCategories` (category) → `filterStartDate` (`t.date >= start`) → `filterEndDate` (`t.date <= end`). Perbandingan string "YYYY-MM-DD" = kronologis.
+3. **Ganti bulan** (`changeMonth`) mereset `filterStartDate`/`filterEndDate` (terikat ke bulan tertentu) lalu `updateFilterButton()`; `selectedCategories` tetap (tidak month-specific).
 
 ## Edit & hapus (transaksi & rencana)
 

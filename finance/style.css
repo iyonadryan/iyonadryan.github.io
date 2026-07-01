@@ -591,12 +591,33 @@ button, input, select {
   border-color: var(--color-primary);
 }
 
+.filter-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  margin: 4px 0 8px;
+}
+
+.filter-date {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.filter-date .field {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
 .filter-category-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
   margin-bottom: 18px;
-  max-height: 55vh;
+  max-height: 150px; /* ~3 kategori, sisanya scroll */
   overflow-y: auto;
 }
 
@@ -896,6 +917,19 @@ button, input, select {
   cursor: pointer;
 }
 
+/* Tombol "inverse" (tombol Reset filter): light = hitam/teks putih,
+   dark = putih/teks hitam. */
+.btn-invert {
+  background: #1c1d26;
+  color: #ffffff;
+  border: none;
+}
+
+[data-theme="dark"] .btn-invert {
+  background: #ffffff;
+  color: #1c1d26;
+}
+
 .btn-danger {
   background: var(--color-expense-bg);
   color: var(--color-expense);
@@ -1159,8 +1193,9 @@ button, input, select {
 }
 
 /* Tanggal dikunci ke "sekarang" (disabled): sembunyikan ikon kalender dan
-   jaga teks tetap terbaca (iOS Safari biasanya memudarkan input disabled). */
-.field input[type="date"]::-webkit-calendar-picker-indicator {
+   jaga teks tetap terbaca (iOS Safari biasanya memudarkan input disabled).
+   Hanya untuk input yang disabled — input tanggal filter tetap punya picker. */
+.field input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   display: none;
 }
 

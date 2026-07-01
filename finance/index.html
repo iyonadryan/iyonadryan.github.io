@@ -292,10 +292,26 @@
   <div id="filterModal" class="modal-overlay">
     <div class="modal-sheet">
       <div class="modal-handle"></div>
-      <h3>Filter Kategori</h3>
+      <h3>Filter Transaksi</h3>
+
+      <p class="filter-section-label">Rentang Tanggal</p>
+      <div class="filter-date">
+        <label class="field">
+          <span>Dari tanggal</span>
+          <select id="filterStartInput"></select>
+        </label>
+        <label class="field">
+          <span>Sampai tanggal</span>
+          <select id="filterEndInput"></select>
+        </label>
+      </div>
+
+      <p class="filter-section-label">Kategori</p>
       <div id="filterCategoryList" class="filter-category-list"></div>
+
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="cancelFilterBtn">Batal</button>
+        <button type="button" class="btn-secondary btn-invert" id="resetFilterBtn">Reset</button>
         <button type="button" class="btn-primary" id="applyFilterBtn">Terapkan</button>
       </div>
     </div>

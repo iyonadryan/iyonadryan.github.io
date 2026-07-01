@@ -54,6 +54,8 @@
   let currentTxType = "expense";
   let currentFilter = "all";
   let selectedCategories = [];
+  let filterStartDate = ""; // filter rentang tanggal di halaman Transaksi ("YYYY-MM-DD")
+  let filterEndDate = "";
   let currentPeriod = "bulanan"; // tab periode aktif di halaman Rencana
 
   // Periode rencana anggaran. Harian/Mingguan/Weekday/Weekend dihitung terhadap
@@ -424,6 +426,13 @@
     if (selectedCategories.length > 0) {
       list = list.filter((t) => selectedCategories.includes(t.category));
     }
+    // Filter rentang tanggal (dalam bulan aktif). "YYYY-MM-DD" bisa dibanding string.
+    if (filterStartDate) {
+      list = list.filter((t) => t.date >= filterStartDate);
+    }
+    if (filterEndDate) {
+      list = list.filter((t) => t.date <= filterEndDate);
+    }
     renderTransactionList(document.getElementById("allTransactions"), list, "Belum ada transaksi bulan ini.", true);
   }
 
@@ -724,6 +733,39 @@
 
   /* ================= Category filter modal ================= */
 
+  // Jumlah hari pada bulan yang sedang dilihat.
+  function daysInViewMonth() {
+    return new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
+  }
+
+  // Isi dropdown pilihan hari (1..akhir bulan). "" = tidak difilter.
+  function fillDaySelect(sel, selectedDay) {
+    const lastDay = daysInViewMonth();
+    sel.innerHTML = "";
+    const none = document.createElement("option");
+    none.value = "";
+    none.textContent = "—";
+    sel.appendChild(none);
+    for (let d = 1; d <= lastDay; d++) {
+      const opt = document.createElement("option");
+      opt.value = String(d);
+      opt.textContent = d;
+      sel.appendChild(opt);
+    }
+    sel.value = selectedDay ? String(selectedDay) : "";
+  }
+
+  // Ambil komponen hari dari tanggal state ("YYYY-MM-DD").
+  function dayOf(dateStr) {
+    return dateStr ? Number(dateStr.split("-")[2]) : "";
+  }
+
+  // Bentuk tanggal "YYYY-MM-DD" dari nomor hari pada bulan aktif.
+  function dateFromDay(day) {
+    if (!day) return "";
+    return viewDate.getFullYear() + "-" + pad2(viewDate.getMonth() + 1) + "-" + pad2(Number(day));
+  }
+
   function openFilterModal() {
     const list = document.getElementById("filterCategoryList");
     list.innerHTML = "";
@@ -731,6 +773,8 @@
     let cats = currentFilter === "all"
       ? [...CATEGORIES.expense, ...CATEGORIES.income]
       : CATEGORIES[currentFilter];
+    // Urutkan berdasarkan label (A→Z), bukan urutan definisi/ikon.
+    cats = cats.slice().sort((a, b) => a.label.localeCompare(b.label, "id"));
 
     cats.forEach((cat) => {
       const div = document.createElement("div");
@@ -745,6 +789,10 @@
       list.appendChild(div);
     });
 
+    // Rentang tanggal = pilihan hari dalam bulan aktif, prefill dari state.
+    fillDaySelect(document.getElementById("filterStartInput"), dayOf(filterStartDate));
+    fillDaySelect(document.getElementById("filterEndInput"), dayOf(filterEndDate));
+
     document.getElementById("filterModal").classList.add("open");
   }
 
@@ -755,6 +803,16 @@
   function applyFilter() {
     const checks = document.querySelectorAll("#filterCategoryList input[type='checkbox']:checked");
     selectedCategories = Array.from(checks).map((cb) => cb.value);
+
+    let start = dateFromDay(document.getElementById("filterStartInput").value);
+    let end = dateFromDay(document.getElementById("filterEndInput").value);
+    // Kalau kebalik (start > end), tukar supaya tetap masuk akal.
+    if (start && end && start > end) {
+      const tmp = start; start = end; end = tmp;
+    }
+    filterStartDate = start;
+    filterEndDate = end;
+
     updateFilterButton();
     closeFilterModal();
     renderAllTransactions();
@@ -762,11 +820,22 @@
 
   function updateFilterButton() {
     const btn = document.getElementById("filterBtn");
-    if (selectedCategories.length > 0) {
-      btn.classList.add("active");
-    } else {
-      btn.classList.remove("active");
-    }
+    const active = selectedCategories.length > 0 || filterStartDate || filterEndDate;
+    btn.classList.toggle("active", !!active);
+  }
+
+  // Hapus SEMUA filter (tipe, kategori, rentang tanggal) lalu tutup popup.
+  function resetFilter() {
+    currentFilter = "all";
+    document.querySelectorAll("#transactions .filter-tab").forEach((t) =>
+      t.classList.toggle("active", t.dataset.filter === "all")
+    );
+    selectedCategories = [];
+    filterStartDate = "";
+    filterEndDate = "";
+    updateFilterButton();
+    closeFilterModal();
+    renderAllTransactions();
   }
 
   /* ================= Transaction modal ================= */
@@ -1012,6 +1081,7 @@
 
   document.getElementById("filterBtn").addEventListener("click", openFilterModal);
   document.getElementById("applyFilterBtn").addEventListener("click", applyFilter);
+  document.getElementById("resetFilterBtn").addEventListener("click", resetFilter);
   document.getElementById("cancelFilterBtn").addEventListener("click", closeFilterModal);
   document.getElementById("filterModal").addEventListener("click", (e) => {
     if (e.target === e.currentTarget) closeFilterModal();
@@ -1023,6 +1093,10 @@
   // di satu halaman ikut mengubah data di halaman lain.
   function changeMonth(delta) {
     viewDate.setMonth(viewDate.getMonth() + delta);
+    // Rentang tanggal terikat ke bulan tertentu → reset saat pindah bulan.
+    filterStartDate = "";
+    filterEndDate = "";
+    updateFilterButton();
     renderAll();
   }
 
