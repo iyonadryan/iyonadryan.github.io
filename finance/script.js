@@ -738,21 +738,35 @@
     return new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
   }
 
-  // Isi dropdown pilihan hari (1..akhir bulan). "" = tidak difilter.
-  function fillDaySelect(sel, selectedDay) {
+  // Isi dropdown kustom pilihan hari (1..akhir bulan). Pilihan disimpan di
+  // dataset.value pada elemen .day-dd. "" = tidak difilter. Panel bisa scroll
+  // (tinggi dibatasi di CSS) supaya hanya ~5 baris yang tampil.
+  function fillDaySelect(dd, selectedDay) {
     const lastDay = daysInViewMonth();
-    sel.innerHTML = "";
-    const none = document.createElement("option");
-    none.value = "";
-    none.textContent = "—";
-    sel.appendChild(none);
-    for (let d = 1; d <= lastDay; d++) {
-      const opt = document.createElement("option");
-      opt.value = String(d);
-      opt.textContent = d;
-      sel.appendChild(opt);
-    }
-    sel.value = selectedDay ? String(selectedDay) : "";
+    const toggle = dd.querySelector(".day-dd-toggle");
+    const menu = dd.querySelector(".day-dd-menu");
+    dd.classList.remove("open");
+    dd.dataset.value = selectedDay ? String(selectedDay) : "";
+    toggle.textContent = dd.dataset.value || "—";
+    menu.innerHTML = "";
+
+    const addOption = (value, label) => {
+      const opt = document.createElement("button");
+      opt.type = "button";
+      opt.className = "day-dd-option";
+      opt.textContent = label;
+      if (String(value) === String(dd.dataset.value)) opt.classList.add("selected");
+      opt.addEventListener("click", () => {
+        dd.dataset.value = String(value);
+        toggle.textContent = value ? String(value) : "—";
+        menu.querySelectorAll(".day-dd-option").forEach((o) => o.classList.toggle("selected", o === opt));
+        dd.classList.remove("open");
+      });
+      menu.appendChild(opt);
+    };
+
+    addOption("", "—"); // reset / tidak difilter
+    for (let d = 1; d <= lastDay; d++) addOption(String(d), d);
   }
 
   // Ambil komponen hari dari tanggal state ("YYYY-MM-DD").
@@ -804,8 +818,8 @@
     const checks = document.querySelectorAll("#filterCategoryList input[type='checkbox']:checked");
     selectedCategories = Array.from(checks).map((cb) => cb.value);
 
-    let start = dateFromDay(document.getElementById("filterStartInput").value);
-    let end = dateFromDay(document.getElementById("filterEndInput").value);
+    let start = dateFromDay(document.getElementById("filterStartInput").dataset.value);
+    let end = dateFromDay(document.getElementById("filterEndInput").dataset.value);
     // Kalau kebalik (start > end), tukar supaya tetap masuk akal.
     if (start && end && start > end) {
       const tmp = start; start = end; end = tmp;
@@ -1083,6 +1097,26 @@
   document.getElementById("applyFilterBtn").addEventListener("click", applyFilter);
   document.getElementById("resetFilterBtn").addEventListener("click", resetFilter);
   document.getElementById("cancelFilterBtn").addEventListener("click", closeFilterModal);
+
+  // Dropdown hari kustom: toggle buka/tutup, hanya satu terbuka, tutup saat klik luar.
+  document.querySelectorAll(".day-dd .day-dd-toggle").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const dd = btn.closest(".day-dd");
+      const willOpen = !dd.classList.contains("open");
+      document.querySelectorAll(".day-dd.open").forEach((o) => o.classList.remove("open"));
+      dd.classList.toggle("open", willOpen);
+      if (willOpen) {
+        // Gulirkan ke hari yang sedang terpilih supaya langsung terlihat.
+        const menu = dd.querySelector(".day-dd-menu");
+        const sel = menu.querySelector(".day-dd-option.selected");
+        if (sel) menu.scrollTop = Math.max(0, sel.offsetTop - menu.clientHeight / 2);
+      }
+    });
+  });
+  document.addEventListener("click", () => {
+    document.querySelectorAll(".day-dd.open").forEach((o) => o.classList.remove("open"));
+  });
   document.getElementById("filterModal").addEventListener("click", (e) => {
     if (e.target === e.currentTarget) closeFilterModal();
   });

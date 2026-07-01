@@ -296,14 +296,20 @@
 
       <p class="filter-section-label">Rentang Tanggal</p>
       <div class="filter-date">
-        <label class="field">
+        <div class="field">
           <span>Dari tanggal</span>
-          <select id="filterStartInput"></select>
-        </label>
-        <label class="field">
+          <div class="day-dd" id="filterStartInput">
+            <button type="button" class="day-dd-toggle">—</button>
+            <div class="day-dd-menu"></div>
+          </div>
+        </div>
+        <div class="field">
           <span>Sampai tanggal</span>
-          <select id="filterEndInput"></select>
-        </label>
+          <div class="day-dd" id="filterEndInput">
+            <button type="button" class="day-dd-toggle">—</button>
+            <div class="day-dd-menu"></div>
+          </div>
+        </div>
       </div>
 
       <p class="filter-section-label">Kategori</p>
