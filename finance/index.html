@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e7490">
+<title>Finance App</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪙</text></svg>">
+<link rel="stylesheet" href="style.css">
+
+<!-- Firebase (compat SDK) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
+    authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
+    databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
+    projectId: "iyon-adryanlf-trialerror",
+    storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
+    messagingSenderId: "519669963248",
+    appId: "1:519669963248:web:feab50008d27c2a7226535",
+    measurementId: "G-4MFLB4B68F"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  // Root data : /finance
+  const FINANCE_PATH = "finance";
+</script>
+</head>
+<body>
+
+<!-- Loading overlay saat menghubungkan ke Firebase -->
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="loading-coins">
+    <span>💰</span>
+    <span>💵</span>
+    <span>🪙</span>
+  </div>
+  <p class="loading-text">Menghubungkan ke server…</p>
+</div>
+
+<div class="app-shell">
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-top">
+      <div class="brand">
+        <span class="brand-logo">💰</span>
+        <h1>Finance App</h1>
+      </div>
+      <button id="themeToggle" class="icon-btn" title="Ganti tema" aria-label="Ganti tema">🌙</button>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- ===================== DASHBOARD ===================== -->
+    <section id="dashboard" class="page active">
+
+      <div class="month-selector">
+        <button id="prevMonth" class="icon-btn small" aria-label="Bulan sebelumnya">‹</button>
+        <span id="currentMonthLabel">Juli 2026</span>
+        <button id="nextMonth" class="icon-btn small" aria-label="Bulan berikutnya">›</button>
+      </div>
+
+      <div class="balance-card">
+        <p class="balance-label">Saldo Bulan Ini</p>
+        <h2 class="balance-amount" id="balanceAmount">Rp 0</h2>
+
+        <div class="balance-bar" id="balanceBar">
+          <div class="bar-income" id="barIncome"></div>
+          <div class="bar-expense" id="barExpense"></div>
+        </div>
+
+        <div class="balance-row">
+          <div class="balance-item">
+            <span class="dot income-dot"></span>
+            <div>
+              <p class="item-label">Pemasukan</p>
+              <strong id="totalIncome">Rp 0</strong>
+            </div>
+          </div>
+          <div class="balance-item">
+            <span class="dot expense-dot"></span>
+            <div>
+              <p class="item-label">Pengeluaran</p>
+              <strong id="totalExpense">Rp 0</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-heading">
+        <h3>Transaksi Terbaru</h3>
+        <a href="#" data-nav="transactions">Lihat Semua</a>
+      </div>
+      <div id="recentTransactions" class="transaction-list">
+        <p class="empty-state">Belum ada transaksi bulan ini.</p>
+      </div>
+
+    </section>
+
+    <!-- ===================== TRANSACTIONS ===================== -->
+    <section id="transactions" class="page">
+      <div class="page-header">
+        <h2>Transaksi</h2>
+      </div>
+
+      <div class="month-selector">
+        <button id="prevMonthTx" class="icon-btn small" aria-label="Bulan sebelumnya">‹</button>
+        <span id="currentMonthLabelTx">Juli 2026</span>
+        <button id="nextMonthTx" class="icon-btn small" aria-label="Bulan berikutnya">›</button>
+      </div>
+
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all">Semua</button>
+        <button class="filter-tab" data-filter="income">Pemasukan</button>
+        <button class="filter-tab" data-filter="expense">Pengeluaran</button>
+      </div>
+
+      <div id="allTransactions" class="transaction-list">
+        <p class="empty-state">Belum ada transaksi bulan ini.</p>
+      </div>
+    </section>
+
+    <!-- ===================== PLANS / BUDGET ===================== -->
+    <section id="plans" class="page">
+      <div class="page-header">
+        <h2>Rencana Anggaran</h2>
+        <button id="addPlanBtn" class="icon-btn" aria-label="Tambah rencana">+</button>
+      </div>
+
+      <div id="plansList" class="plans-list">
+        <p class="empty-state">Belum ada rencana anggaran. Tambahkan untuk mulai mengatur budget kategori.</p>
+      </div>
+    </section>
+
+    <!-- ===================== SETTINGS ===================== -->
+    <section id="settings" class="page">
+      <div class="page-header">
+        <h2>Pengaturan</h2>
+      </div>
+
+      <div class="settings-list">
+        <div class="settings-item">
+          <div>
+            <p class="settings-title">Mode Tampilan</p>
+            <p class="settings-desc">Terang atau gelap</p>
+          </div>
+          <button id="settingsThemeToggle" class="btn-secondary">Ganti Tema</button>
+        </div>
+
+        <div class="settings-item settings-info">
+          <div>
+            <p class="settings-title">Tentang</p>
+            <p class="settings-desc">Finance App v0.1 &middot; Data tersinkronisasi otomatis ke cloud (Firebase) &mdash; transaksi &amp; rencana tersimpan di server dan langsung update di semua perangkat. Preferensi tema disimpan di perangkat ini.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <button id="fabAdd" class="fab" aria-label="Tambah transaksi">+</button>
+
+  <nav class="bottom-nav">
+    <button data-nav="dashboard" class="nav-item active">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-text">Dashboard</span>
+    </button>
+    <button data-nav="transactions" class="nav-item">
+      <span class="nav-icon">📋</span>
+      <span class="nav-text">Transaksi</span>
+    </button>
+    <button data-nav="plans" class="nav-item">
+      <span class="nav-icon">🎯</span>
+      <span class="nav-text">Rencana</span>
+    </button>
+    <button data-nav="settings" class="nav-item">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-text">Pengaturan</span>
+    </button>
+  </nav>
+
+  <!-- ===================== MODAL: ADD / EDIT TRANSACTION ===================== -->
+  <div id="transactionModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h3 id="transactionModalTitle">Tambah Transaksi</h3>
+
+      <div class="type-toggle">
+        <button type="button" data-type="expense" class="type-btn active">Pengeluaran</button>
+        <button type="button" data-type="income" class="type-btn">Pemasukan</button>
+      </div>
+
+      <form id="transactionForm">
+        <label class="field">
+          <span>Jumlah (Rp)</span>
+          <input type="text" id="amountInput" placeholder="0" required inputmode="numeric" autocomplete="off">
+        </label>
+
+        <label class="field">
+          <span>Kategori</span>
+          <select id="categoryInput"></select>
+        </label>
+
+        <label class="field">
+          <span>Catatan (opsional)</span>
+          <input type="text" id="noteInput" placeholder="mis. Makan siang">
+        </label>
+
+        <label class="field">
+          <span>Tanggal (otomatis)</span>
+          <input type="date" id="dateInput" disabled>
+        </label>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="cancelTransactionBtn">Batal</button>
+          <button type="submit" class="btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: ADD PLAN ===================== -->
+  <div id="planModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h3>Rencana Anggaran Baru</h3>
+
+      <form id="planForm">
+        <label class="field">
+          <span>Kategori</span>
+          <select id="planCategoryInput"></select>
+        </label>
+
+        <label class="field">
+          <span>Batas Anggaran (Rp)</span>
+          <input type="text" id="planLimitInput" placeholder="0" required inputmode="numeric" autocomplete="off">
+        </label>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="cancelPlanBtn">Batal</button>
+          <button type="submit" class="btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: DELETE CONFIRMATION ===================== -->
+  <div id="confirmModal" class="modal-overlay confirm-overlay">
+    <div class="confirm-dialog">
+      <div class="confirm-icon">🗑️</div>
+      <h3>Hapus Transaksi?</h3>
+      <p>Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="cancelDeleteBtn">Batal</button>
+        <button type="button" class="btn-danger-solid" id="confirmDeleteBtn">Ya, Hapus</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
