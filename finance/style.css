@@ -820,6 +820,37 @@ button, input, select {
   font-weight: 700;
 }
 
+/* Varian berwarna (gradient) — dipakai tombol "+" tambah rencana,
+   seragam dengan FAB tambah transaksi. */
+.icon-btn.accent {
+  background-image: var(--gradient-fab);
+  background-size: var(--fab-bg-size);
+  background-position: left center;
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  box-shadow: var(--shadow-btn-grad);
+}
+
+.icon-btn.accent:hover,
+.icon-btn.accent:active {
+  background-position: right center;
+}
+
+.icon-btn.accent:active {
+  transform: scale(0.94);
+}
+
+/* Periode penuh → tombol "+" nonaktif & abu-abu. */
+.icon-btn.accent:disabled {
+  background-image: none;
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .btn-primary {
   flex: 1;
   background-image: var(--gradient-primary);
@@ -1063,6 +1094,11 @@ button, input, select {
 .field select:focus {
   outline: 2px solid var(--color-primary);
   outline-offset: 1px;
+}
+
+/* Opsi periode yang sudah penuh tampil buram & tidak bisa dipilih. */
+.field select option:disabled {
+  color: var(--color-text-muted);
 }
 
 /* Tanggal dikunci ke "sekarang" (disabled): sembunyikan ikon kalender dan

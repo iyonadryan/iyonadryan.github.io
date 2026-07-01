@@ -375,6 +375,10 @@
       el.classList.toggle("active", el.dataset.nav === pageId);
     });
 
+    // FAB tambah transaksi hanya relevan di Dashboard & Transaksi.
+    const showFab = pageId === "dashboard" || pageId === "transactions";
+    document.getElementById("fabAdd").style.display = showFab ? "" : "none";
+
     if (pageId === "transactions") renderAllTransactions();
     if (pageId === "plans") renderPlans();
     if (pageId === "dashboard") renderDashboard();
@@ -492,6 +496,10 @@
   function renderPlans() {
     const container = document.getElementById("plansList");
     container.innerHTML = "";
+
+    // Tombol "+" nonaktif (abu-abu) kalau semua kategori di periode ini sudah dipakai.
+    const addBtn = document.getElementById("addPlanBtn");
+    addBtn.disabled = periodIsFull(currentPeriod);
 
     const list = plans
       .filter((p) => p.period === currentPeriod)
@@ -621,14 +629,58 @@
 
   /* ================= Category select population ================= */
 
-  function populateCategorySelect(selectEl, type, includeAll) {
+  function populateCategorySelect(selectEl, type) {
     selectEl.innerHTML = "";
-    const cats = includeAll ? [ALL_CATEGORY].concat(CATEGORIES[type]) : CATEGORIES[type];
-    cats.forEach((cat) => {
+    CATEGORIES[type].forEach((cat) => {
       const opt = document.createElement("option");
       opt.value = cat.id;
       opt.textContent = cat.icon + " " + cat.label;
       selectEl.appendChild(opt);
+    });
+  }
+
+  // Semua kategori yang bisa dipilih di rencana (termasuk "Semua").
+  function planCategoryPool() {
+    return [ALL_CATEGORY].concat(CATEGORIES.expense);
+  }
+
+  // Apakah semua kategori di periode ini sudah punya rencana?
+  function periodIsFull(period) {
+    const used = plans.filter((p) => p.period === period).map((p) => p.category);
+    return planCategoryPool().every((c) => used.indexOf(c.id) !== -1);
+  }
+
+  // Disable opsi periode yang sudah penuh di dropdown modal.
+  function updatePeriodOptions() {
+    Array.from(planPeriodInput.options).forEach((opt) => {
+      opt.disabled = periodIsFull(opt.value);
+    });
+  }
+
+  // Isi dropdown kategori untuk modal Rencana. Kategori (termasuk "Semua")
+  // yang sudah punya rencana di periode itu disembunyikan supaya tidak
+  // duplikat. `keepCategory` dipertahankan (dipakai saat edit).
+  function populatePlanCategories(period, keepCategory) {
+    const used = plans.filter((p) => p.period === period).map((p) => p.category);
+    const available = planCategoryPool().filter((c) => c.id === keepCategory || used.indexOf(c.id) === -1);
+
+    planCategoryInput.innerHTML = "";
+
+    if (available.length === 0) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "Semua kategori sudah dipakai";
+      opt.disabled = true;
+      opt.selected = true;
+      planCategoryInput.appendChild(opt);
+      return;
+    }
+
+    available.forEach((cat) => {
+      const opt = document.createElement("option");
+      opt.value = cat.id;
+      opt.textContent = cat.icon + " " + cat.label;
+      planCategoryInput.appendChild(opt);
     });
   }
 
@@ -831,18 +883,19 @@
 
   function openPlanModal() {
     editingPlan = null;
-    populateCategorySelect(planCategoryInput, "expense", true);
     planForm.reset();
     setPlanFieldsLocked(false);
+    updatePeriodOptions(); // buramkan periode yang sudah penuh
     planPeriodInput.value = currentPeriod; // default ikut tab yang aktif
+    populatePlanCategories(currentPeriod); // sembunyikan kategori yang sudah dipakai
     planModal.classList.add("open");
   }
 
   function openEditPlanModal(plan) {
     editingPlan = plan;
-    populateCategorySelect(planCategoryInput, "expense", true);
     planForm.reset();
     planPeriodInput.value = plan.period;
+    populatePlanCategories(plan.period, plan.category);
     planCategoryInput.value = plan.category;
     document.getElementById("planLimitInput").value = Math.round(plan.limit).toLocaleString("id-ID");
     setPlanFieldsLocked(true);
@@ -865,6 +918,7 @@
     // rencana baru ditaruh paling akhir.
     const period = planPeriodInput.value;
     const category = planCategoryInput.value;
+    if (!category) return; // tidak ada kategori tersedia (semua sudah dipakai)
     const existing = plans.find((p) => p.id === period + "_" + category);
     const sort = existing ? existing.sort : nextSortForPeriod(period);
     savePlan(period, category, limit, sort).catch((err) => {
@@ -872,6 +926,11 @@
       alert("Gagal menyimpan rencana. Cek koneksi internet.");
     });
     closePlanModal();
+  });
+
+  // Ganti periode di modal → perbarui daftar kategori yang masih tersedia.
+  planPeriodInput.addEventListener("change", () => {
+    populatePlanCategories(planPeriodInput.value);
   });
 
   document.getElementById("cancelPlanBtn").addEventListener("click", closePlanModal);
