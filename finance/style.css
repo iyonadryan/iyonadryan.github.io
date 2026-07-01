@@ -1178,6 +1178,17 @@ button, input, select {
   margin-top: 2px;
 }
 
+/* Daftar bulan (pilih bulan export): tampil ~5 bulan lalu scroll, dengan
+   garis pemisah + jarak ke tombol Batal. */
+#monthPickerList {
+  max-height: 300px; /* ~5 bulan */
+  overflow-y: auto;
+  padding-right: 4px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
 .modal-overlay.open .modal-sheet {
   transform: translateY(0);
 }
