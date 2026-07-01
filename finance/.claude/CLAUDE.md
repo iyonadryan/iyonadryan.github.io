@@ -27,10 +27,13 @@ finance/
         tanggal:   "2026-06-01"  # redundan dgn path, disimpan utk kemudahan
         timestamp: 1719...       # sama dengan key
   plans/
-    <category>/                  # 1 rencana per kategori pengeluaran
-      category: "makanan"
-      limit:    1000000
+    <periode>/                   # "harian"|"mingguan"|"bulanan"|"weekday"|"weekend"
+      <category>/                # 1 rencana per kategori per periode
+        category: "makanan"      # bisa juga "semua" = gabungan semua expense
+        limit:    1000000
 ```
+
+Bentuk lama `plans/<category>/{ limit }` (tanpa periode) masih dibaca sebagai rencana **bulanan**, dan otomatis dipindah ke `plans/bulanan/<category>` sekali jalan oleh `migrateLegacyPlans()` pada snapshot pertama.
 
 Catatan: user awalnya menuliskan struktur transaksi hanya `{ category, transaksi, catatan }` tanpa nominal; field `nominal` ditambahkan karena esensial untuk aplikasi keuangan.
 
@@ -39,7 +42,7 @@ Catatan: user awalnya menuliskan struktur transaksi hanya `{ category, transaksi
 - Satu listener realtime `financeRef.on("value", ...)` pada `db.ref("finance")`. Setiap perubahan → `rebuildFromSnapshot()` membangun ulang array `transactions[]` & `plans[]` lalu `renderAll()`. Jadi UI selalu reaktif; fungsi tulis **tidak** perlu memanggil render manual.
 - Tiap item `transactions[]` menyimpan `ym`, `day`, `id` (= timestamp key) supaya bisa menyusun path hapus (`deleteTransaction`).
 - Tipe internal `income`/`expense` dipetakan ke `pemasukan`/`pengeluaran` lewat `TYPE_TO_FS`/`FS_TO_TYPE`.
-- Fungsi tulis: `addTransaction`, `updateTransaction` (edit; bisa pindah path kalau tanggal berubah), `deleteTransaction`, `savePlan` (menimpa per kategori), `deletePlan`.
+- Fungsi tulis: `addTransaction`, `updateTransaction` (edit; hanya nominal & catatan, path/timestamp tetap), `deleteTransaction`, `savePlan(period, category, limit)` (menimpa per periode+kategori), `deletePlan(period, category)`, `migrateLegacyPlans` (pindah rencana lama tanpa periode → `plans/bulanan/...`, sekali jalan).
 - Menghapus transaksi terakhir di suatu hari/bulan otomatis membersihkan node kosong (perilaku default Firebase RTDB).
 
 ## Struktur file
@@ -63,8 +66,10 @@ Belum ada build tool (tidak ada npm/bundler). Cukup buka `index.html` langsung d
    - Tampilan lebih detail (`detailed=true` di `renderTransactionList`): tanggal + tahun & jam:menit:**detik**. Urut per tanggal desc, tie-break waktu pembuatan.
    - Edit & hapus transaksi langsung dari list (lihat bagian "Edit & hapus (transaksi & rencana)").
 3. **Rencana Anggaran / Plans** (`#plans`)
-   - Budget per kategori pengeluaran (limit bulanan), ditambah lewat tombol `+` di header (`#addPlanBtn`).
-   - Progress bar otomatis dari total pengeluaran kategori tsb di bulan yang sedang dilihat (warna berubah saat mendekati/melebihi limit: class `warning` di ≥80%, `over` di ≥100%).
+   - Budget per kategori pengeluaran, ditambah lewat tombol `+` di header (`#addPlanBtn`).
+   - **Tab periode** (desain sama seperti filter transaksi, class `.filter-tab` di dalam `#plans`, container `.plan-tabs`): **Harian / Mingguan / Bulanan / Weekday / Weekend** (`data-period`), state `currentPeriod` (default `"bulanan"`). Klik tab → filter list ke periode itu + re-render. Handler di-scope `#plans .filter-tab` (dan handler transaksi di-scope `#transactions .filter-tab`) supaya tidak saling tabrakan. 5 tab membungkus ke 2 baris (`.plan-tabs { flex-wrap }`); **Weekday & Weekend diberi warna khusus** (indigo `#6366f1` / oranye `#f97316`, class `.tab-weekday`/`.tab-weekend`) untuk membedakannya dari periode lain.
+   - Tiap kategori bisa punya rencana di beberapa periode sekaligus (mis. Makanan harian + Makanan bulanan). Ada juga kategori khusus **"Semua"** (`ALL_CATEGORY` = `{ id: "semua", label: "Semua", icon: "💰💵🪙" }`, **hanya muncul di modal Rencana** lewat `populateCategorySelect(..., true)`) yang budget-nya = gabungan **seluruh** pengeluaran di periode itu.
+   - Progress bar dihitung dari total pengeluaran pada **jendela waktu periode** (`txInPlanPeriod`): Harian = **hari ini**; Mingguan = **minggu berjalan** (Senin–Minggu); Weekday = **Sen–Jum** & Weekend = **Sab–Min** dalam minggu berjalan; semuanya relatif waktu **sekarang** (`new Date()`, bukan `viewDate`) kecuali Bulanan = bulan yang dipilih (`viewDate`). Untuk kategori "Semua", filter kategori dilewati (jumlahkan semua expense). Warna: class `warning` di ≥80%, `over` di ≥100%.
    - Tiap card punya tombol ✏️ edit & 🗑️ hapus (lihat bagian "Edit & hapus (transaksi & rencana)").
 4. **Pengaturan** (`#settings`)
    - Toggle tema light/dark.
@@ -80,10 +85,11 @@ Belum ada build tool (tidak ada npm/bundler). Cukup buka `index.html` langsung d
 { id, ym: "YYYY-MM", day: "DD", type: "income" | "expense", amount: number, category: string, note: string, date: "YYYY-MM-DD" }
 
 // plans[] (item)
-{ id: category, category: string, limit: number }  // budget bulanan per kategori (kategori expense saja)
+{ id: "<period>_<category>", period: "harian"|"mingguan"|"bulanan"|"weekday"|"weekend", category: string, limit: number }
+// budget per periode+kategori (kategori expense atau "semua"); id = period + "_" + category
 ```
 
-`id` transaksi = timestamp key di Firebase; `ym`/`day` dipakai untuk menyusun path saat hapus. Struktur mentah di Firebase lihat bagian "Struktur data di Firebase" di atas. Kategori didefinisikan statis di `script.js` (`CATEGORIES.income` dan `CATEGORIES.expense`), masing-masing punya `id`, `label`, `icon` (emoji).
+`id` transaksi = timestamp key di Firebase; `ym`/`day` dipakai untuk menyusun path saat hapus. Struktur mentah di Firebase lihat bagian "Struktur data di Firebase" di atas. Kategori didefinisikan statis di `script.js` (`CATEGORIES.income` dan `CATEGORIES.expense`), masing-masing punya `id`, `label`, `icon` (emoji). Ada satu kategori khusus `ALL_CATEGORY` (`id: "semua"`) yang **hanya dipakai di Rencana** (bukan transaksi) sebagai budget gabungan semua expense.
 
 ## Rencana / TODO ke depan
 
@@ -114,8 +120,8 @@ Halaman Transaksi punya filter **dua tingkat** yang bekerja bersama; keduanya di
 - **Hapus**: `openDeleteConfirm(tx)` membuka dialog konfirmasi terpusat `#confirmModal` ("Hapus Transaksi?"). State `pendingDeleteTx`.
 
 **Rencana** — tiap plan card punya ✏️ edit & 🗑️ hapus (`.plan-actions`).
-- **Edit**: `openEditPlanModal(plan)` memakai ulang modal `#planModal`, prefill kategori + limit; state `editingPlan`. Submit memanggil `savePlan()` (menimpa per kategori).
-- **Hapus**: `openDeletePlanConfirm(plan)` memakai `#confirmModal` yang sama ("Hapus Rencana?"). State `pendingDeletePlan`.
+- **Edit**: `openEditPlanModal(plan)` memakai ulang modal `#planModal`, prefill periode + kategori + limit; state `editingPlan`. **Periode & kategori dikunci** saat edit (`setPlanFieldsLocked(true)` men-`disable` `#planPeriodInput` & `#planCategoryInput`) — hanya batas anggaran yang bisa diubah; mengubah periode/kategori = rencana lain. Submit memanggil `savePlan(period, category, limit)` (menimpa per periode+kategori).
+- **Hapus**: `openDeletePlanConfirm(plan)` memakai `#confirmModal` yang sama ("Hapus Rencana?"). State `pendingDeletePlan`; tombol "Ya, Hapus" memanggil `deletePlan(period, category)`.
 
 **Confirm modal dipakai bersama**: `#confirmModal` melayani transaksi & rencana. Judul/teks di-set per konteks, dan hanya satu dari `pendingDeleteTx`/`pendingDeletePlan` yang terisi (yang lain di-null-kan). Tombol "Ya, Hapus" (`#confirmDeleteBtn`) memeriksa mana yang terisi lalu memanggil `deleteTransaction()` atau `deletePlan()`.
 

@@ -538,6 +538,39 @@ button, input, select {
   color: #fff;
 }
 
+/* Halaman Rencana punya 5 tab periode — biarkan membungkus ke baris kedua
+   (Weekday & Weekend turun bersama), tiap baris terisi rata. */
+.plan-tabs {
+  flex-wrap: wrap;
+}
+
+.plan-tabs .filter-tab {
+  flex: 1 1 28%;
+}
+
+/* Weekday & Weekend dibedakan warnanya dari periode lain. */
+.filter-tab.tab-weekday {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.filter-tab.tab-weekday.active {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #fff;
+}
+
+.filter-tab.tab-weekend {
+  border-color: #f97316;
+  color: #f97316;
+}
+
+.filter-tab.tab-weekend.active {
+  background: #f97316;
+  border-color: #f97316;
+  color: #fff;
+}
+
 .btn-filter {
   width: 38px;
   height: 38px;

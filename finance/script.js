@@ -54,6 +54,22 @@
   let currentTxType = "expense";
   let currentFilter = "all";
   let selectedCategories = [];
+  let currentPeriod = "bulanan"; // tab periode aktif di halaman Rencana
+
+  // Periode rencana anggaran. Harian/Mingguan/Weekday/Weekend dihitung terhadap
+  // "sekarang" (hari/minggu berjalan), Bulanan mengikuti bulan yang dipilih
+  // (viewDate). Weekday = Sen–Jum, Weekend = Sab–Min (dalam minggu berjalan).
+  const PLAN_PERIODS = ["harian", "mingguan", "bulanan", "weekday", "weekend"];
+  const PERIOD_LABELS = {
+    harian: "harian",
+    mingguan: "mingguan",
+    bulanan: "bulanan",
+    weekday: "weekday (Senin - Jum'at)",
+    weekend: "weekend (Sabtu & Minggu)",
+  };
+
+  // Kategori khusus (hanya untuk Rencana): budget gabungan seluruh pengeluaran.
+  const ALL_CATEGORY = { id: "semua", label: "Semua", icon: "💰💵🪙" };
 
   /* ================= Firebase data layer ================= */
 
@@ -69,12 +85,35 @@
     return { ym: parts[0] + "-" + parts[1], dd: parts[2] };
   }
 
+  // Pindahkan rencana lama (plans/<category>) ke bentuk berperiode
+  // (plans/bulanan/<category>). Sekali jalan pada snapshot pertama.
+  let legacyPlansMigrated = false;
+  function migrateLegacyPlans(root) {
+    if (legacyPlansMigrated) return;
+    legacyPlansMigrated = true;
+    const plansObj = (root && root.plans) || {};
+    const updates = {};
+    let found = false;
+    Object.keys(plansObj).forEach((key) => {
+      if (PLAN_PERIODS.includes(key)) return; // sudah bentuk baru
+      const p = plansObj[key] || {};
+      updates["plans/bulanan/" + key] = { category: key, limit: Number(p.limit) || 0 };
+      updates["plans/" + key] = null; // hapus node lama
+      found = true;
+    });
+    if (found) {
+      financeRef.update(updates).catch((e) => console.error("Migrasi rencana gagal:", e));
+    }
+  }
+
   // Dengarkan seluruh subtree /finance secara realtime.
   function subscribeFinance() {
     financeRef.on(
       "value",
       (snapshot) => {
-        rebuildFromSnapshot(snapshot.val() || {});
+        const root = snapshot.val() || {};
+        migrateLegacyPlans(root);
+        rebuildFromSnapshot(root);
         renderAll();
         hideLoading(); // data pertama sudah tiba
       },
@@ -104,9 +143,20 @@
     Object.keys(root).forEach((topKey) => {
       if (topKey === "plans") {
         const plansObj = root.plans || {};
-        Object.keys(plansObj).forEach((cat) => {
-          const p = plansObj[cat] || {};
-          pl.push({ id: cat, category: cat, limit: Number(p.limit) || 0 });
+        Object.keys(plansObj).forEach((key) => {
+          if (PLAN_PERIODS.includes(key)) {
+            // Bentuk baru: plans/<periode>/<category>/{ limit }
+            const periodObj = plansObj[key] || {};
+            Object.keys(periodObj).forEach((cat) => {
+              const p = periodObj[cat] || {};
+              pl.push({ id: key + "_" + cat, period: key, category: cat, limit: Number(p.limit) || 0 });
+            });
+          } else {
+            // Bentuk lama: plans/<category>/{ limit } → diperlakukan sebagai bulanan
+            // (di-migrasi ke bentuk baru oleh migrateLegacyPlans()).
+            const p = plansObj[key] || {};
+            pl.push({ id: "bulanan_" + key, period: "bulanan", category: key, limit: Number(p.limit) || 0 });
+          }
         });
       } else if (/^\d{4}-\d{2}$/.test(topKey)) {
         const monthObj = root[topKey] || {};
@@ -168,15 +218,15 @@
     return db.ref(FINANCE_PATH + "/" + tx.ym + "/" + tx.day + "/" + tx.id).remove();
   }
 
-  function savePlan(category, limit) {
-    return db.ref(FINANCE_PATH + "/plans/" + category).set({
+  function savePlan(period, category, limit) {
+    return db.ref(FINANCE_PATH + "/plans/" + period + "/" + category).set({
       category: category,
       limit: limit,
     });
   }
 
-  function deletePlan(category) {
-    return db.ref(FINANCE_PATH + "/plans/" + category).remove();
+  function deletePlan(period, category) {
+    return db.ref(FINANCE_PATH + "/plans/" + period + "/" + category).remove();
   }
 
   function renderAll() {
@@ -230,12 +280,61 @@
   }
 
   function findCategory(type, id) {
+    if (id === ALL_CATEGORY.id) return ALL_CATEGORY;
     return CATEGORIES[type].find((c) => c.id === id) || { label: id, icon: "❓" };
   }
 
   function isSameMonth(dateStr, ref) {
     const d = new Date(dateStr);
     return d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth();
+  }
+
+  // Parse "YYYY-MM-DD" ke Date lokal (hindari pergeseran zona waktu dari UTC).
+  function parseLocalDate(dateStr) {
+    const parts = String(dateStr).split("-").map(Number);
+    return new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
+  }
+
+  function isSameDay(dateStr, ref) {
+    const d = parseLocalDate(dateStr);
+    return d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth() && d.getDate() === ref.getDate();
+  }
+
+  // Awal minggu (Senin) dari sebuah tanggal.
+  function startOfWeek(ref) {
+    const d = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
+    const offset = (d.getDay() + 6) % 7; // Minggu(0)→6, Senin(1)→0, dst.
+    d.setDate(d.getDate() - offset);
+    return d;
+  }
+
+  function isSameWeek(dateStr, ref) {
+    const start = startOfWeek(ref);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 7);
+    const d = parseLocalDate(dateStr);
+    return d >= start && d < end;
+  }
+
+  function isWeekday(dateStr) {
+    const day = parseLocalDate(dateStr).getDay(); // 0=Minggu … 6=Sabtu
+    return day >= 1 && day <= 5; // Senin–Jumat
+  }
+
+  function isWeekend(dateStr) {
+    const day = parseLocalDate(dateStr).getDay();
+    return day === 0 || day === 6; // Sabtu & Minggu
+  }
+
+  // Apakah transaksi masuk jendela waktu sebuah rencana?
+  // Harian → hari ini; Mingguan → minggu berjalan; Weekday/Weekend → subset
+  // hari kerja / akhir pekan dalam minggu berjalan; Bulanan → bulan viewDate.
+  function txInPlanPeriod(tx, period, now) {
+    if (period === "harian") return isSameDay(tx.date, now);
+    if (period === "mingguan") return isSameWeek(tx.date, now);
+    if (period === "weekday") return isSameWeek(tx.date, now) && isWeekday(tx.date);
+    if (period === "weekend") return isSameWeek(tx.date, now) && isWeekend(tx.date);
+    return isSameMonth(tx.date, viewDate); // bulanan
   }
 
   /* ================= Theme ================= */
@@ -387,15 +486,21 @@
     const container = document.getElementById("plansList");
     container.innerHTML = "";
 
-    if (plans.length === 0) {
-      container.innerHTML = '<p class="empty-state">Belum ada rencana anggaran. Tambahkan untuk mulai mengatur budget kategori.</p>';
+    const list = plans.filter((p) => p.period === currentPeriod);
+
+    if (list.length === 0) {
+      container.innerHTML =
+        '<p class="empty-state">Belum ada rencana ' + PERIOD_LABELS[currentPeriod] + '. Tambahkan untuk mulai mengatur budget kategori.</p>';
       return;
     }
 
-    plans.forEach((plan) => {
+    const now = new Date();
+
+    list.forEach((plan) => {
       const cat = findCategory("expense", plan.category);
+      const isAll = plan.category === ALL_CATEGORY.id;
       const spent = transactions
-        .filter((t) => t.type === "expense" && t.category === plan.category && isSameMonth(t.date, viewDate))
+        .filter((t) => t.type === "expense" && (isAll || t.category === plan.category) && txInPlanPeriod(t, plan.period, now))
         .reduce((s, t) => s + t.amount, 0);
 
       const pct = Math.min(100, Math.round((spent / plan.limit) * 100));
@@ -441,9 +546,10 @@
 
   /* ================= Category select population ================= */
 
-  function populateCategorySelect(selectEl, type) {
+  function populateCategorySelect(selectEl, type, includeAll) {
     selectEl.innerHTML = "";
-    CATEGORIES[type].forEach((cat) => {
+    const cats = includeAll ? [ALL_CATEGORY].concat(CATEGORIES[type]) : CATEGORIES[type];
+    cats.forEach((cat) => {
       const opt = document.createElement("option");
       opt.value = cat.id;
       opt.textContent = cat.icon + " " + cat.label;
@@ -624,7 +730,7 @@
         alert("Gagal menghapus transaksi. Cek koneksi internet.");
       });
     } else if (pendingDeletePlan) {
-      deletePlan(pendingDeletePlan.id).catch((err) => {
+      deletePlan(pendingDeletePlan.period, pendingDeletePlan.category).catch((err) => {
         console.error("Gagal menghapus rencana:", err);
         alert("Gagal menghapus rencana. Cek koneksi internet.");
       });
@@ -637,22 +743,34 @@
   const planModal = document.getElementById("planModal");
   const planForm = document.getElementById("planForm");
   const planCategoryInput = document.getElementById("planCategoryInput");
+  const planPeriodInput = document.getElementById("planPeriodInput");
 
   let editingPlan = null;
 
+  // Saat edit rencana, periode & kategori dikunci (mengubahnya = rencana lain).
+  // Hanya batas anggaran yang bisa diubah.
+  function setPlanFieldsLocked(locked) {
+    planPeriodInput.disabled = locked;
+    planCategoryInput.disabled = locked;
+  }
+
   function openPlanModal() {
     editingPlan = null;
-    populateCategorySelect(planCategoryInput, "expense");
+    populateCategorySelect(planCategoryInput, "expense", true);
     planForm.reset();
+    setPlanFieldsLocked(false);
+    planPeriodInput.value = currentPeriod; // default ikut tab yang aktif
     planModal.classList.add("open");
   }
 
   function openEditPlanModal(plan) {
     editingPlan = plan;
-    populateCategorySelect(planCategoryInput, "expense");
+    populateCategorySelect(planCategoryInput, "expense", true);
     planForm.reset();
+    planPeriodInput.value = plan.period;
     planCategoryInput.value = plan.category;
     document.getElementById("planLimitInput").value = Math.round(plan.limit).toLocaleString("id-ID");
+    setPlanFieldsLocked(true);
     planModal.classList.add("open");
   }
 
@@ -667,8 +785,9 @@
     const limit = parseFloat(rawLimit);
     if (!limit || limit <= 0) return;
 
-    // Disimpan per-kategori: menambah kategori yang sama akan menimpa limit lama.
-    savePlan(planCategoryInput.value, limit).catch((err) => {
+    // Disimpan per periode+kategori: menyimpan kombinasi yang sama akan
+    // menimpa limit lama.
+    savePlan(planPeriodInput.value, planCategoryInput.value, limit).catch((err) => {
       console.error("Gagal menyimpan rencana:", err);
       alert("Gagal menyimpan rencana. Cek koneksi internet.");
     });
@@ -692,13 +811,23 @@
 
   /* ================= Filter tabs ================= */
 
-  document.querySelectorAll(".filter-tab").forEach((tab) => {
+  document.querySelectorAll("#transactions .filter-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       currentFilter = tab.dataset.filter;
-      document.querySelectorAll(".filter-tab").forEach((t) => t.classList.toggle("active", t === tab));
+      document.querySelectorAll("#transactions .filter-tab").forEach((t) => t.classList.toggle("active", t === tab));
       selectedCategories = [];
       updateFilterButton();
       renderAllTransactions();
+    });
+  });
+
+  /* ================= Plan period tabs ================= */
+
+  document.querySelectorAll("#plans .filter-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      currentPeriod = tab.dataset.period;
+      document.querySelectorAll("#plans .filter-tab").forEach((t) => t.classList.toggle("active", t === tab));
+      renderPlans();
     });
   });
 

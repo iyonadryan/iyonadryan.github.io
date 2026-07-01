@@ -132,6 +132,14 @@
         <button id="addPlanBtn" class="icon-btn" aria-label="Tambah rencana">+</button>
       </div>
 
+      <div class="filter-tabs plan-tabs">
+        <button class="filter-tab" data-period="harian">Harian</button>
+        <button class="filter-tab" data-period="mingguan">Mingguan</button>
+        <button class="filter-tab active" data-period="bulanan">Bulanan</button>
+        <button class="filter-tab tab-weekday" data-period="weekday">Weekday</button>
+        <button class="filter-tab tab-weekend" data-period="weekend">Weekend</button>
+      </div>
+
       <div id="plansList" class="plans-list">
         <p class="empty-state">Belum ada rencana anggaran. Tambahkan untuk mulai mengatur budget kategori.</p>
       </div>
@@ -231,6 +239,17 @@
       <h3>Rencana Anggaran Baru</h3>
 
       <form id="planForm">
+        <label class="field">
+          <span>Periode</span>
+          <select id="planPeriodInput">
+            <option value="harian">Harian</option>
+            <option value="mingguan">Mingguan</option>
+            <option value="bulanan">Bulanan</option>
+            <option value="weekday">Weekday (Sen–Jum)</option>
+            <option value="weekend">Weekend (Sab–Min)</option>
+          </select>
+        </label>
+
         <label class="field">
           <span>Kategori</span>
           <select id="planCategoryInput"></select>
