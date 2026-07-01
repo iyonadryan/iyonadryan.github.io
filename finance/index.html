@@ -333,8 +333,8 @@
         <button type="button" class="export-option" id="exportTransactionsBtn">
           <span class="export-option-icon">📋</span>
           <span>
-            <span class="export-option-title">Transaksi bulan aktif</span>
-            <span class="export-option-desc">Semua transaksi pada bulan yang sedang dipilih</span>
+            <span class="export-option-title">Transaksi per bulan</span>
+            <span class="export-option-desc">Semua transaksi pada bulan yang dipilih</span>
           </span>
         </button>
         <button type="button" class="export-option" id="exportSummaryBtn">
@@ -347,6 +347,19 @@
       </div>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="cancelExportBtn">Batal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: PILIH BULAN (EXPORT) ===================== -->
+  <div id="monthPickerModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h3>Pilih Bulan</h3>
+      <p class="export-hint">Bulan yang tersedia (ada transaksi)</p>
+      <div id="monthPickerList" class="export-options"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="cancelMonthPickerBtn">Batal</button>
       </div>
     </div>
   </div>

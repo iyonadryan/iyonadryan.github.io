@@ -1161,6 +1161,7 @@
   // file .xlsx didelegasikan ke window.FinanceExcel (generate-excel.js).
 
   const exportModal = document.getElementById("exportModal");
+  const monthPickerModal = document.getElementById("monthPickerModal");
 
   function openExportModal() {
     exportModal.classList.add("open");
@@ -1168,9 +1169,17 @@
   function closeExportModal() {
     exportModal.classList.remove("open");
   }
+  function closeMonthPicker() {
+    monthPickerModal.classList.remove("open");
+  }
 
   function monthLabel(date) {
     return MONTH_NAMES[date.getMonth()] + " " + date.getFullYear();
+  }
+
+  function monthLabelFromYm(ym) {
+    const p = ym.split("-");
+    return monthLabel(new Date(Number(p[0]), Number(p[1]) - 1, 1));
   }
 
   function excelReady() {
@@ -1179,10 +1188,34 @@
     return false;
   }
 
-  function exportActiveMonthTransactions() {
+  // Buka popup pilih bulan (daftar bulan yang punya transaksi, terbaru dulu).
+  function openMonthPicker() {
+    if (!excelReady()) return;
+    const yms = Array.from(new Set(transactions.map((t) => t.ym))).sort().reverse();
+    if (yms.length === 0) {
+      alert("Tidak ada data untuk diekspor.");
+      return;
+    }
+    const list = document.getElementById("monthPickerList");
+    list.innerHTML = "";
+    yms.forEach((ym) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "export-option";
+      btn.innerHTML =
+        '<span class="export-option-icon">🗓️</span>' +
+        '<span><span class="export-option-title">' + monthLabelFromYm(ym) + "</span></span>";
+      btn.addEventListener("click", () => exportTransactionsForYm(ym));
+      list.appendChild(btn);
+    });
+    closeExportModal();
+    monthPickerModal.classList.add("open");
+  }
+
+  function exportTransactionsForYm(ym) {
     if (!excelReady()) return;
     const monthTx = transactions
-      .filter((t) => isSameMonth(t.date, viewDate))
+      .filter((t) => t.ym === ym)
       .sort((a, b) => {
         const byDate = new Date(a.date) - new Date(b.date);
         return byDate !== 0 ? byDate : txTime(a) - txTime(b);
@@ -1199,9 +1232,8 @@
       Nominal: t.amount,
       Catatan: t.note || "",
     }));
-    const ym = viewDate.getFullYear() + "-" + pad2(viewDate.getMonth() + 1);
-    FinanceExcel.download("transaksi-" + ym + ".xlsx", "Transaksi " + monthLabel(viewDate), rows);
-    closeExportModal();
+    FinanceExcel.download("transaksi-" + ym + ".xlsx", "Transaksi " + monthLabelFromYm(ym), rows);
+    closeMonthPicker();
   }
 
   function exportMonthlySummary() {
@@ -1231,10 +1263,14 @@
 
   document.getElementById("exportBtn").addEventListener("click", openExportModal);
   document.getElementById("cancelExportBtn").addEventListener("click", closeExportModal);
-  document.getElementById("exportTransactionsBtn").addEventListener("click", exportActiveMonthTransactions);
+  document.getElementById("exportTransactionsBtn").addEventListener("click", openMonthPicker);
   document.getElementById("exportSummaryBtn").addEventListener("click", exportMonthlySummary);
+  document.getElementById("cancelMonthPickerBtn").addEventListener("click", closeMonthPicker);
   exportModal.addEventListener("click", (e) => {
     if (e.target === exportModal) closeExportModal();
+  });
+  monthPickerModal.addEventListener("click", (e) => {
+    if (e.target === monthPickerModal) closeMonthPicker();
   });
 
   /* ================= Init ================= */
