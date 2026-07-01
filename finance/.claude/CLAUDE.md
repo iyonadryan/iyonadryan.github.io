@@ -131,10 +131,11 @@ Halaman Transaksi punya filter **dua tingkat** yang bekerja bersama; keduanya di
 
 ## Reorder rencana (drag)
 
-Urutan card rencana bisa diatur dengan menggeser handle ⠿ (`.plan-drag`) di paling kiri tiap card. Implementasi drag-nya vanilla, pakai **Pointer Events** (jalan untuk mouse & sentuh, `touch-action: none` di handle supaya tidak ikut men-scroll saat digeser dari HP):
-- `startPlanDrag` (pointerdown di handle) menandai card `.dragging` lalu memasang listener `pointermove`/`pointerup`/`pointercancel` di `document`.
-- `onPlanDragMove` menyisipkan card yang digeser sebelum card pertama yang titik-tengahnya berada di bawah pointer (`insertBefore`), atau ke paling akhir — jadi list tersusun ulang langsung mengikuti gerakan.
-- `endPlanDrag` melepas listener lalu memanggil `commitPlanOrder()`, yang membaca urutan DOM card lalu menulis field `sort` (0,1,2,…) untuk tiap `plans/<period>/<category>/sort` lewat satu `financeRef.update()` multi-path (hanya menulis yang berubah).
+Urutan card rencana bisa diatur dengan menggeser handle ⠿ (`.plan-drag`) di paling kiri tiap card. Implementasi drag-nya vanilla, pakai **Pointer Events** (jalan untuk mouse & sentuh, `touch-action: none` di handle supaya tidak ikut men-scroll saat digeser dari HP). Pakai pendekatan **transform** (bukan `insertBefore` saat bergerak) supaya mulus:
+- `startPlanDrag` (pointerdown di handle) menyimpan snapshot: daftar card, index awal (`from`), tinggi+gap satu slot (`shift`), dan pusat asli tiap card (`centers`). Card diberi class `.dragging` (terangkat: `z-index`, shadow, `transition: none` supaya mengikuti pointer secara real-time).
+- `onPlanDragMove`: card yang di-hold di-`translateY(dy)` mengikuti pointer; slot tujuan (`to`) dihitung dari pusatnya vs `centers`; card lain di-`translateY(±shift)` untuk membuka ruang — bergeser **mulus** karena `.plan-card { transition: transform 0.18s }`.
+- `endPlanDrag`: matikan transisi sesaat (`.plans-list.reordering`), bersihkan semua `transform`, susun ulang DOM sesuai `from`→`to` (via `appendChild` berurutan), reflow, lalu hidupkan transisi lagi — supaya rekonsiliasi tidak berkedip. Terakhir panggil `commitPlanOrder()`.
+- `commitPlanOrder()` membaca urutan DOM card lalu menulis field `sort` (0,1,2,…) untuk tiap `plans/<period>/<category>/sort` lewat satu `financeRef.update()` multi-path (hanya menulis yang berubah).
 - `renderPlans` mengurutkan list per periode dengan `a.sort - b.sort` (tie-break `id`). Rencana baru dapat `sort` paling akhir (`nextSortForPeriod`); saat edit, `sort` lama dipertahankan (submit form mencari plan yang sudah ada by `id`). **Penting**: `savePlan` memakai `.set()` sehingga menulis ulang seluruh node — field `sort` **harus** ikut dikirim tiap simpan supaya urutan tidak ke-reset.
 
 ## Catatan implementasi

@@ -571,14 +571,29 @@
 
   /* ================= Reorder rencana (drag) ================= */
 
-  let planDrag = null; // { card } saat sedang menggeser
+  let planDrag = null; // state saat menggeser
 
   function startPlanDrag(e) {
     e.preventDefault();
     const card = e.target.closest(".plan-card");
     if (!card) return;
-    planDrag = { card };
+    const container = document.getElementById("plansList");
+    const cards = Array.from(container.querySelectorAll(".plan-card"));
+    const from = cards.indexOf(card);
+    if (from < 0) return;
+
+    // Jarak geser satu slot = tinggi kartu + gap antar kartu.
+    const gap = parseFloat(getComputedStyle(container).rowGap || getComputedStyle(container).gap) || 0;
+    const shift = card.offsetHeight + gap;
+    // Pusat asli tiap kartu (sebelum transform) untuk menentukan slot tujuan.
+    const centers = cards.map((c) => {
+      const r = c.getBoundingClientRect();
+      return r.top + r.height / 2;
+    });
+
+    planDrag = { container, card, cards, from, to: from, startY: e.clientY, shift, centers };
     card.classList.add("dragging");
+
     document.addEventListener("pointermove", onPlanDragMove);
     document.addEventListener("pointerup", endPlanDrag);
     document.addEventListener("pointercancel", endPlanDrag);
@@ -587,26 +602,53 @@
   function onPlanDragMove(e) {
     if (!planDrag) return;
     e.preventDefault();
-    const container = document.getElementById("plansList");
-    const others = Array.from(container.querySelectorAll(".plan-card:not(.dragging)"));
-    // Sisipkan sebelum kartu pertama yang titik-tengahnya di bawah pointer.
-    const target = others.find((c) => {
-      const r = c.getBoundingClientRect();
-      return e.clientY < r.top + r.height / 2;
+    const { card, cards, from, startY, shift, centers } = planDrag;
+
+    // Kartu yang di-hold mengikuti pointer.
+    const dy = e.clientY - startY;
+    card.style.transform = "translateY(" + dy + "px)";
+
+    // Tentukan slot tujuan dari posisi pusat kartu terhadap pusat asli lainnya.
+    const draggedCenter = centers[from] + dy;
+    let to = from;
+    while (to < cards.length - 1 && draggedCenter > centers[to + 1]) to++;
+    while (to > 0 && draggedCenter < centers[to - 1]) to--;
+    planDrag.to = to;
+
+    // Geser kartu lain (smooth via CSS transition) untuk membuka ruang.
+    cards.forEach((c, i) => {
+      if (i === from) return;
+      let y = 0;
+      if (from < to && i > from && i <= to) y = -shift;
+      else if (from > to && i >= to && i < from) y = shift;
+      c.style.transform = y ? "translateY(" + y + "px)" : "";
     });
-    if (target) {
-      container.insertBefore(planDrag.card, target);
-    } else {
-      container.appendChild(planDrag.card);
-    }
   }
 
   function endPlanDrag() {
     if (!planDrag) return;
-    planDrag.card.classList.remove("dragging");
+    const { container, card, cards, from, to } = planDrag;
     document.removeEventListener("pointermove", onPlanDragMove);
     document.removeEventListener("pointerup", endPlanDrag);
     document.removeEventListener("pointercancel", endPlanDrag);
+
+    // Matikan transisi sejenak supaya rekonsiliasi DOM tidak berkedip.
+    container.classList.add("reordering");
+    cards.forEach((c) => { c.style.transform = ""; });
+    card.classList.remove("dragging");
+
+    if (to !== from) {
+      // Susun ulang DOM sesuai urutan baru.
+      const order = cards.slice();
+      order.splice(from, 1);
+      order.splice(to, 0, card);
+      order.forEach((c) => container.appendChild(c));
+    }
+
+    // Paksa reflow lalu hidupkan transisi lagi untuk drag berikutnya.
+    void container.offsetHeight;
+    container.classList.remove("reordering");
+
     planDrag = null;
     commitPlanOrder();
   }
