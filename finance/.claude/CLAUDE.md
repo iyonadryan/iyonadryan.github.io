@@ -39,7 +39,7 @@ Catatan: user awalnya menuliskan struktur transaksi hanya `{ category, transaksi
 - Satu listener realtime `financeRef.on("value", ...)` pada `db.ref("finance")`. Setiap perubahan → `rebuildFromSnapshot()` membangun ulang array `transactions[]` & `plans[]` lalu `renderAll()`. Jadi UI selalu reaktif; fungsi tulis **tidak** perlu memanggil render manual.
 - Tiap item `transactions[]` menyimpan `ym`, `day`, `id` (= timestamp key) supaya bisa menyusun path hapus (`deleteTransaction`).
 - Tipe internal `income`/`expense` dipetakan ke `pemasukan`/`pengeluaran` lewat `TYPE_TO_FS`/`FS_TO_TYPE`.
-- Fungsi tulis: `addTransaction`, `deleteTransaction`, `savePlan` (menimpa per kategori), `deletePlan`, `resetAllData` (menghapus seluruh node `finance`).
+- Fungsi tulis: `addTransaction`, `updateTransaction` (edit; bisa pindah path kalau tanggal berubah), `deleteTransaction`, `savePlan` (menimpa per kategori), `deletePlan`.
 - Menghapus transaksi terakhir di suatu hari/bulan otomatis membersihkan node kosong (perilaku default Firebase RTDB).
 
 ## Struktur file
@@ -58,16 +58,18 @@ Belum ada build tool (tidak ada npm/bundler). Cukup buka `index.html` langsung d
    - Card saldo bulan berjalan: total pemasukan, total pengeluaran, saldo, dan progress bar perbandingan income vs expense.
    - List transaksi terbaru: **maks 3**, diurut paling baru berdasarkan waktu pembuatan (`txTime`, dari timestamp). Tiap item tampil tanggal singkat + jam:menit.
 2. **Transaksi** (`#transactions`)
-   - Punya selector bulan sendiri (prev/next) — **per-bulan, beda bulan beda data**. List difilter ke bulan yang sedang dipilih, bisa difilter lagi: Semua / Pemasukan / Pengeluaran.
+   - Punya selector bulan sendiri (prev/next) — **per-bulan, beda bulan beda data**. List difilter ke bulan yang sedang dipilih.
+   - **Filter dua tingkat** (lihat bagian "Filter transaksi"): tab tipe Semua / Pemasukan / Pengeluaran, plus tombol 🔍 → modal filter kategori multi-select.
    - Tampilan lebih detail (`detailed=true` di `renderTransactionList`): tanggal + tahun & jam:menit:**detik**. Urut per tanggal desc, tie-break waktu pembuatan.
-   - Edit & hapus transaksi langsung dari list (lihat bagian "Edit & hapus transaksi").
+   - Edit & hapus transaksi langsung dari list (lihat bagian "Edit & hapus (transaksi & rencana)").
 3. **Rencana Anggaran / Plans** (`#plans`)
-   - Budget per kategori pengeluaran (limit bulanan).
-   - Progress bar otomatis dari total pengeluaran kategori tsb di bulan yang sedang dilihat (warna berubah saat mendekati/melebihi limit).
+   - Budget per kategori pengeluaran (limit bulanan), ditambah lewat tombol `+` di header (`#addPlanBtn`).
+   - Progress bar otomatis dari total pengeluaran kategori tsb di bulan yang sedang dilihat (warna berubah saat mendekati/melebihi limit: class `warning` di ≥80%, `over` di ≥100%).
+   - Tiap card punya tombol ✏️ edit & 🗑️ hapus (lihat bagian "Edit & hapus (transaksi & rencana)").
 4. **Pengaturan** (`#settings`)
    - Toggle tema light/dark.
    - Info "Tentang". (Tombol "Hapus Semua Data" sudah dihapus sejak data pindah ke Firebase.)
-5. **Tambah transaksi** lewat FAB (tombol +) di kanan bawah → modal bottom-sheet, pilih tipe (income/expense), kategori, jumlah, catatan, tanggal.
+5. **Tambah transaksi** lewat FAB (tombol +) di kanan bawah → modal bottom-sheet, pilih tipe (income/expense), kategori, jumlah, catatan. **Tanggal otomatis** (field `#dateInput` `disabled`, di-set ke hari ini saat tambah; label "Tanggal (otomatis)"). Jumlah diformat ribuan realtime saat diketik (`formatAmountInput`).
 6. **Navigasi**: bottom navigation bar ala aplikasi mobile (Dashboard, Transaksi, Rencana, Pengaturan).
 7. **Tema light/dark**: pakai atribut `data-theme` di `<html>`, variabel warna di `:root` dan `[data-theme="dark"]` pada `style.css`. Preferensi tersimpan di localStorage, fallback ke `prefers-color-scheme`.
 
@@ -93,16 +95,34 @@ Belum ada build tool (tidak ada npm/bundler). Cukup buka `index.html` langsung d
 
 Saat app dibuka, ada overlay `#loadingOverlay` (animasi ikon uang 💰💵🪙 memantul naik-turun, keyframe `coinBounce` di `style.css`) yang menutup layar sampai data pertama dari Firebase tiba. Disembunyikan oleh `hideLoading()` di `script.js` — dipanggil pada snapshot pertama, pada error baca, dan sebagai fallback `setTimeout(hideLoading, 10000)` supaya user tak terjebak kalau offline.
 
-## Edit & hapus transaksi
+## Filter transaksi
 
-Tiap item transaksi punya dua tombol aksi di kanan (`.tx-actions`): ✏️ **edit** dan 🗑️ **hapus**.
-- **Edit**: `openEditModal(tx)` memakai ulang modal `#transactionModal` (judul jadi "Edit Transaksi" via `#transactionModalTitle`, form di-prefill). State `editingTx` menandai mode; saat submit, kalau `editingTx` terisi → `updateTransaction()` (bukan `addTransaction()`). Kalau tanggal diubah sehingga bulan/hari berpindah, node dipindah ke path baru (key/timestamp dipertahankan) lalu node lama dihapus.
-- **Hapus**: `openDeleteConfirm(tx)` membuka dialog konfirmasi terpusat `#confirmModal` ("Hapus Transaksi?" + Batal/Ya, Hapus). State `pendingDeleteTx`; tombol "Ya, Hapus" memanggil `deleteTransaction()`.
+Halaman Transaksi punya filter **dua tingkat** yang bekerja bersama; keduanya dipakai di `renderAllTransactions()` di atas list yang sudah difilter per bulan.
+
+1. **Tab tipe** (`.filter-tab`, `data-filter` = `all`/`income`/`expense`) → state `currentFilter`. Klik tab: set `currentFilter`, tandai tab aktif, **reset `selectedCategories` ke `[]`** (filter kategori dibatalkan tiap ganti tab), lalu re-render.
+2. **Filter kategori** (tombol 🔍 `#filterBtn` → modal `#filterModal`) → state `selectedCategories[]` (array id kategori).
+   - `openFilterModal()` mengisi `#filterCategoryList` dengan checkbox kategori. Kategori yang ditampilkan **mengikuti tab aktif**: tab `all` → gabungan expense + income; tab income/expense → kategori tipe itu saja. Checkbox yang sudah terpilih di-`checked`.
+   - `applyFilter()` mengumpulkan checkbox tercentang → `selectedCategories`, update indikator tombol (`updateFilterButton()` menambah class `.active` di `#filterBtn` kalau ada kategori terpilih), tutup modal, re-render.
+   - Di `renderAllTransactions`, list difilter: kalau `currentFilter !== "all"` filter per `type`, lalu kalau `selectedCategories.length > 0` filter per `category`.
+
+## Edit & hapus (transaksi & rencana)
+
+**Transaksi** — tiap item punya dua tombol di kanan (`.tx-actions`): ✏️ **edit** dan 🗑️ **hapus**.
+- **Edit**: `openEditModal(tx)` memakai ulang modal `#transactionModal` (judul jadi "Edit Transaksi" via `#transactionModalTitle`, form di-prefill). State `editingTx` menandai mode; saat submit, kalau `editingTx` terisi → `updateTransaction()` (bukan `addTransaction()`).
+  - **Hanya nominal & catatan yang bisa diubah.** Tipe transaksi, kategori, dan tanggal **dikunci**: `setImmutableFieldsLocked(true)` men-`disable` tombol `.type-btn` + `#categoryInput` (dan `#dateInput` memang selalu `disabled`), dengan class `.locked` di `.type-toggle` untuk gaya "tidak bisa diubah". Mode tambah memanggil `setImmutableFieldsLocked(false)` untuk membuka lagi.
+  - `updateTransaction(oldTx, data)` menulis ulang node di **path yang sama** (`ym`/`day`/`id` dari `oldTx`) — timestamp A tetap A, tidak ada pemindahan node. Tipe/kategori/tanggal diambil dari `oldTx` (bukan form), hanya `nominal` & `catatan` yang dipakai dari input.
+- **Hapus**: `openDeleteConfirm(tx)` membuka dialog konfirmasi terpusat `#confirmModal` ("Hapus Transaksi?"). State `pendingDeleteTx`.
+
+**Rencana** — tiap plan card punya ✏️ edit & 🗑️ hapus (`.plan-actions`).
+- **Edit**: `openEditPlanModal(plan)` memakai ulang modal `#planModal`, prefill kategori + limit; state `editingPlan`. Submit memanggil `savePlan()` (menimpa per kategori).
+- **Hapus**: `openDeletePlanConfirm(plan)` memakai `#confirmModal` yang sama ("Hapus Rencana?"). State `pendingDeletePlan`.
+
+**Confirm modal dipakai bersama**: `#confirmModal` melayani transaksi & rencana. Judul/teks di-set per konteks, dan hanya satu dari `pendingDeleteTx`/`pendingDeletePlan` yang terisi (yang lain di-null-kan). Tombol "Ya, Hapus" (`#confirmDeleteBtn`) memeriksa mana yang terisi lalu memanggil `deleteTransaction()` atau `deletePlan()`.
 
 ## Catatan implementasi
 
 - Semua teks UI berbahasa Indonesia.
 - **`viewDate` dibagi** antara Dashboard, Transaksi, & Rencana. Dashboard dan Transaksi masing-masing punya selector bulan (`#prevMonth`/`#nextMonth` dan `#prevMonthTx`/`#nextMonthTx`) yang semuanya lewat `changeMonth(delta)` → mengubah `viewDate` lalu `renderAll()`. Jadi ganti bulan di satu halaman ikut mengubah halaman lain (satu konsep "bulan aktif" untuk seluruh app).
 - Format mata uang: `Rp` + pemisah ribuan gaya Indonesia (`toLocaleString("id-ID")`), lihat `formatCurrency()`.
-- Modal tambah/edit transaksi & tambah rencana pakai pola bottom-sheet (`.modal-overlay` + `.modal-sheet`). Dialog konfirmasi hapus pakai varian terpusat (`.confirm-overlay` + `.confirm-dialog`).
+- Modal tambah/edit transaksi (`#transactionModal`), tambah/edit rencana (`#planModal`), dan filter kategori (`#filterModal`) pakai pola bottom-sheet (`.modal-overlay` + `.modal-sheet`), dibuka/ditutup dengan toggle class `.open`. Dialog konfirmasi hapus (`#confirmModal`, dipakai bersama transaksi & rencana) pakai varian terpusat (`.confirm-overlay` + `.confirm-dialog`). Semua overlay bisa ditutup dengan klik area gelap di luar sheet.
 - Saat menambahkan fitur baru, ikuti pola yang sudah ada: render function terpisah per section (`renderDashboard`, `renderAllTransactions`, `renderPlans`), lalu panggil ulang render terkait setiap kali data berubah (create/update/delete).

@@ -148,26 +148,19 @@
     });
   }
 
-  // Ubah transaksi yang sudah ada. Kalau tanggalnya berubah, node-nya
-  // pindah ke path bulan/hari yang baru (key/timestamp dipertahankan).
+  // Ubah transaksi yang sudah ada. Saat edit HANYA nominal & catatan yang bisa
+  // berubah; tipe, kategori, dan tanggal (timestamp/path) dipertahankan apa
+  // adanya dari transaksi lama. Jadi node ditulis ulang di path yang sama —
+  // timestamp A tetap A, tidak ada pemindahan node.
   function updateTransaction(oldTx, data) {
-    const ts = Number(oldTx.id) || Date.now();
-    const record = {
-      transaksi: TYPE_TO_FS[data.type],
-      category: data.category,
+    const path = FINANCE_PATH + "/" + oldTx.ym + "/" + oldTx.day + "/" + oldTx.id;
+    return db.ref(path).set({
+      transaksi: TYPE_TO_FS[oldTx.type],
+      category: oldTx.category,
       nominal: data.amount,
       catatan: data.note || "",
-      tanggal: data.date,
-      timestamp: ts,
-    };
-    const parts = pathParts(data.date);
-    const newPath = FINANCE_PATH + "/" + parts.ym + "/" + parts.dd + "/" + oldTx.id;
-    const oldPath = FINANCE_PATH + "/" + oldTx.ym + "/" + oldTx.day + "/" + oldTx.id;
-    if (newPath === oldPath) {
-      return db.ref(newPath).set(record);
-    }
-    return db.ref(newPath).set(record).then(function () {
-      return db.ref(oldPath).remove();
+      tanggal: oldTx.date,
+      timestamp: Number(oldTx.id) || Date.now(),
     });
   }
 
@@ -521,10 +514,19 @@
     populateCategorySelect(categoryInput, type);
   }
 
+  // Saat edit, tipe & kategori dikunci (hanya nominal + catatan yang bisa
+  // diubah). Tanggal memang selalu disabled.
+  function setImmutableFieldsLocked(locked) {
+    categoryInput.disabled = locked;
+    document.querySelectorAll(".type-btn").forEach((b) => (b.disabled = locked));
+    document.querySelector(".type-toggle").classList.toggle("locked", locked);
+  }
+
   function openTransactionModal() {
     editingTx = null;
     transactionModalTitle.textContent = "Tambah Transaksi";
     transactionForm.reset();
+    setImmutableFieldsLocked(false);
     setTxType("expense");
     dateInput.value = new Date().toISOString().slice(0, 10);
     transactionModal.classList.add("open");
@@ -539,6 +541,7 @@
     categoryInput.value = tx.category;
     document.getElementById("noteInput").value = tx.note || "";
     dateInput.value = tx.date;
+    setImmutableFieldsLocked(true); // kunci tipe & kategori setelah prefill
     transactionModal.classList.add("open");
   }
 

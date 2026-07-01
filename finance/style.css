@@ -1011,6 +1011,23 @@ button, input, select {
   cursor: not-allowed;
 }
 
+/* Saat edit transaksi: tipe & kategori dikunci (hanya nominal + catatan yang
+   bisa diubah). Tetap terbaca, tapi jelas tidak bisa diubah. */
+.field select:disabled {
+  opacity: 1;
+  color: var(--color-text);
+  -webkit-text-fill-color: var(--color-text);
+  cursor: not-allowed;
+}
+
+.type-toggle.locked .type-btn {
+  cursor: not-allowed;
+}
+
+.type-toggle.locked .type-btn:not(.active) {
+  opacity: 0.45;
+}
+
 .modal-actions {
   display: flex;
   gap: 10px;
