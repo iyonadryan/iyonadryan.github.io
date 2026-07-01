@@ -31,6 +31,7 @@ finance/
       <category>/                # 1 rencana per kategori per periode
         category: "makanan"      # bisa juga "semua" = gabungan semua expense
         limit:    1000000
+        sort:     0              # urutan tampil (kecil = atas), diatur via drag
 ```
 
 Bentuk lama `plans/<category>/{ limit }` (tanpa periode) masih dibaca sebagai rencana **bulanan**, dan otomatis dipindah ke `plans/bulanan/<category>` sekali jalan oleh `migrateLegacyPlans()` pada snapshot pertama.
@@ -70,6 +71,7 @@ Belum ada build tool (tidak ada npm/bundler). Cukup buka `index.html` langsung d
    - **Tab periode** (desain sama seperti filter transaksi, class `.filter-tab` di dalam `#plans`, container `.plan-tabs`): **Harian / Mingguan / Bulanan / Weekday / Weekend** (`data-period`), state `currentPeriod` (default `"bulanan"`). Klik tab → filter list ke periode itu + re-render. Handler di-scope `#plans .filter-tab` (dan handler transaksi di-scope `#transactions .filter-tab`) supaya tidak saling tabrakan. 5 tab membungkus ke 2 baris (`.plan-tabs { flex-wrap }`); **Weekday & Weekend diberi warna khusus** (indigo `#6366f1` / oranye `#f97316`, class `.tab-weekday`/`.tab-weekend`) untuk membedakannya dari periode lain.
    - Tiap kategori bisa punya rencana di beberapa periode sekaligus (mis. Makanan harian + Makanan bulanan). Ada juga kategori khusus **"Semua"** (`ALL_CATEGORY` = `{ id: "semua", label: "Semua", icon: "💰💵🪙" }`, **hanya muncul di modal Rencana** lewat `populateCategorySelect(..., true)`) yang budget-nya = gabungan **seluruh** pengeluaran di periode itu.
    - Progress bar dihitung dari total pengeluaran pada **jendela waktu periode** (`txInPlanPeriod`): Harian = **hari ini**; Mingguan = **minggu berjalan** (Senin–Minggu); Weekday = **Sen–Jum** & Weekend = **Sab–Min** dalam minggu berjalan; semuanya relatif waktu **sekarang** (`new Date()`, bukan `viewDate`) kecuali Bulanan = bulan yang dipilih (`viewDate`). Untuk kategori "Semua", filter kategori dilewati (jumlahkan semua expense). Warna: class `warning` di ≥80%, `over` di ≥100%.
+   - **Urutan bisa diubah dengan drag** (lihat bagian "Reorder rencana"): tiap card punya handle ⠿ di paling kiri; geser (mouse/sentuh) untuk menyusun ulang, urutan disimpan ke field `sort` di Firebase.
    - Tiap card punya tombol ✏️ edit & 🗑️ hapus (lihat bagian "Edit & hapus (transaksi & rencana)").
 4. **Pengaturan** (`#settings`)
    - Toggle tema light/dark.
@@ -85,8 +87,8 @@ Belum ada build tool (tidak ada npm/bundler). Cukup buka `index.html` langsung d
 { id, ym: "YYYY-MM", day: "DD", type: "income" | "expense", amount: number, category: string, note: string, date: "YYYY-MM-DD" }
 
 // plans[] (item)
-{ id: "<period>_<category>", period: "harian"|"mingguan"|"bulanan"|"weekday"|"weekend", category: string, limit: number }
-// budget per periode+kategori (kategori expense atau "semua"); id = period + "_" + category
+{ id: "<period>_<category>", period: "harian"|"mingguan"|"bulanan"|"weekday"|"weekend", category: string, limit: number, sort: number }
+// budget per periode+kategori (kategori expense atau "semua"); id = period + "_" + category; sort = urutan tampil
 ```
 
 `id` transaksi = timestamp key di Firebase; `ym`/`day` dipakai untuk menyusun path saat hapus. Struktur mentah di Firebase lihat bagian "Struktur data di Firebase" di atas. Kategori didefinisikan statis di `script.js` (`CATEGORIES.income` dan `CATEGORIES.expense`), masing-masing punya `id`, `label`, `icon` (emoji). Ada satu kategori khusus `ALL_CATEGORY` (`id: "semua"`) yang **hanya dipakai di Rencana** (bukan transaksi) sebagai budget gabungan semua expense.
@@ -124,6 +126,14 @@ Halaman Transaksi punya filter **dua tingkat** yang bekerja bersama; keduanya di
 - **Hapus**: `openDeletePlanConfirm(plan)` memakai `#confirmModal` yang sama ("Hapus Rencana?"). State `pendingDeletePlan`; tombol "Ya, Hapus" memanggil `deletePlan(period, category)`.
 
 **Confirm modal dipakai bersama**: `#confirmModal` melayani transaksi & rencana. Judul/teks di-set per konteks, dan hanya satu dari `pendingDeleteTx`/`pendingDeletePlan` yang terisi (yang lain di-null-kan). Tombol "Ya, Hapus" (`#confirmDeleteBtn`) memeriksa mana yang terisi lalu memanggil `deleteTransaction()` atau `deletePlan()`.
+
+## Reorder rencana (drag)
+
+Urutan card rencana bisa diatur dengan menggeser handle ⠿ (`.plan-drag`) di paling kiri tiap card. Implementasi drag-nya vanilla, pakai **Pointer Events** (jalan untuk mouse & sentuh, `touch-action: none` di handle supaya tidak ikut men-scroll saat digeser dari HP):
+- `startPlanDrag` (pointerdown di handle) menandai card `.dragging` lalu memasang listener `pointermove`/`pointerup`/`pointercancel` di `document`.
+- `onPlanDragMove` menyisipkan card yang digeser sebelum card pertama yang titik-tengahnya berada di bawah pointer (`insertBefore`), atau ke paling akhir — jadi list tersusun ulang langsung mengikuti gerakan.
+- `endPlanDrag` melepas listener lalu memanggil `commitPlanOrder()`, yang membaca urutan DOM card lalu menulis field `sort` (0,1,2,…) untuk tiap `plans/<period>/<category>/sort` lewat satu `financeRef.update()` multi-path (hanya menulis yang berubah).
+- `renderPlans` mengurutkan list per periode dengan `a.sort - b.sort` (tie-break `id`). Rencana baru dapat `sort` paling akhir (`nextSortForPeriod`); saat edit, `sort` lama dipertahankan (submit form mencari plan yang sudah ada by `id`). **Penting**: `savePlan` memakai `.set()` sehingga menulis ulang seluruh node — field `sort` **harus** ikut dikirim tiap simpan supaya urutan tidak ke-reset.
 
 ## Catatan implementasi
 

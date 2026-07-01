@@ -145,17 +145,17 @@
         const plansObj = root.plans || {};
         Object.keys(plansObj).forEach((key) => {
           if (PLAN_PERIODS.includes(key)) {
-            // Bentuk baru: plans/<periode>/<category>/{ limit }
+            // Bentuk baru: plans/<periode>/<category>/{ limit, sort }
             const periodObj = plansObj[key] || {};
             Object.keys(periodObj).forEach((cat) => {
               const p = periodObj[cat] || {};
-              pl.push({ id: key + "_" + cat, period: key, category: cat, limit: Number(p.limit) || 0 });
+              pl.push({ id: key + "_" + cat, period: key, category: cat, limit: Number(p.limit) || 0, sort: Number(p.sort) || 0 });
             });
           } else {
             // Bentuk lama: plans/<category>/{ limit } → diperlakukan sebagai bulanan
             // (di-migrasi ke bentuk baru oleh migrateLegacyPlans()).
             const p = plansObj[key] || {};
-            pl.push({ id: "bulanan_" + key, period: "bulanan", category: key, limit: Number(p.limit) || 0 });
+            pl.push({ id: "bulanan_" + key, period: "bulanan", category: key, limit: Number(p.limit) || 0, sort: Number(p.sort) || 0 });
           }
         });
       } else if (/^\d{4}-\d{2}$/.test(topKey)) {
@@ -218,11 +218,18 @@
     return db.ref(FINANCE_PATH + "/" + tx.ym + "/" + tx.day + "/" + tx.id).remove();
   }
 
-  function savePlan(period, category, limit) {
+  function savePlan(period, category, limit, sort) {
     return db.ref(FINANCE_PATH + "/plans/" + period + "/" + category).set({
       category: category,
       limit: limit,
+      sort: sort || 0,
     });
+  }
+
+  // Nilai sort untuk rencana baru: paling akhir pada periodenya.
+  function nextSortForPeriod(period) {
+    const inPeriod = plans.filter((p) => p.period === period);
+    return inPeriod.length ? Math.max.apply(null, inPeriod.map((p) => p.sort)) + 1 : 0;
   }
 
   function deletePlan(period, category) {
@@ -486,7 +493,9 @@
     const container = document.getElementById("plansList");
     container.innerHTML = "";
 
-    const list = plans.filter((p) => p.period === currentPeriod);
+    const list = plans
+      .filter((p) => p.period === currentPeriod)
+      .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id));
 
     if (list.length === 0) {
       container.innerHTML =
@@ -510,20 +519,24 @@
 
       const card = document.createElement("div");
       card.className = "plan-card";
+      card.dataset.id = plan.id;
       card.innerHTML = `
-        <div class="plan-top">
-          <span class="plan-category">${cat.icon} ${cat.label}</span>
-          <div class="plan-actions">
-            <button class="plan-btn plan-edit" data-id="${plan.id}" aria-label="Edit">✏️</button>
-            <button class="plan-btn plan-delete" data-id="${plan.id}" aria-label="Hapus">🗑️</button>
+        <button class="plan-drag" data-id="${plan.id}" aria-label="Geser untuk mengubah urutan" title="Geser untuk mengubah urutan">⠿</button>
+        <div class="plan-body">
+          <div class="plan-top">
+            <span class="plan-category">${cat.icon} ${cat.label}</span>
+            <div class="plan-actions">
+              <button class="plan-btn plan-edit" data-id="${plan.id}" aria-label="Edit">✏️</button>
+              <button class="plan-btn plan-delete" data-id="${plan.id}" aria-label="Hapus">🗑️</button>
+            </div>
           </div>
-        </div>
-        <div class="plan-progress-track">
-          <div class="plan-progress-fill ${fillClass}" style="width:${pct}%"></div>
-        </div>
-        <div class="plan-footer">
-          <span class="plan-amounts">${formatCurrency(spent)} / ${formatCurrency(plan.limit)}</span>
-          <span class="plan-percent">${pct}%</span>
+          <div class="plan-progress-track">
+            <div class="plan-progress-fill ${fillClass}" style="width:${pct}%"></div>
+          </div>
+          <div class="plan-footer">
+            <span class="plan-amounts">${formatCurrency(spent)} / ${formatCurrency(plan.limit)}</span>
+            <span class="plan-percent">${pct}%</span>
+          </div>
         </div>
       `;
       container.appendChild(card);
@@ -542,6 +555,68 @@
         if (plan) openDeletePlanConfirm(plan);
       });
     });
+
+    container.querySelectorAll(".plan-drag").forEach((handle) => {
+      handle.addEventListener("pointerdown", startPlanDrag);
+    });
+  }
+
+  /* ================= Reorder rencana (drag) ================= */
+
+  let planDrag = null; // { card } saat sedang menggeser
+
+  function startPlanDrag(e) {
+    e.preventDefault();
+    const card = e.target.closest(".plan-card");
+    if (!card) return;
+    planDrag = { card };
+    card.classList.add("dragging");
+    document.addEventListener("pointermove", onPlanDragMove);
+    document.addEventListener("pointerup", endPlanDrag);
+    document.addEventListener("pointercancel", endPlanDrag);
+  }
+
+  function onPlanDragMove(e) {
+    if (!planDrag) return;
+    e.preventDefault();
+    const container = document.getElementById("plansList");
+    const others = Array.from(container.querySelectorAll(".plan-card:not(.dragging)"));
+    // Sisipkan sebelum kartu pertama yang titik-tengahnya di bawah pointer.
+    const target = others.find((c) => {
+      const r = c.getBoundingClientRect();
+      return e.clientY < r.top + r.height / 2;
+    });
+    if (target) {
+      container.insertBefore(planDrag.card, target);
+    } else {
+      container.appendChild(planDrag.card);
+    }
+  }
+
+  function endPlanDrag() {
+    if (!planDrag) return;
+    planDrag.card.classList.remove("dragging");
+    document.removeEventListener("pointermove", onPlanDragMove);
+    document.removeEventListener("pointerup", endPlanDrag);
+    document.removeEventListener("pointercancel", endPlanDrag);
+    planDrag = null;
+    commitPlanOrder();
+  }
+
+  // Tulis ulang field `sort` sesuai urutan kartu di DOM (per periode aktif).
+  function commitPlanOrder() {
+    const container = document.getElementById("plansList");
+    const ids = Array.from(container.querySelectorAll(".plan-card")).map((c) => c.dataset.id);
+    const updates = {};
+    ids.forEach((id, i) => {
+      const plan = plans.find((p) => p.id === id);
+      if (plan && plan.sort !== i) {
+        updates["plans/" + plan.period + "/" + plan.category + "/sort"] = i;
+      }
+    });
+    if (Object.keys(updates).length) {
+      financeRef.update(updates).catch((err) => console.error("Gagal menyimpan urutan:", err));
+    }
   }
 
   /* ================= Category select population ================= */
@@ -786,8 +861,13 @@
     if (!limit || limit <= 0) return;
 
     // Disimpan per periode+kategori: menyimpan kombinasi yang sama akan
-    // menimpa limit lama.
-    savePlan(planPeriodInput.value, planCategoryInput.value, limit).catch((err) => {
+    // menimpa limit lama. Sort dipertahankan kalau rencana sudah ada,
+    // rencana baru ditaruh paling akhir.
+    const period = planPeriodInput.value;
+    const category = planCategoryInput.value;
+    const existing = plans.find((p) => p.id === period + "_" + category);
+    const sort = existing ? existing.sort : nextSortForPeriod(period);
+    savePlan(period, category, limit, sort).catch((err) => {
       console.error("Gagal menyimpan rencana:", err);
       alert("Gagal menyimpan rencana. Cek koneksi internet.");
     });
