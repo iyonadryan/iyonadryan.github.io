@@ -1,7 +1,7 @@
 /* =========================================================
    Finance App — settings.css
-   List item Pengaturan, dan popup export Excel (pilihan
-   export + daftar bulan).
+   List item Pengaturan, popup export Excel (pilihan export +
+   daftar bulan), dan popup daftar kategori.
    ========================================================= */
 
 .settings-list {
@@ -99,4 +99,57 @@
   padding-bottom: 16px;
   margin-bottom: 16px;
   border-bottom: 1px solid var(--color-border);
+}
+
+/* ---------- Daftar kategori (popup) ---------- */
+
+.category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
+  max-height: 190px; /* ~4 baris, sisanya scroll (konsisten dgn .filter-category-list) */
+  overflow-y: auto;
+}
+
+.category-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+}
+
+/* Warna kategori (colorSlot) — lingkaran solid, bukan angka. Border tipis
+   supaya tetap kelihatan kalau kebetulan warnanya dekat dengan surface. */
+.category-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.category-row-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.category-row-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.category-row-label {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.category-row-id {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
 }

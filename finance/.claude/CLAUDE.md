@@ -37,17 +37,18 @@ finance/
         id:        "makanan"
         label:     "Makanan"
         icon:      "🍔"           # emoji, disimpan apa adanya sbg string (JSON biasa, tidak perlu encoding khusus)
-        colorSlot: 1              # 1-8, dipetakan ke var(--series-1..8) di style.css (statistik kategori)
+        colorSlot: 1              # 1-8, dipetakan ke var(--series-1..8) di css/base.css; dipakai categoryColorVar() utk Statistik Pengeluaran
     income/
-      <id>/                       # sama seperti expense, TANPA colorSlot (tidak dipakai di statistik)
+      <id>/                       # sama seperti expense
         id: "gaji"
         label: "Gaji"
         icon: "💼"
+        colorSlot: 1              # 1-4 (reuse slot expense pertama); disimpan buat kebutuhan ke depan, belum ada fitur yang membacanya
 ```
 
 Bentuk lama `plans/<category>/{ limit }` (tanpa periode) masih dibaca sebagai rencana **bulanan**, dan otomatis dipindah ke `plans/bulanan/<category>` sekali jalan oleh `migrateLegacyPlans()` pada snapshot pertama.
 
-Kategori dulu hardcoded di `script.js`, sekarang datanya di Firebase (`categories/expense|income`). Kalau node `categories` belum ada sama sekali (mis. database baru), `migrateLegacyCategories()` men-seed sekali jalan dari `DEFAULT_CATEGORIES` (persis data hardcoded lama, termasuk `colorSlot` 1-8) pada snapshot pertama — pola sama seperti `migrateLegacyPlans`. Kategori khusus **`ALL_CATEGORY`** (💰💵🪙, `id: "semua"`, dipakai hanya di modal Rencana untuk budget gabungan semua expense) **tetap hardcoded** di `script.js`, sengaja tidak ikut disimpan ke Firebase. Menambah/mengubah/menghapus kategori untuk sekarang masih manual lewat Firebase console (belum ada UI CRUD di app — kemungkinan fitur lanjutan).
+Kategori dulu hardcoded di `script.js`, sekarang datanya di Firebase (`categories/expense|income`). Kalau node `categories` belum ada sama sekali (mis. database baru), `migrateLegacyCategories()` men-seed sekali jalan dari `DEFAULT_CATEGORIES` (persis data hardcoded lama, termasuk `colorSlot`) pada snapshot pertama — pola sama seperti `migrateLegacyPlans`. Kategori income yang sudah lebih dulu ada di Firebase sebelum `colorSlot` ditambahkan (skema lama) di-backfill sekali jalan oleh `migrateIncomeColorSlots()` (cocokkan by id ke `DEFAULT_CATEGORIES.income`, cuma nulis field `colorSlot` yang belum ada — label/icon custom user tidak ikut ketimpa). Kategori khusus **`ALL_CATEGORY`** (💰💵🪙, `id: "semua"`, dipakai hanya di modal Rencana untuk budget gabungan semua expense) **tetap hardcoded** di `script.js`, sengaja tidak ikut disimpan ke Firebase. Menambah/mengubah/menghapus kategori untuk sekarang masih manual lewat Firebase console (belum ada UI CRUD di app — kemungkinan fitur lanjutan).
 
 Catatan: user awalnya menuliskan struktur transaksi hanya `{ category, transaksi, catatan }` tanpa nominal; field `nominal` ditambahkan karena esensial untuk aplikasi keuangan.
 
@@ -56,7 +57,7 @@ Catatan: user awalnya menuliskan struktur transaksi hanya `{ category, transaksi
 - Satu listener realtime `financeRef.on("value", ...)` pada `db.ref("finance")`. Setiap perubahan → `rebuildFromSnapshot()` membangun ulang array `transactions[]`, `plans[]`, dan `CATEGORIES.expense`/`CATEGORIES.income` lalu `renderAll()`. Jadi UI selalu reaktif; fungsi tulis **tidak** perlu memanggil render manual. `CATEGORIES.expense` diurut naik berdasarkan `colorSlot` supaya urutan tampil stabil (tidak bergantung urutan key di Firebase).
 - Tiap item `transactions[]` menyimpan `ym`, `id` (= timestamp key) supaya bisa menyusun path hapus (`deleteTransaction`); harinya didapat dari `date`/timestamp, tidak lagi jadi segmen path tersendiri.
 - Tipe internal `income`/`expense` dipetakan ke `pemasukan`/`pengeluaran` lewat `TYPE_TO_FS`/`FS_TO_TYPE`.
-- Fungsi tulis: `addTransaction`, `updateTransaction` (edit; hanya nominal & catatan, path/timestamp tetap), `deleteTransaction`, `savePlan(period, category, limit)` (menimpa per periode+kategori), `deletePlan(period, category)`, `migrateLegacyPlans` (pindah rencana lama tanpa periode → `plans/bulanan/...`, sekali jalan), `migrateLegacyCategories` (seed `categories/` dari `DEFAULT_CATEGORIES` kalau belum ada, sekali jalan).
+- Fungsi tulis: `addTransaction`, `updateTransaction` (edit; hanya nominal & catatan, path/timestamp tetap), `deleteTransaction`, `savePlan(period, category, limit)` (menimpa per periode+kategori), `deletePlan(period, category)`, `migrateLegacyPlans` (pindah rencana lama tanpa periode → `plans/bulanan/...`, sekali jalan), `migrateLegacyCategories` (seed `categories/` dari `DEFAULT_CATEGORIES` kalau belum ada, sekali jalan), `migrateIncomeColorSlots` (backfill field `colorSlot` ke kategori income yang sudah ada dari skema lama, sekali jalan).
 - `categoryColorVar(catId)`: cari kategori expense-nya lalu baca field `colorSlot` langsung (fallback slot 1 kalau tidak ketemu, mis. transaksi lama yang kategorinya sudah dihapus dari Firebase) → `var(--series-N)`. Dipakai kartu Statistik Pengeluaran di Dashboard.
 - Menghapus transaksi terakhir di suatu hari/bulan otomatis membersihkan node kosong (perilaku default Firebase RTDB).
 
@@ -104,10 +105,11 @@ Belum ada build tool (tidak ada npm/bundler). Cukup buka `index.html` langsung d
 4. **Pengaturan** (`#settings`)
    - Toggle tema light/dark.
    - **Export ke Excel** (tombol `#exportBtn` → popup `#exportModal`): lihat bagian "Export Excel".
+   - **Kategori** (tombol `#categoriesBtn` → popup `#categoriesModal`, `openCategoriesModal()`): daftar **read-only** semua kategori expense & income dari `CATEGORIES` (dua list terpisah, judul "Pengeluaran"/"Pemasukan" pakai `.filter-section-label`). Tiap baris (`.category-row`, `categoryRowHtml()`): lingkaran warna solid dari field `colorSlot` kategori itu sendiri (`var(--series-N)`, bukan angka mentah) + ikon + label + id — berlaku utk expense **dan** income (income juga sudah punya `colorSlot` sejak `migrateIncomeColorSlots()`). Beda dengan `categoryColorVar()` (dipakai khusus di Statistik Pengeluaran, expense-only, cari by id), di sini warnanya dibaca langsung dari objek kategori yang lagi di-iterate. Belum ada tambah/edit/hapus dari popup ini — itu ranahnya UI CRUD kategori yang masih ditunda (lihat bagian Rencana ke depan).
    - Info "Tentang". (Tombol "Hapus Semua Data" sudah dihapus sejak data pindah ke Firebase.)
 5. **Tambah transaksi** lewat tombol **+ di tengah bottom nav** (`#navAdd`, `.nav-add` — bulat bergradient, menonjol ke atas, **selalu tampil di semua halaman**) → modal bottom-sheet, pilih tipe (income/expense), kategori, jumlah, catatan. **Tanggal otomatis** (field `#dateInput` `disabled`, di-set ke hari ini saat tambah; label "Tanggal (otomatis)"). Jumlah diformat ribuan realtime saat diketik (`formatAmountInput`). Setelah **tambah** transaksi berhasil, app otomatis pindah ke Dashboard (`goToPage("dashboard")`); **edit** tetap di halaman asal.
 6. **Navigasi**: bottom navigation bar ala aplikasi mobile — Dashboard, Transaksi, **[+]**, Rencana, Pengaturan (tombol + tambah transaksi ada di slot tengah, di antara Transaksi & Rencana).
-7. **Tema light/dark**: pakai atribut `data-theme` di `<html>`, variabel warna di `:root` dan `[data-theme="dark"]` pada `style.css`. Preferensi tersimpan di localStorage, fallback ke `prefers-color-scheme`.
+7. **Tema light/dark**: pakai atribut `data-theme` di `<html>`, variabel warna di `:root` dan `[data-theme="dark"]` pada `css/base.css`. Preferensi tersimpan di localStorage, fallback ke `prefers-color-scheme`.
 
 ## Model data internal (`script.js`, hasil rebuild dari Firebase)
 

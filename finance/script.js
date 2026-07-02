@@ -34,7 +34,15 @@
   // categories belum ada di Firebase sama sekali. Id/label/icon harus persis
   // sama dengan yang lama supaya transaksi & rencana existing (nyimpen id
   // kategori sebagai string) tidak kehilangan kategorinya. colorSlot 1-8
-  // dipetakan ke var(--series-1..8) di style.css (dipakai categoryColorVar()).
+  // dipetakan ke var(--series-1..8) di css/base.css, dipakai categoryColorVar()
+  // utk Statistik Pengeluaran (expense, pakai semua 8 slot). Income juga
+  // dikasih colorSlot (reuse slot 1-4) buat kebutuhan ke depan (mis. statistik
+  // pemasukan) — belum ada fitur yang membacanya sekarang. Slot 1-4 dipilih
+  // karena pasangan-pasangannya (1↔2, 2↔3, 3↔4) sudah tervalidasi CVD-safe
+  // lewat dataviz skill; catatan: warnanya numpang sama dgn 4 kategori expense
+  // pertama (Makanan/Transportasi/Belanja/Tagihan) — tidak masalah selama
+  // expense & income tidak pernah ditampilkan berdampingan dalam satu chart;
+  // kalau nanti ada fitur begitu, perlu palet terpisah utk income.
   const DEFAULT_CATEGORIES = {
     expense: [
       { id: "makanan", label: "Makanan", icon: "🍔", colorSlot: 1 },
@@ -47,10 +55,10 @@
       { id: "lainnya-keluar", label: "Lainnya", icon: "📦", colorSlot: 8 },
     ],
     income: [
-      { id: "gaji", label: "Gaji", icon: "💼" },
-      { id: "bonus", label: "Bonus", icon: "🎁" },
-      { id: "investasi", label: "Investasi", icon: "📈" },
-      { id: "lainnya-masuk", label: "Lainnya", icon: "💵" },
+      { id: "gaji", label: "Gaji", icon: "💼", colorSlot: 1 },
+      { id: "bonus", label: "Bonus", icon: "🎁", colorSlot: 2 },
+      { id: "investasi", label: "Investasi", icon: "📈", colorSlot: 3 },
+      { id: "lainnya-masuk", label: "Lainnya", icon: "💵", colorSlot: 4 },
     ],
   };
 
@@ -140,6 +148,29 @@
     financeRef.update(updates).catch((e) => console.error("Seed kategori gagal:", e));
   }
 
+  // Backfill field colorSlot utk kategori income yang sudah lebih dulu ada di
+  // Firebase (di-seed sebelum colorSlot ditambahkan ke income). Cocokkan by
+  // id ke DEFAULT_CATEGORIES.income supaya label/icon yang mungkin sudah
+  // diubah manual tidak ikut ketimpa — cuma field colorSlot yang ditulis, dan
+  // cuma kalau memang belum ada. Sekali jalan pada snapshot pertama.
+  let incomeColorSlotsMigrated = false;
+  function migrateIncomeColorSlots(root) {
+    if (incomeColorSlotsMigrated) return;
+    incomeColorSlotsMigrated = true;
+    const incomeObj = (root && root.categories && root.categories.income) || {};
+
+    const updates = {};
+    DEFAULT_CATEGORIES.income.forEach((defCat) => {
+      const existing = incomeObj[defCat.id];
+      if (existing && existing.colorSlot == null) {
+        updates["categories/income/" + defCat.id + "/colorSlot"] = defCat.colorSlot;
+      }
+    });
+    if (Object.keys(updates).length) {
+      financeRef.update(updates).catch((e) => console.error("Backfill colorSlot income gagal:", e));
+    }
+  }
+
   // Dengarkan seluruh subtree /finance secara realtime.
   function subscribeFinance() {
     financeRef.on(
@@ -148,6 +179,7 @@
         const root = snapshot.val() || {};
         migrateLegacyPlans(root);
         migrateLegacyCategories(root);
+        migrateIncomeColorSlots(root);
         rebuildFromSnapshot(root);
         renderAll();
         hideLoading(); // data pertama sudah tiba
@@ -222,7 +254,9 @@
       expense: Object.keys(expenseObj)
         .map((id) => expenseObj[id])
         .sort((a, b) => (Number(a.colorSlot) || 0) - (Number(b.colorSlot) || 0)),
-      income: Object.keys(incomeObj).map((id) => incomeObj[id]),
+      income: Object.keys(incomeObj)
+        .map((id) => incomeObj[id])
+        .sort((a, b) => (Number(a.colorSlot) || 0) - (Number(b.colorSlot) || 0)),
     };
   }
 
@@ -1368,6 +1402,44 @@
 
   document.getElementById("themeToggle").addEventListener("click", toggleTheme);
   document.getElementById("settingsThemeToggle").addEventListener("click", toggleTheme);
+
+  /* ================= Category list modal ================= */
+
+  const categoriesModal = document.getElementById("categoriesModal");
+
+  // Satu baris kategori: swatch warna (dari colorSlot kategori itu sendiri,
+  // expense & income sama-sama punya) + ikon + label + id.
+  function categoryRowHtml(cat) {
+    const slot = Number(cat.colorSlot) || 1;
+    return `
+      <div class="category-row">
+        <span class="category-swatch" style="background:var(--series-${slot})"></span>
+        <span class="category-row-icon">${cat.icon}</span>
+        <div class="category-row-text">
+          <p class="category-row-label">${escapeHtml(cat.label)}</p>
+          <p class="category-row-id">${escapeHtml(cat.id)}</p>
+        </div>
+      </div>
+    `;
+  }
+
+  function openCategoriesModal() {
+    document.getElementById("categoriesExpenseList").innerHTML =
+      CATEGORIES.expense.map((cat) => categoryRowHtml(cat)).join("");
+    document.getElementById("categoriesIncomeList").innerHTML =
+      CATEGORIES.income.map((cat) => categoryRowHtml(cat)).join("");
+    categoriesModal.classList.add("open");
+  }
+
+  function closeCategoriesModal() {
+    categoriesModal.classList.remove("open");
+  }
+
+  document.getElementById("categoriesBtn").addEventListener("click", openCategoriesModal);
+  document.getElementById("cancelCategoriesBtn").addEventListener("click", closeCategoriesModal);
+  categoriesModal.addEventListener("click", (e) => {
+    if (e.target === categoriesModal) closeCategoriesModal();
+  });
 
   /* ================= Export Excel ================= */
 
