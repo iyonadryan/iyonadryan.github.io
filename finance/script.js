@@ -6,8 +6,7 @@
    Struktur data:
      finance/
        <YYYY-MM>/
-         <DD>/
-           <timestamp>/ { transaksi, category, nominal, catatan, tanggal, timestamp }
+         <timestamp>/ { transaksi, category, nominal, catatan, tanggal, timestamp }
        plans/
          <category>/ { category, limit }
 
@@ -81,10 +80,10 @@
   const TYPE_TO_FS = { income: "pemasukan", expense: "pengeluaran" };
   const FS_TO_TYPE = { pemasukan: "income", pengeluaran: "expense" };
 
-  // Pecah "YYYY-MM-DD" jadi { ym: "YYYY-MM", dd: "DD" } untuk path Firebase.
-  function pathParts(dateStr) {
+  // Ambil "YYYY-MM" dari "YYYY-MM-DD" untuk path Firebase.
+  function ymOf(dateStr) {
     const parts = String(dateStr).split("-");
-    return { ym: parts[0] + "-" + parts[1], dd: parts[2] };
+    return parts[0] + "-" + parts[1];
   }
 
   // Pindahkan rencana lama (plans/<category>) ke bentuk berperiode
@@ -162,20 +161,16 @@
         });
       } else if (/^\d{4}-\d{2}$/.test(topKey)) {
         const monthObj = root[topKey] || {};
-        Object.keys(monthObj).forEach((dd) => {
-          const dayObj = monthObj[dd] || {};
-          Object.keys(dayObj).forEach((ts) => {
-            const t = dayObj[ts] || {};
-            txs.push({
-              id: ts,
-              ym: topKey,
-              day: dd,
-              type: FS_TO_TYPE[t.transaksi] || "expense",
-              amount: Number(t.nominal) || 0,
-              category: t.category,
-              note: t.catatan || "",
-              date: t.tanggal || topKey + "-" + dd,
-            });
+        Object.keys(monthObj).forEach((ts) => {
+          const t = monthObj[ts] || {};
+          txs.push({
+            id: ts,
+            ym: topKey,
+            type: FS_TO_TYPE[t.transaksi] || "expense",
+            amount: Number(t.nominal) || 0,
+            category: t.category,
+            note: t.catatan || "",
+            date: t.tanggal || topKey,
           });
         });
       }
@@ -188,9 +183,9 @@
   // ---- Operasi tulis ----
 
   function addTransaction(data) {
-    const { ym, dd } = pathParts(data.date);
+    const ym = ymOf(data.date);
     const ts = Date.now();
-    return db.ref(FINANCE_PATH + "/" + ym + "/" + dd + "/" + ts).set({
+    return db.ref(FINANCE_PATH + "/" + ym + "/" + ts).set({
       transaksi: TYPE_TO_FS[data.type],
       category: data.category,
       nominal: data.amount,
@@ -205,7 +200,7 @@
   // adanya dari transaksi lama. Jadi node ditulis ulang di path yang sama —
   // timestamp A tetap A, tidak ada pemindahan node.
   function updateTransaction(oldTx, data) {
-    const path = FINANCE_PATH + "/" + oldTx.ym + "/" + oldTx.day + "/" + oldTx.id;
+    const path = FINANCE_PATH + "/" + oldTx.ym + "/" + oldTx.id;
     return db.ref(path).set({
       transaksi: TYPE_TO_FS[oldTx.type],
       category: oldTx.category,
@@ -217,7 +212,7 @@
   }
 
   function deleteTransaction(tx) {
-    return db.ref(FINANCE_PATH + "/" + tx.ym + "/" + tx.day + "/" + tx.id).remove();
+    return db.ref(FINANCE_PATH + "/" + tx.ym + "/" + tx.id).remove();
   }
 
   function savePlan(period, category, limit, sort) {
@@ -273,6 +268,13 @@
 
   function pad2(n) {
     return String(n).padStart(2, "0");
+  }
+
+  // Tanggal hari ini "YYYY-MM-DD" berdasarkan waktu lokal (bukan UTC seperti
+  // toISOString(), yang salah tanggal untuk WIB dini hari).
+  function todayLocalDateStr() {
+    const d = new Date();
+    return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
   }
 
   // Jam saat transaksi dibuat (dari timestamp). withSeconds → sampai detik.
@@ -882,7 +884,7 @@
     transactionForm.reset();
     setImmutableFieldsLocked(false);
     setTxType("expense");
-    dateInput.value = new Date().toISOString().slice(0, 10);
+    dateInput.value = todayLocalDateStr();
     transactionModal.classList.add("open");
   }
 

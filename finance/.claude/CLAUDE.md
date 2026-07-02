@@ -18,14 +18,13 @@ UI/UX sudah jadi dan **data sudah terhubung ke Firebase Realtime Database**. Tra
 ```
 finance/
   <YYYY-MM>/                     # mis. "2026-06"
-    <DD>/                        # mis. "01"
-      <timestamp>/               # key = Date.now() saat input
-        transaksi: "pemasukan" | "pengeluaran"
-        category:  "makanan"     # id kategori (lihat CATEGORIES di script.js)
-        nominal:   50000         # jumlah uang (Rp) — DITAMBAHKAN, tidak ada di sketsa awal user
-        catatan:   "Makan siang"
-        tanggal:   "2026-06-01"  # redundan dgn path, disimpan utk kemudahan
-        timestamp: 1719...       # sama dengan key
+    <timestamp>/                 # key = Date.now() saat input
+      transaksi: "pemasukan" | "pengeluaran"
+      category:  "makanan"     # id kategori (lihat CATEGORIES di script.js)
+      nominal:   50000         # jumlah uang (Rp) — DITAMBAHKAN, tidak ada di sketsa awal user
+      catatan:   "Makan siang"
+      tanggal:   "2026-06-01"  # tanggal transaksi (lengkap); harinya tidak lagi disimpan di path, cukup dari sini/timestamp
+      timestamp: 1719...       # sama dengan key
   plans/
     <periode>/                   # "harian"|"mingguan"|"bulanan"|"weekday"|"weekend"
       <category>/                # 1 rencana per kategori per periode
@@ -41,7 +40,7 @@ Catatan: user awalnya menuliskan struktur transaksi hanya `{ category, transaksi
 ### Cara kerja layer data (`script.js`)
 
 - Satu listener realtime `financeRef.on("value", ...)` pada `db.ref("finance")`. Setiap perubahan → `rebuildFromSnapshot()` membangun ulang array `transactions[]` & `plans[]` lalu `renderAll()`. Jadi UI selalu reaktif; fungsi tulis **tidak** perlu memanggil render manual.
-- Tiap item `transactions[]` menyimpan `ym`, `day`, `id` (= timestamp key) supaya bisa menyusun path hapus (`deleteTransaction`).
+- Tiap item `transactions[]` menyimpan `ym`, `id` (= timestamp key) supaya bisa menyusun path hapus (`deleteTransaction`); harinya didapat dari `date`/timestamp, tidak lagi jadi segmen path tersendiri.
 - Tipe internal `income`/`expense` dipetakan ke `pemasukan`/`pengeluaran` lewat `TYPE_TO_FS`/`FS_TO_TYPE`.
 - Fungsi tulis: `addTransaction`, `updateTransaction` (edit; hanya nominal & catatan, path/timestamp tetap), `deleteTransaction`, `savePlan(period, category, limit)` (menimpa per periode+kategori), `deletePlan(period, category)`, `migrateLegacyPlans` (pindah rencana lama tanpa periode → `plans/bulanan/...`, sekali jalan).
 - Menghapus transaksi terakhir di suatu hari/bulan otomatis membersihkan node kosong (perilaku default Firebase RTDB).
@@ -90,14 +89,14 @@ Belum ada build tool (tidak ada npm/bundler). Cukup buka `index.html` langsung d
 
 ```js
 // transactions[] (item)
-{ id, ym: "YYYY-MM", day: "DD", type: "income" | "expense", amount: number, category: string, note: string, date: "YYYY-MM-DD" }
+{ id, ym: "YYYY-MM", type: "income" | "expense", amount: number, category: string, note: string, date: "YYYY-MM-DD" }
 
 // plans[] (item)
 { id: "<period>_<category>", period: "harian"|"mingguan"|"bulanan"|"weekday"|"weekend", category: string, limit: number, sort: number }
 // budget per periode+kategori (kategori expense atau "semua"); id = period + "_" + category; sort = urutan tampil
 ```
 
-`id` transaksi = timestamp key di Firebase; `ym`/`day` dipakai untuk menyusun path saat hapus. Struktur mentah di Firebase lihat bagian "Struktur data di Firebase" di atas. Kategori didefinisikan statis di `script.js` (`CATEGORIES.income` dan `CATEGORIES.expense`), masing-masing punya `id`, `label`, `icon` (emoji). Ada satu kategori khusus `ALL_CATEGORY` (`id: "semua"`) yang **hanya dipakai di Rencana** (bukan transaksi) sebagai budget gabungan semua expense.
+`id` transaksi = timestamp key di Firebase; `ym`/`id` dipakai untuk menyusun path saat hapus. Struktur mentah di Firebase lihat bagian "Struktur data di Firebase" di atas. Kategori didefinisikan statis di `script.js` (`CATEGORIES.income` dan `CATEGORIES.expense`), masing-masing punya `id`, `label`, `icon` (emoji). Ada satu kategori khusus `ALL_CATEGORY` (`id: "semua"`) yang **hanya dipakai di Rencana** (bukan transaksi) sebagai budget gabungan semua expense.
 
 ## Rencana / TODO ke depan
 
@@ -127,7 +126,7 @@ Halaman Transaksi punya filter bertingkat yang bekerja bersama; semuanya dipakai
 **Transaksi** — tiap item punya dua tombol di kanan (`.tx-actions`): ✏️ **edit** dan 🗑️ **hapus**.
 - **Edit**: `openEditModal(tx)` memakai ulang modal `#transactionModal` (judul jadi "Edit Transaksi" via `#transactionModalTitle`, form di-prefill). State `editingTx` menandai mode; saat submit, kalau `editingTx` terisi → `updateTransaction()` (bukan `addTransaction()`).
   - **Hanya nominal & catatan yang bisa diubah.** Tipe transaksi, kategori, dan tanggal **dikunci**: `setImmutableFieldsLocked(true)` men-`disable` tombol `.type-btn` + `#categoryInput` (dan `#dateInput` memang selalu `disabled`), dengan class `.locked` di `.type-toggle` untuk gaya "tidak bisa diubah". Mode tambah memanggil `setImmutableFieldsLocked(false)` untuk membuka lagi.
-  - `updateTransaction(oldTx, data)` menulis ulang node di **path yang sama** (`ym`/`day`/`id` dari `oldTx`) — timestamp A tetap A, tidak ada pemindahan node. Tipe/kategori/tanggal diambil dari `oldTx` (bukan form), hanya `nominal` & `catatan` yang dipakai dari input.
+  - `updateTransaction(oldTx, data)` menulis ulang node di **path yang sama** (`ym`/`id` dari `oldTx`) — timestamp A tetap A, tidak ada pemindahan node. Tipe/kategori/tanggal diambil dari `oldTx` (bukan form), hanya `nominal` & `catatan` yang dipakai dari input.
 - **Hapus**: `openDeleteConfirm(tx)` membuka dialog konfirmasi terpusat `#confirmModal` ("Hapus Transaksi?"). State `pendingDeleteTx`.
 
 **Rencana** — tiap plan card punya ✏️ edit & 🗑️ hapus (`.plan-actions`).
