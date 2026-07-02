@@ -9,6 +9,9 @@
          <timestamp>/ { transaksi, category, nominal, catatan, tanggal, timestamp }
        plans/
          <category>/ { category, limit }
+       categories/
+         expense|income/
+           <id>/ { id, label, icon, colorSlot? } // colorSlot cuma di expense
 
    Preferensi tema tetap disimpan lokal (localStorage).
    ========================================================= */
@@ -22,16 +25,26 @@
   };
 
   /* ---------------- Categories ---------------- */
-  const CATEGORIES = {
+  // Diisi realtime dari Firebase (categories/expense|income/<id>), lihat
+  // rebuildFromSnapshot(). Kosong sampai snapshot pertama tiba — sama seperti
+  // transactions/plans.
+  let CATEGORIES = { expense: [], income: [] };
+
+  // Data seed, dipakai SEKALI oleh migrateLegacyCategories() kalau node
+  // categories belum ada di Firebase sama sekali. Id/label/icon harus persis
+  // sama dengan yang lama supaya transaksi & rencana existing (nyimpen id
+  // kategori sebagai string) tidak kehilangan kategorinya. colorSlot 1-8
+  // dipetakan ke var(--series-1..8) di style.css (dipakai categoryColorVar()).
+  const DEFAULT_CATEGORIES = {
     expense: [
-      { id: "makanan", label: "Makanan", icon: "🍔" },
-      { id: "transportasi", label: "Transportasi", icon: "🚗" },
-      { id: "belanja", label: "Belanja", icon: "🛍️" },
-      { id: "tagihan", label: "Tagihan", icon: "🧾" },
-      { id: "hiburan", label: "Hiburan", icon: "🎮" },
-      { id: "kesehatan", label: "Kesehatan", icon: "💊" },
-      { id: "pendidikan", label: "Pendidikan", icon: "📚" },
-      { id: "lainnya-keluar", label: "Lainnya", icon: "📦" },
+      { id: "makanan", label: "Makanan", icon: "🍔", colorSlot: 1 },
+      { id: "transportasi", label: "Transportasi", icon: "🚗", colorSlot: 2 },
+      { id: "belanja", label: "Belanja", icon: "🛍️", colorSlot: 3 },
+      { id: "tagihan", label: "Tagihan", icon: "🧾", colorSlot: 4 },
+      { id: "hiburan", label: "Hiburan", icon: "🎮", colorSlot: 5 },
+      { id: "kesehatan", label: "Kesehatan", icon: "💊", colorSlot: 6 },
+      { id: "pendidikan", label: "Pendidikan", icon: "📚", colorSlot: 7 },
+      { id: "lainnya-keluar", label: "Lainnya", icon: "📦", colorSlot: 8 },
     ],
     income: [
       { id: "gaji", label: "Gaji", icon: "💼" },
@@ -108,6 +121,25 @@
     }
   }
 
+  // Seed kategori dari DEFAULT_CATEGORIES kalau node categories belum ada
+  // sama sekali di Firebase. Sekali jalan pada snapshot pertama (pola sama
+  // seperti migrateLegacyPlans di atas).
+  let legacyCategoriesMigrated = false;
+  function migrateLegacyCategories(root) {
+    if (legacyCategoriesMigrated) return;
+    legacyCategoriesMigrated = true;
+    if (root && root.categories) return; // sudah ada, tidak perlu seed
+
+    const updates = {};
+    DEFAULT_CATEGORIES.expense.forEach((cat) => {
+      updates["categories/expense/" + cat.id] = cat;
+    });
+    DEFAULT_CATEGORIES.income.forEach((cat) => {
+      updates["categories/income/" + cat.id] = cat;
+    });
+    financeRef.update(updates).catch((e) => console.error("Seed kategori gagal:", e));
+  }
+
   // Dengarkan seluruh subtree /finance secara realtime.
   function subscribeFinance() {
     financeRef.on(
@@ -115,6 +147,7 @@
       (snapshot) => {
         const root = snapshot.val() || {};
         migrateLegacyPlans(root);
+        migrateLegacyCategories(root);
         rebuildFromSnapshot(root);
         renderAll();
         hideLoading(); // data pertama sudah tiba
@@ -179,6 +212,18 @@
 
     transactions = txs;
     plans = pl;
+
+    const categoriesObj = root.categories || {};
+    const expenseObj = categoriesObj.expense || {};
+    const incomeObj = categoriesObj.income || {};
+    CATEGORIES = {
+      // Urut naik by colorSlot supaya urutan tampil stabil (sama seperti
+      // urutan hardcoded sebelumnya), tidak bergantung urutan key Firebase.
+      expense: Object.keys(expenseObj)
+        .map((id) => expenseObj[id])
+        .sort((a, b) => (Number(a.colorSlot) || 0) - (Number(b.colorSlot) || 0)),
+      income: Object.keys(incomeObj).map((id) => incomeObj[id]),
+    };
   }
 
   // ---- Operasi tulis ----
@@ -458,11 +503,13 @@
     renderCategoryStats(monthTx, totalExpense);
   }
 
-  // CSS var kategorikal (--series-1..8) untuk kategori expense, mengikuti index
-  // tetap di CATEGORIES.expense — warna ikut kategori, bukan urutan/rank bulan itu.
+  // CSS var kategorikal (--series-1..8) untuk kategori expense, dari field
+  // colorSlot yang tersimpan di Firebase — warna ikut kategori (persisten),
+  // bukan urutan/posisi/rank bulan itu.
   function categoryColorVar(catId) {
-    const idx = CATEGORIES.expense.findIndex((c) => c.id === catId);
-    return "var(--series-" + (idx >= 0 ? idx + 1 : 1) + ")";
+    const cat = CATEGORIES.expense.find((c) => c.id === catId);
+    const slot = (cat && Number(cat.colorSlot)) || 1;
+    return "var(--series-" + slot + ")";
   }
 
   // Breakdown pengeluaran per kategori bulan berjalan + insight kategori

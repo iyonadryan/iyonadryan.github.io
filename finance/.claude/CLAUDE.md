@@ -31,18 +31,33 @@ finance/
         category: "makanan"      # bisa juga "semua" = gabungan semua expense
         limit:    1000000
         sort:     0              # urutan tampil (kecil = atas), diatur via drag
+  categories/
+    expense/
+      <id>/                       # mis. "makanan" — key = id, ditulis redundan juga sbg field
+        id:        "makanan"
+        label:     "Makanan"
+        icon:      "🍔"           # emoji, disimpan apa adanya sbg string (JSON biasa, tidak perlu encoding khusus)
+        colorSlot: 1              # 1-8, dipetakan ke var(--series-1..8) di style.css (statistik kategori)
+    income/
+      <id>/                       # sama seperti expense, TANPA colorSlot (tidak dipakai di statistik)
+        id: "gaji"
+        label: "Gaji"
+        icon: "💼"
 ```
 
 Bentuk lama `plans/<category>/{ limit }` (tanpa periode) masih dibaca sebagai rencana **bulanan**, dan otomatis dipindah ke `plans/bulanan/<category>` sekali jalan oleh `migrateLegacyPlans()` pada snapshot pertama.
+
+Kategori dulu hardcoded di `script.js`, sekarang datanya di Firebase (`categories/expense|income`). Kalau node `categories` belum ada sama sekali (mis. database baru), `migrateLegacyCategories()` men-seed sekali jalan dari `DEFAULT_CATEGORIES` (persis data hardcoded lama, termasuk `colorSlot` 1-8) pada snapshot pertama — pola sama seperti `migrateLegacyPlans`. Kategori khusus **`ALL_CATEGORY`** (💰💵🪙, `id: "semua"`, dipakai hanya di modal Rencana untuk budget gabungan semua expense) **tetap hardcoded** di `script.js`, sengaja tidak ikut disimpan ke Firebase. Menambah/mengubah/menghapus kategori untuk sekarang masih manual lewat Firebase console (belum ada UI CRUD di app — kemungkinan fitur lanjutan).
 
 Catatan: user awalnya menuliskan struktur transaksi hanya `{ category, transaksi, catatan }` tanpa nominal; field `nominal` ditambahkan karena esensial untuk aplikasi keuangan.
 
 ### Cara kerja layer data (`script.js`)
 
-- Satu listener realtime `financeRef.on("value", ...)` pada `db.ref("finance")`. Setiap perubahan → `rebuildFromSnapshot()` membangun ulang array `transactions[]` & `plans[]` lalu `renderAll()`. Jadi UI selalu reaktif; fungsi tulis **tidak** perlu memanggil render manual.
+- Satu listener realtime `financeRef.on("value", ...)` pada `db.ref("finance")`. Setiap perubahan → `rebuildFromSnapshot()` membangun ulang array `transactions[]`, `plans[]`, dan `CATEGORIES.expense`/`CATEGORIES.income` lalu `renderAll()`. Jadi UI selalu reaktif; fungsi tulis **tidak** perlu memanggil render manual. `CATEGORIES.expense` diurut naik berdasarkan `colorSlot` supaya urutan tampil stabil (tidak bergantung urutan key di Firebase).
 - Tiap item `transactions[]` menyimpan `ym`, `id` (= timestamp key) supaya bisa menyusun path hapus (`deleteTransaction`); harinya didapat dari `date`/timestamp, tidak lagi jadi segmen path tersendiri.
 - Tipe internal `income`/`expense` dipetakan ke `pemasukan`/`pengeluaran` lewat `TYPE_TO_FS`/`FS_TO_TYPE`.
-- Fungsi tulis: `addTransaction`, `updateTransaction` (edit; hanya nominal & catatan, path/timestamp tetap), `deleteTransaction`, `savePlan(period, category, limit)` (menimpa per periode+kategori), `deletePlan(period, category)`, `migrateLegacyPlans` (pindah rencana lama tanpa periode → `plans/bulanan/...`, sekali jalan).
+- Fungsi tulis: `addTransaction`, `updateTransaction` (edit; hanya nominal & catatan, path/timestamp tetap), `deleteTransaction`, `savePlan(period, category, limit)` (menimpa per periode+kategori), `deletePlan(period, category)`, `migrateLegacyPlans` (pindah rencana lama tanpa periode → `plans/bulanan/...`, sekali jalan), `migrateLegacyCategories` (seed `categories/` dari `DEFAULT_CATEGORIES` kalau belum ada, sekali jalan).
+- `categoryColorVar(catId)`: cari kategori expense-nya lalu baca field `colorSlot` langsung (fallback slot 1 kalau tidak ketemu, mis. transaksi lama yang kategorinya sudah dihapus dari Firebase) → `var(--series-N)`. Dipakai kartu Statistik Pengeluaran di Dashboard.
 - Menghapus transaksi terakhir di suatu hari/bulan otomatis membersihkan node kosong (perilaku default Firebase RTDB).
 
 ## Struktur file
