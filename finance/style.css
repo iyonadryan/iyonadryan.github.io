@@ -280,11 +280,54 @@ button, input, select {
 /* ---------- Balance card ---------- */
 
 .balance-card {
+  position: relative;
   background: var(--gradient-card);
   color: #fff;
   border-radius: var(--radius-lg);
   padding: 22px 20px 20px;
   box-shadow: var(--shadow-card);
+}
+
+.balance-toggle {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.balance-toggle:hover,
+.balance-toggle:active {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.balance-toggle .icon-eye {
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+}
+
+.balance-toggle .icon-eye-closed {
+  display: none;
+}
+
+.balance-toggle.is-visible .icon-eye-open {
+  display: none;
+}
+
+.balance-toggle.is-visible .icon-eye-closed {
+  display: block;
 }
 
 .balance-label {

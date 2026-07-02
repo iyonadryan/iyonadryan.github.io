@@ -56,6 +56,7 @@
   let filterStartDate = ""; // filter rentang tanggal di halaman Transaksi ("YYYY-MM-DD")
   let filterEndDate = "";
   let currentPeriod = "bulanan"; // tab periode aktif di halaman Rencana
+  let balanceVisible = false; // saldo/pemasukan/pengeluaran tersembunyi saat pertama buka
 
   // Periode rencana anggaran. Harian/Mingguan/Weekday/Weekend dihitung terhadap
   // "sekarang" (hari/minggu berjalan), Bulanan mengikuti bulan yang dipilih
@@ -245,6 +246,8 @@
     return "Rp " + Math.round(value).toLocaleString("id-ID");
   }
 
+  const MASKED_AMOUNT = "Rp ••••••";
+
   function formatAmountInput(input) {
     const digits = input.value.replace(/[^\d]/g, "");
     if (digits) {
@@ -369,6 +372,23 @@
     applyTheme(current === "dark" ? "light" : "dark");
   }
 
+  /* ================= Balance visibility toggle ================= */
+
+  const balanceToggleBtn = document.getElementById("balanceToggle");
+
+  function updateBalanceToggleIcon() {
+    const label = balanceVisible ? "Sembunyikan saldo" : "Tampilkan saldo";
+    balanceToggleBtn.classList.toggle("is-visible", balanceVisible);
+    balanceToggleBtn.setAttribute("aria-label", label);
+    balanceToggleBtn.title = label;
+  }
+
+  balanceToggleBtn.addEventListener("click", () => {
+    balanceVisible = !balanceVisible;
+    updateBalanceToggleIcon();
+    renderDashboard();
+  });
+
   /* ================= Navigation ================= */
 
   function goToPage(pageId) {
@@ -395,9 +415,9 @@
     const totalExpense = monthTx.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
     const balance = totalIncome - totalExpense;
 
-    document.getElementById("balanceAmount").textContent = formatCurrency(balance);
-    document.getElementById("totalIncome").textContent = formatCurrency(totalIncome);
-    document.getElementById("totalExpense").textContent = formatCurrency(totalExpense);
+    document.getElementById("balanceAmount").textContent = balanceVisible ? formatCurrency(balance) : MASKED_AMOUNT;
+    document.getElementById("totalIncome").textContent = balanceVisible ? formatCurrency(totalIncome) : MASKED_AMOUNT;
+    document.getElementById("totalExpense").textContent = balanceVisible ? formatCurrency(totalExpense) : MASKED_AMOUNT;
 
     const total = totalIncome + totalExpense;
     const incomePct = total > 0 ? (totalIncome / total) * 100 : 50;
@@ -1278,6 +1298,7 @@
   /* ================= Init ================= */
 
   initTheme();
+  updateBalanceToggleIcon();
   renderDashboard();       // render awal (masih kosong sampai data Firebase tiba)
   subscribeFinance();      // mulai dengarkan data realtime dari /finance
 

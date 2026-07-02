@@ -62,6 +62,7 @@ Belum ada build tool (tidak ada npm/bundler). Cukup buka `index.html` langsung d
 1. **Dashboard** (`#dashboard`)
    - Selector bulan (prev/next) untuk melihat ringkasan per bulan.
    - Card saldo bulan berjalan: total pemasukan, total pengeluaran, saldo, dan progress bar perbandingan income vs expense.
+   - **Sembunyikan saldo**: tombol mata (`#balanceToggle`, kanan atas card, ikon outline SVG inline gaya Flaticon — bukan emoji) meng-toggle tampilan angka saldo/pemasukan/pengeluaran vs teks tersamar `Rp ••••••` (state `balanceVisible`, in-memory saja — **tidak** disimpan, jadi selalu kembali tersembunyi tiap buka app). Dua SVG (`.icon-eye-open`/`.icon-eye-closed`) ditumpuk di dalam tombol, ditukar tampil/sembunyi lewat class `.is-visible` di CSS; `stroke="currentColor"` mengikuti `color: #fff` pada `.balance-toggle` supaya otomatis kontras di kedua tema (balance card selalu bergradasi gelap di light & dark theme). Ikon merepresentasikan *aksi* saat diklik (pola sama seperti `applyTheme`): mata terbuka saat tersembunyi (klik untuk tampilkan), mata tercoret saat tampil (klik untuk sembunyikan).
    - List transaksi terbaru: **maks 3**, diurut paling baru berdasarkan waktu pembuatan (`txTime`, dari timestamp). Tiap item tampil tanggal singkat + jam:menit.
 2. **Transaksi** (`#transactions`)
    - Punya selector bulan sendiri (prev/next) — **per-bulan, beda bulan beda data**. List difilter ke bulan yang sedang dipilih.
