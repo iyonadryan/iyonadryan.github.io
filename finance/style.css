@@ -37,6 +37,18 @@
   --color-warning: #f59e0b;
   --color-warning-bg: #fef3e2;
 
+  /* Kategorikal (statistik kategori pengeluaran di Dashboard) — urutan tetap
+     mengikuti index CATEGORIES.expense di script.js, tervalidasi lewat
+     dataviz skill (validate_palette.js) terhadap surface #ffffff. */
+  --series-1: #2a78d6;
+  --series-2: #1baf7a;
+  --series-3: #eda100;
+  --series-4: #008300;
+  --series-5: #4a3aa7;
+  --series-6: #e34948;
+  --series-7: #e87ba4;
+  --series-8: #eb6834;
+
   /* Shadows */
   --shadow-card: 0 8px 24px rgba(28, 29, 38, 0.08);
   --shadow-fab: 0 10px 20px rgba(43, 192, 228, 0.35);
@@ -83,6 +95,16 @@
   --color-expense-bg: rgba(255, 107, 122, 0.12);
   --color-warning: #fbbf24;
   --color-warning-bg: rgba(251, 191, 36, 0.14);
+
+  /* Kategorikal — sama 8 hue, langkah untuk surface gelap (#1e1e2a). */
+  --series-1: #3987e5;
+  --series-2: #199e70;
+  --series-3: #c98500;
+  --series-4: #008300;
+  --series-5: #9085e9;
+  --series-6: #e66767;
+  --series-7: #d55181;
+  --series-8: #d95926;
 
   /* Shadows */
   --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
@@ -424,6 +446,56 @@ button, input, select {
   text-decoration: none;
   font-weight: 600;
 }
+
+/* ---------- Category stats (Dashboard) ---------- */
+
+.category-stats {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.stat-insight {
+  margin: 0 0 14px;
+  padding-bottom: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.stat-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stat-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.stat-row-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.stat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.stat-row-budget.warning { color: var(--color-warning); }
+.stat-row-budget.over { color: var(--color-expense); }
 
 /* ---------- Transaction list ---------- */
 

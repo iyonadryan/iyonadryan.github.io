@@ -430,6 +430,81 @@
       .sort((a, b) => txTime(b) - txTime(a)) // paling baru (jam) di atas
       .slice(0, 3);
     renderTransactionList(document.getElementById("recentTransactions"), recent, "Belum ada transaksi bulan ini.");
+
+    renderCategoryStats(monthTx, totalExpense);
+  }
+
+  // CSS var kategorikal (--series-1..8) untuk kategori expense, mengikuti index
+  // tetap di CATEGORIES.expense — warna ikut kategori, bukan urutan/rank bulan itu.
+  function categoryColorVar(catId) {
+    const idx = CATEGORIES.expense.findIndex((c) => c.id === catId);
+    return "var(--series-" + (idx >= 0 ? idx + 1 : 1) + ")";
+  }
+
+  // Breakdown pengeluaran per kategori bulan berjalan + insight kategori
+  // terbesar, dibandingkan ke rencana bulanan kategori itu kalau ada.
+  function renderCategoryStats(monthTx, totalExpense) {
+    const container = document.getElementById("categoryStats");
+
+    const byCategory = {};
+    monthTx
+      .filter((t) => t.type === "expense")
+      .forEach((t) => {
+        byCategory[t.category] = (byCategory[t.category] || 0) + t.amount;
+      });
+
+    const rows = Object.keys(byCategory)
+      .map((catId) => ({ catId, amount: byCategory[catId] }))
+      .sort((a, b) => b.amount - a.amount);
+
+    if (rows.length === 0) {
+      container.innerHTML = '<p class="empty-state">Belum ada pengeluaran bulan ini untuk dianalisis.</p>';
+      return;
+    }
+
+    const top = rows[0];
+    const topCat = findCategory("expense", top.catId);
+    const topPct = Math.round((top.amount / totalExpense) * 100);
+    const insight =
+      topCat.icon + " <strong>" + escapeHtml(topCat.label) + "</strong> adalah kategori pengeluaran terbesar bulan ini — " +
+      topPct + "% dari total pengeluaran.";
+
+    const rowsHtml = rows
+      .map((row) => {
+        const cat = findCategory("expense", row.catId);
+        const pct = Math.round((row.amount / totalExpense) * 100);
+        const color = categoryColorVar(row.catId);
+        const amountText = balanceVisible ? formatCurrency(row.amount) : MASKED_AMOUNT;
+
+        const plan = plans.find((p) => p.period === "bulanan" && p.category === row.catId);
+        let budgetHtml = "";
+        if (plan) {
+          const budgetPct = Math.round((row.amount / plan.limit) * 100);
+          const cls = budgetPct >= 100 ? "over" : budgetPct >= 80 ? "warning" : "";
+          const limitText = balanceVisible ? formatCurrency(plan.limit) : MASKED_AMOUNT;
+          const label = budgetPct >= 100 ? "Melebihi rencana" : budgetPct >= 80 ? "Mendekati batas rencana" : budgetPct + "% dari rencana";
+          budgetHtml = '<span class="stat-row-budget ' + cls + '">' + label + " (" + limitText + ")</span>";
+        }
+
+        return `
+          <div class="stat-row">
+            <div class="stat-row-top">
+              <span class="stat-row-label"><span class="stat-dot" style="background:${color}"></span>${cat.icon} ${escapeHtml(cat.label)}</span>
+              <span class="plan-percent">${pct}%</span>
+            </div>
+            <div class="plan-progress-track">
+              <div class="plan-progress-fill" style="width:${pct}%;background:${color}"></div>
+            </div>
+            <div class="plan-footer">
+              <span class="plan-amounts">${amountText}</span>
+              ${budgetHtml}
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+
+    container.innerHTML = '<p class="stat-insight">' + insight + '</p><div class="stat-rows">' + rowsHtml + "</div>";
   }
 
   function renderAllTransactions() {
