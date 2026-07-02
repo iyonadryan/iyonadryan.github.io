@@ -494,6 +494,12 @@
           <button class="tx-btn tx-delete" data-id="${tx.id}" aria-label="Hapus">🗑️</button>
         </div>
       `;
+      // Klik kartu (di luar tombol edit/hapus) → buka popup detail (catatan
+      // sering terpotong di list mobile, popup menampilkannya utuh).
+      item.addEventListener("click", (e) => {
+        if (e.target.closest(".tx-actions")) return;
+        openTransactionDetail(tx);
+      });
       container.appendChild(item);
     });
 
@@ -961,6 +967,46 @@
   });
   document.getElementById("planLimitInput").addEventListener("input", function () {
     formatAmountInput(this);
+  });
+
+  /* ================= Transaction detail modal ================= */
+
+  const transactionDetailModal = document.getElementById("transactionDetailModal");
+
+  // Tampilkan detail lengkap satu transaksi (catatan sering terpotong di
+  // list mobile, popup ini menampilkannya utuh + detail waktu lengkap).
+  function openTransactionDetail(tx) {
+    const cat = findCategory(tx.type, tx.category);
+    const typeLabel = tx.type === "income" ? "Pemasukan" : "Pengeluaran";
+
+    const icon = document.getElementById("detailIcon");
+    icon.textContent = cat.icon;
+    icon.className = "detail-icon " + tx.type;
+
+    document.getElementById("detailCategory").textContent = cat.label;
+
+    const badge = document.getElementById("detailTypeBadge");
+    badge.textContent = typeLabel;
+    badge.className = "detail-type-badge " + tx.type;
+
+    const amount = document.getElementById("detailAmount");
+    amount.textContent = (tx.type === "income" ? "+ " : "- ") + formatCurrency(tx.amount);
+    amount.className = "detail-amount " + tx.type;
+
+    document.getElementById("detailNote").textContent = tx.note || "—";
+    document.getElementById("detailDate").textContent = formatDateLong(tx.date);
+    document.getElementById("detailTime").textContent = formatTime(txTime(tx), true);
+
+    transactionDetailModal.classList.add("open");
+  }
+
+  function closeTransactionDetail() {
+    transactionDetailModal.classList.remove("open");
+  }
+
+  document.getElementById("closeDetailBtn").addEventListener("click", closeTransactionDetail);
+  transactionDetailModal.addEventListener("click", (e) => {
+    if (e.target === transactionDetailModal) closeTransactionDetail();
   });
 
   /* ================= Delete confirmation modal ================= */

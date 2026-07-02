@@ -249,6 +249,40 @@
     </div>
   </div>
 
+  <!-- ===================== MODAL: TRANSACTION DETAIL ===================== -->
+  <div id="transactionDetailModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+
+      <div class="detail-header">
+        <div class="detail-icon" id="detailIcon"></div>
+        <div class="detail-header-text">
+          <h3 id="detailCategory">Kategori</h3>
+          <span class="detail-type-badge" id="detailTypeBadge">Pengeluaran</span>
+        </div>
+      </div>
+
+      <p class="detail-amount" id="detailAmount">Rp 0</p>
+
+      <div class="detail-row">
+        <span class="detail-row-label">Catatan</span>
+        <p class="detail-row-value" id="detailNote">&mdash;</p>
+      </div>
+      <div class="detail-row">
+        <span class="detail-row-label">Tanggal</span>
+        <p class="detail-row-value" id="detailDate">&mdash;</p>
+      </div>
+      <div class="detail-row">
+        <span class="detail-row-label">Waktu</span>
+        <p class="detail-row-value" id="detailTime">&mdash;</p>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-primary" id="closeDetailBtn">Tutup</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===================== MODAL: ADD PLAN ===================== -->
   <div id="planModal" class="modal-overlay">
     <div class="modal-sheet">
