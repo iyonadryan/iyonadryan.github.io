@@ -1,0 +1,151 @@
+/* =========================================================
+   Finance App — plans.css
+   List rencana anggaran, kartu rencana per kategori/periode,
+   dan handle drag-reorder.
+   ========================================================= */
+
+.plans-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.plan-card {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  transition: transform 0.18s ease;
+}
+
+/* Kartu lain bergeser mulus saat reorder; dimatikan sejenak ketika DOM
+   direkonsiliasi di akhir drag agar tidak berkedip. */
+.plans-list.reordering .plan-card {
+  transition: none;
+}
+
+/* Kartu yang sedang di-hold: terangkat, mengikuti pointer (tanpa transisi
+   supaya responsif), dan di atas kartu lain. */
+.plan-card.dragging {
+  transition: none;
+  position: relative;
+  z-index: 10;
+  border-color: var(--color-primary);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* Handle geser di paling kiri. touch-action:none supaya menggeser tidak
+   ikut men-scroll halaman saat dipakai dari HP. */
+.plan-drag {
+  flex-shrink: 0;
+  align-self: center;
+  width: 24px;
+  padding: 6px 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: grab;
+  touch-action: none;
+}
+
+.plan-drag:active {
+  cursor: grabbing;
+}
+
+.plan-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.plan-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.plan-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.plan-btn:active {
+  transform: scale(0.9);
+}
+
+.plan-btn.plan-edit {
+  border-color: var(--color-warning);
+  background: var(--color-warning-bg);
+}
+
+.plan-btn.plan-delete {
+  border-color: var(--color-expense);
+  background: var(--color-expense-bg);
+}
+
+.plan-category {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.plan-amounts {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.plan-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-surface-alt);
+  overflow: hidden;
+}
+
+.plan-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-primary);
+  transition: width 0.3s ease;
+}
+
+.plan-progress-fill.warning {
+  background: var(--color-warning);
+}
+
+.plan-progress-fill.over {
+  background: var(--color-expense);
+}
+
+.plan-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.plan-percent {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}

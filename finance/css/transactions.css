@@ -1,0 +1,418 @@
+/* =========================================================
+   Finance App — transactions.css
+   List transaksi (Dashboard & halaman Transaksi), tab filter
+   tipe (basisnya dipakai juga oleh tab periode di Rencana —
+   lihat catatan di section "Filter tabs"), modal filter, dan
+   popup detail transaksi.
+   ========================================================= */
+
+/* ---------- Transaction list ---------- */
+
+.transaction-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.transaction-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.transaction-item:active {
+  transform: scale(0.98);
+}
+
+.tx-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  flex-shrink: 0;
+}
+
+.tx-icon.income {
+  background: var(--color-income-bg);
+}
+
+.tx-icon.expense {
+  background: var(--color-expense-bg);
+}
+
+.tx-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.tx-category {
+  font-weight: 600;
+  font-size: 14px;
+  margin: 0 0 2px;
+}
+
+.tx-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tx-right {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.tx-amount {
+  font-weight: 700;
+  font-size: 14px;
+  display: block;
+}
+
+.tx-amount.income { color: var(--color-income); }
+.tx-amount.expense { color: var(--color-expense); }
+
+.tx-date {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.tx-time {
+  margin: 1px 0 0;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  opacity: 0.85;
+}
+
+.tx-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.tx-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.tx-btn:active {
+  transform: scale(0.9);
+}
+
+.tx-edit {
+  border-color: var(--color-warning);
+  background: var(--color-warning-bg);
+}
+
+.tx-delete {
+  border-color: var(--color-expense);
+  background: var(--color-expense-bg);
+}
+
+/* ---------- Filter tabs ---------- */
+/* .filter-tab adalah basis tab yang dipakai juga oleh .plan-tabs di halaman
+   Rencana (tab periode Harian/Mingguan/dst) — tetap satu definisi di sini
+   supaya keduanya konsisten. */
+
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.filter-tab {
+  flex: 1;
+  padding: 9px 0;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.filter-tab.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+/* Halaman Rencana punya 5 tab periode — biarkan membungkus ke baris kedua
+   (Weekday & Weekend turun bersama), tiap baris terisi rata. */
+.plan-tabs {
+  flex-wrap: wrap;
+}
+
+.plan-tabs .filter-tab {
+  flex: 1 1 28%;
+}
+
+/* Weekday & Weekend dibedakan warnanya dari periode lain. */
+.filter-tab.tab-weekday {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.filter-tab.tab-weekday.active {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #fff;
+}
+
+.filter-tab.tab-weekend {
+  border-color: #f97316;
+  color: #f97316;
+}
+
+.filter-tab.tab-weekend.active {
+  background: #f97316;
+  border-color: #f97316;
+  color: #fff;
+}
+
+.btn-filter {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.btn-filter.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.filter-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  margin: 4px 0 8px;
+}
+
+.filter-date {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.filter-date .field {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+/* Dropdown hari kustom (agar tinggi panel bisa dibatasi ~5 baris + scroll). */
+.day-dd {
+  position: relative;
+}
+
+.day-dd-toggle {
+  width: 100%;
+  padding: 12px 28px 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.day-dd::after {
+  content: "▾";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.day-dd-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  max-height: 210px; /* ~5–6 baris, sisanya scroll */
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+}
+
+.day-dd.open .day-dd-menu {
+  display: block;
+}
+
+.day-dd-option {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.day-dd-option.selected {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.filter-category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
+  max-height: 150px; /* ~3 kategori, sisanya scroll */
+  overflow-y: auto;
+}
+
+.filter-category-item {
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+}
+
+.filter-category-item label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  width: 100%;
+}
+
+.filter-category-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+/* ---------- Transaction detail modal ---------- */
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.detail-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.detail-icon.income {
+  background: var(--color-income-bg);
+}
+
+.detail-icon.expense {
+  background: var(--color-expense-bg);
+}
+
+.detail-header-text h3 {
+  margin: 0 0 4px;
+}
+
+.detail-type-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+.detail-type-badge.income {
+  background: var(--color-income-bg);
+  color: var(--color-income);
+}
+
+.detail-type-badge.expense {
+  background: var(--color-expense-bg);
+  color: var(--color-expense);
+}
+
+.detail-amount {
+  font-size: 26px;
+  font-weight: 800;
+  margin: 18px 0;
+}
+
+.detail-amount.income { color: var(--color-income); }
+.detail-amount.expense { color: var(--color-expense); }
+
+.detail-row {
+  padding: 12px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.detail-row-label {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.detail-row-value {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  word-break: break-word;
+  white-space: pre-wrap;
+}

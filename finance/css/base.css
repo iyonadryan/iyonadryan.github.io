@@ -1,0 +1,303 @@
+/* =========================================================
+   Finance App — Mobile-first styles
+   base.css: variabel tema, reset global, loading overlay, app
+   shell, header, page shell, month selector. Dipakai di semua
+   halaman — dimuat pertama sebelum css/* lainnya.
+   ========================================================= */
+
+:root {
+  /* Surfaces */
+  --color-bg: #f4f5f9;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f0f1f6;
+  --color-border: #e6e8ef;
+
+  /* Text */
+  --color-text: #1c1d26;
+  --color-text-muted: #6b6f80;
+
+  /* Brand / primary accent (solid — used for text, icons, links, borders) */
+  --color-primary: #0e7490;
+  --color-primary-dark: #0b5a70;
+
+  /* Brand gradient (used on .btn-primary) */
+  --gradient-start: #2bc0e4;
+  --gradient-mid: #eaecc6;
+  --gradient-end: #2bc0e4;
+  --gradient-primary: linear-gradient(to right, var(--gradient-start) 0%, var(--gradient-mid) 51%, var(--gradient-end) 100%);
+  --shadow-btn-grad: 0 4px 16px rgba(43, 192, 228, 0.35);
+
+  /* Card gradient (balance card) — .fab reuses this in light mode */
+  --gradient-card: linear-gradient(145deg, var(--color-primary), var(--color-primary-dark));
+  --gradient-fab: var(--gradient-card);
+  --fab-bg-size: 100% auto;
+
+  /* Semantic colors */
+  --color-income: #16a34a;
+  --color-income-bg: #e8f8ee;
+  --color-expense: #e63946;
+  --color-expense-bg: #fdeaec;
+  --color-warning: #f59e0b;
+  --color-warning-bg: #fef3e2;
+
+  /* Kategorikal (statistik kategori pengeluaran di Dashboard) — urutan tetap
+     mengikuti index CATEGORIES.expense di script.js, tervalidasi lewat
+     dataviz skill (validate_palette.js) terhadap surface #ffffff. */
+  --series-1: #2a78d6;
+  --series-2: #1baf7a;
+  --series-3: #eda100;
+  --series-4: #008300;
+  --series-5: #4a3aa7;
+  --series-6: #e34948;
+  --series-7: #e87ba4;
+  --series-8: #eb6834;
+
+  /* Shadows */
+  --shadow-card: 0 8px 24px rgba(28, 29, 38, 0.08);
+  --shadow-fab: 0 10px 20px rgba(43, 192, 228, 0.35);
+
+  /* Layout */
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --nav-height: 64px;
+  --header-height: 60px;
+}
+
+[data-theme="dark"] {
+  /* Surfaces */
+  --color-bg: #14141c;
+  --color-surface: #1e1e2a;
+  --color-surface-alt: #262633;
+  --color-border: #32323f;
+
+  /* Text */
+  --color-text: #f2f2f5;
+  --color-text-muted: #9a9aab;
+
+  /* Brand / primary accent (solid — used for text, icons, links, borders) */
+  --color-primary: #71b280;
+  --color-primary-dark: #134e5e;
+
+  /* Brand gradient (used on .btn-primary, and .fab in dark mode) */
+  --gradient-start: #134e5e;
+  --gradient-mid: #71b280;
+  --gradient-end: #134e5e;
+  --gradient-primary: linear-gradient(to right, var(--gradient-start) 0%, var(--gradient-mid) 51%, var(--gradient-end) 100%);
+  --shadow-btn-grad: 0 4px 16px rgba(19, 78, 94, 0.5);
+
+  /* Card gradient (balance card) — .fab uses the animated brand gradient instead in dark mode */
+  --gradient-card: linear-gradient(145deg, var(--color-primary), var(--color-primary-dark));
+  --gradient-fab: var(--gradient-primary);
+  --fab-bg-size: 200% auto;
+
+  /* Semantic colors */
+  --color-income: #34d17c;
+  --color-income-bg: rgba(52, 209, 124, 0.12);
+  --color-expense: #ff6b7a;
+  --color-expense-bg: rgba(255, 107, 122, 0.12);
+  --color-warning: #fbbf24;
+  --color-warning-bg: rgba(251, 191, 36, 0.14);
+
+  /* Kategorikal — sama 8 hue, langkah untuk surface gelap (#1e1e2a). */
+  --series-1: #3987e5;
+  --series-2: #199e70;
+  --series-3: #c98500;
+  --series-4: #008300;
+  --series-5: #9085e9;
+  --series-6: #e66767;
+  --series-7: #d55181;
+  --series-8: #d95926;
+
+  /* Shadows */
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-fab: 0 10px 24px rgba(113, 178, 128, 0.4);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+button, input, select {
+  font-family: inherit;
+  color: inherit;
+}
+
+/* ---------- Loading overlay (koneksi Firebase) ---------- */
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: var(--color-bg);
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+.loading-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.loading-coins {
+  display: flex;
+  gap: 14px;
+  font-size: 36px;
+  line-height: 1;
+}
+
+.loading-coins span {
+  display: inline-block;
+  animation: coinBounce 0.9s ease-in-out infinite;
+}
+
+.loading-coins span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.loading-coins span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes coinBounce {
+  0%, 100% {
+    transform: translateY(6px);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(-14px);
+    opacity: 1;
+  }
+}
+
+.loading-text {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-coins span {
+    animation-duration: 1.6s;
+  }
+}
+
+/* ---------- App shell (mobile screen simulation) ---------- */
+
+.app-shell {
+  position: relative;
+  max-width: 480px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background: var(--color-bg);
+  overflow-x: hidden;
+}
+
+@media (min-width: 481px) {
+  body {
+    background: var(--color-surface-alt);
+  }
+  .app-shell {
+    min-height: 100vh;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* ---------- Header ---------- */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--color-bg);
+  padding: env(safe-area-inset-top) 20px 8px;
+  border-bottom: 1px solid transparent;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-height);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-logo {
+  font-size: 22px;
+}
+
+.brand h1 {
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* ---------- Main / pages ---------- */
+
+.app-main {
+  padding: 4px 20px calc(var(--nav-height) + 28px);
+}
+
+.page {
+  display: none;
+  animation: fadeIn 0.2s ease;
+}
+
+.page.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 0 16px;
+}
+
+.page-header h2 {
+  font-size: 22px;
+  margin: 0;
+}
+
+/* ---------- Month selector ---------- */
+
+.month-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 10px 0 16px;
+  font-weight: 600;
+  font-size: 15px;
+}

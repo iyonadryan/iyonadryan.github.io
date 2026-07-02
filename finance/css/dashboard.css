@@ -1,0 +1,203 @@
+/* =========================================================
+   Finance App — dashboard.css
+   Balance card (saldo bulan ini + toggle sembunyikan saldo),
+   section heading generik, dan kartu Statistik Pengeluaran.
+   ========================================================= */
+
+/* ---------- Balance card ---------- */
+
+.balance-card {
+  position: relative;
+  background: var(--gradient-card);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: 22px 20px 20px;
+  box-shadow: var(--shadow-card);
+}
+
+.balance-toggle {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.balance-toggle:hover,
+.balance-toggle:active {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.balance-toggle .icon-eye {
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+}
+
+.balance-toggle .icon-eye-closed {
+  display: none;
+}
+
+.balance-toggle.is-visible .icon-eye-open {
+  display: none;
+}
+
+.balance-toggle.is-visible .icon-eye-closed {
+  display: block;
+}
+
+.balance-label {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.balance-amount {
+  margin: 6px 0 18px;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.balance-bar {
+  display: flex;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.25);
+  margin-bottom: 18px;
+}
+
+.bar-income {
+  background: #ffffff;
+  height: 100%;
+  width: 50%;
+  transition: width 0.3s ease;
+}
+
+.bar-expense {
+  background: rgba(255, 255, 255, 0.45);
+  height: 100%;
+  width: 50%;
+  transition: width 0.3s ease;
+}
+
+.balance-row {
+  display: flex;
+  gap: 14px;
+}
+
+.balance-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.balance-item strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.item-label {
+  margin: 0 0 2px;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.income-dot { background: #ffffff; }
+.expense-dot { background: rgba(255, 255, 255, 0.55); }
+
+/* ---------- Section heading ---------- */
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 24px 0 12px;
+}
+
+.section-heading h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.section-heading a {
+  font-size: 13px;
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* ---------- Category stats (Dashboard) ---------- */
+
+.category-stats {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.stat-insight {
+  margin: 0 0 14px;
+  padding-bottom: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.stat-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stat-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.stat-row-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.stat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.stat-row-budget.warning { color: var(--color-warning); }
+.stat-row-budget.over { color: var(--color-expense); }

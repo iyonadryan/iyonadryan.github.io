@@ -63,9 +63,15 @@ Catatan: user awalnya menuliskan struktur transaksi hanya `{ category, transaksi
 ## Struktur file
 
 - `index.html` — struktur halaman (single-page, section di-toggle lewat JS, bukan multi-page).
-- `style.css` — semua styling, mobile-first, pakai CSS variables untuk theming (light/dark).
-- `script.js` — semua logic (state, render, event handler, layer data Firebase). IIFE tunggal, vanilla JS tanpa framework/build tool.
-- `generate-excel.js` — helper pembuatan/unduh file Excel `.xlsx` (`window.FinanceExcel`), memakai SheetJS. Generik & tanpa state app: menerima data mentah dari `script.js`. Di-load setelah SheetJS CDN, sebelum `script.js`.
+- `css/` — styling, mobile-first, pakai CSS variables untuk theming (light/dark). Dulu satu file `style.css` (1500+ baris), dipecah per fitur supaya lebih gampang dinavigasi; isinya dipindah apa adanya (tidak ada aturan yang di-reorder), jadi hasil akhirnya identik dengan sebelum dipecah. Di-`<link>` di `index.html` sesuai urutan ini:
+  - `css/base.css` — variabel `:root`/`[data-theme="dark"]`, reset global, loading overlay, app shell, header, page shell, month selector. Fondasi untuk semua halaman.
+  - `css/components.css` — komponen lintas halaman: tombol (`.btn-*`, `.icon-btn*`), empty state, bottom nav, shell modal/bottom-sheet (`.modal-overlay`/`.modal-sheet`), field form modal bersama (`.type-toggle`, `.field`, `.modal-actions` — dipakai modal Transaksi/Rencana/Filter), dan confirm dialog terpusat.
+  - `css/dashboard.css` — balance card, section heading, kartu Statistik Pengeluaran.
+  - `css/transactions.css` — list transaksi, tab filter (`.filter-tab`, basis yang dipakai juga oleh `.plan-tabs` di Rencana), modal filter (`.day-dd*`, `.filter-category-*`), popup detail transaksi.
+  - `css/plans.css` — list rencana, kartu rencana, drag-reorder.
+  - `css/settings.css` — list Pengaturan, popup export Excel.
+- `script.js` — semua logic (state, render, event handler, layer data Firebase). IIFE tunggal, vanilla JS tanpa framework/build tool. **Belum dipecah** seperti CSS — satu IIFE ini berbagi closure state (`transactions`, `plans`, `CATEGORIES`, `viewDate`, dst.) antar hampir semua fungsi, jadi pemecahannya lebih berisiko: ES modules (`type="module"`) akan mematahkan kemampuan "buka `index.html` langsung tanpa server" (browser blokir `import` lewat `file://`), sedangkan classic script butuh state itu di-expose jadi global. Kalau nanti dipecah, mulai dari bagian yang stateless dulu (mis. `Utilities`, penyiapan data `Export Excel`).
+- `generate-excel.js` — helper pembuatan/unduh file Excel `.xlsx` (`window.FinanceExcel`), memakai SheetJS. Generik & tanpa state app: menerima data mentah dari `script.js`. Di-load setelah SheetJS CDN, sebelum `script.js`. Ini contoh pola "modul mandiri tanpa shared state" yang berhasil karena fungsinya generik — beda dengan sebagian besar `script.js` yang bergantung closure state.
 - `.claude/CLAUDE.md` — file ini, dokumentasi project untuk Claude.
 
 Belum ada build tool (tidak ada npm/bundler). Cukup buka `index.html` langsung di browser atau lewat live server.

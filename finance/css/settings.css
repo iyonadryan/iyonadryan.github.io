@@ -1,0 +1,102 @@
+/* =========================================================
+   Finance App — settings.css
+   List item Pengaturan, dan popup export Excel (pilihan
+   export + daftar bulan).
+   ========================================================= */
+
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+}
+
+.settings-title {
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.settings-desc {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.settings-info {
+  align-items: flex-start;
+}
+
+/* ---------- Export options (modal download) ---------- */
+
+.export-hint {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0 0 14px;
+}
+
+.export-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.export-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.export-option:active {
+  transform: scale(0.98);
+  border-color: var(--color-primary);
+}
+
+.export-option-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.export-option-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.export-option-desc {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* Daftar bulan (pilih bulan export): tampil ~5 bulan lalu scroll, dengan
+   garis pemisah + jarak ke tombol Batal. */
+#monthPickerList {
+  max-height: 300px; /* ~5 bulan */
+  overflow-y: auto;
+  padding-right: 4px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}

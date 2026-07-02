@@ -1,0 +1,420 @@
+/* =========================================================
+   Finance App — components.css
+   Komponen UI generik yang dipakai lintas halaman: tombol,
+   bottom nav, empty state, shell modal/bottom-sheet + field
+   form modal bersama, dan confirm dialog terpusat.
+   ========================================================= */
+
+/* ---------- Buttons ---------- */
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.icon-btn.small {
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* Navigasi bulan (prev/next): mati kalau sudah di ujung rentang data yang
+   ada di Firebase (lihat updateMonthNavButtons() di script.js). */
+.icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Varian berwarna (gradient) — dipakai tombol "+" tambah rencana,
+   seragam dengan FAB tambah transaksi. */
+.icon-btn.accent {
+  background-image: var(--gradient-fab);
+  background-size: var(--fab-bg-size);
+  background-position: left center;
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  box-shadow: var(--shadow-btn-grad);
+  transition: background-position 0.5s ease, transform 0.15s ease;
+}
+
+.icon-btn.accent:hover,
+.icon-btn.accent:active {
+  background-position: right center;
+}
+
+.icon-btn.accent:active {
+  transform: scale(0.94);
+}
+
+/* Periode penuh → tombol "+" nonaktif & abu-abu. */
+.icon-btn.accent:disabled {
+  background-image: none;
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  flex: 1;
+  background-image: var(--gradient-fab);
+  background-size: var(--fab-bg-size);
+  background-position: left center;
+  box-shadow: var(--shadow-btn-grad);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-position 0.5s ease;
+}
+
+.btn-primary:hover,
+.btn-primary:active {
+  background-position: right center;
+}
+
+.btn-secondary {
+  flex: 1;
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Tombol "inverse" (tombol Reset filter): light = hitam/teks putih,
+   dark = putih/teks hitam. */
+.btn-invert {
+  background: #1c1d26;
+  color: #ffffff;
+  border: none;
+}
+
+[data-theme="dark"] .btn-invert {
+  background: #ffffff;
+  color: #1c1d26;
+}
+
+.btn-danger {
+  background: var(--color-expense-bg);
+  color: var(--color-expense);
+  border: 1px solid var(--color-expense);
+  border-radius: var(--radius-sm);
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.btn-danger-solid {
+  flex: 1;
+  background: var(--color-expense);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ---------- Empty state ---------- */
+/* Dulu nempel di section "Transaction list" tapi dipakai lintas halaman
+   (Dashboard, Transaksi, Rencana) — dipindah ke sini biar sesuai isinya. */
+
+.empty-state {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  padding: 28px 16px;
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/* ---------- Bottom nav ---------- */
+
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--nav-height);
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 15;
+}
+
+.nav-item {
+  flex: 1;
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 6px 0;
+}
+
+.nav-icon {
+  font-size: 19px;
+}
+
+.nav-item.active {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+/* Tombol + tambah transaksi di tengah nav, menonjol ke atas. */
+.nav-add {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 52px;
+  height: 52px;
+  margin: 0 8px;
+  transform: translateY(-14px);
+  border-radius: 50%;
+  border: 4px solid var(--color-bg);
+  background-image: var(--gradient-fab);
+  background-size: var(--fab-bg-size);
+  background-position: left center;
+  color: #fff;
+  font-size: 26px;
+  line-height: 1;
+  box-shadow: var(--shadow-fab);
+  cursor: pointer;
+  transition: background-position 0.5s ease, transform 0.15s ease;
+}
+
+.nav-add:hover,
+.nav-add:active {
+  background-position: right center;
+}
+
+.nav-add:active {
+  transform: translateY(-14px) scale(0.94);
+}
+
+/* ---------- Modal / bottom sheet ---------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 30;
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-sheet {
+  width: 100%;
+  max-width: 480px;
+  background: var(--color-surface);
+  border-radius: 22px 22px 0 0;
+  padding: 10px 20px calc(24px + env(safe-area-inset-bottom));
+  transform: translateY(100%);
+  transition: transform 0.25s ease;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+.modal-overlay.open .modal-sheet {
+  transform: translateY(0);
+}
+
+/* ---------- Modal form fields (shared) ---------- */
+/* Dulu nyambung tanpa header di bawah section "Export options" di
+   style.css lama (kebetulan ditulis berurutan) — dipisah header-nya di
+   sini karena ini dipakai bareng oleh modal Transaksi/Rencana/Filter,
+   bukan cuma modal Export. */
+
+.modal-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-border);
+  margin: 4px auto 14px;
+}
+
+.modal-sheet h3 {
+  margin: 0 0 16px;
+  font-size: 18px;
+}
+
+.type-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.type-btn {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.type-btn.active[data-type="expense"] {
+  background: var(--color-expense-bg);
+  border-color: var(--color-expense);
+  color: var(--color-expense);
+}
+
+.type-btn.active[data-type="income"] {
+  background: var(--color-income-bg);
+  border-color: var(--color-income);
+  color: var(--color-income);
+}
+
+.field {
+  display: block;
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.field span {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.field input:focus,
+.field select:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+/* Opsi periode yang sudah penuh tampil buram & tidak bisa dipilih. */
+.field select option:disabled {
+  color: var(--color-text-muted);
+}
+
+/* Tanggal dikunci ke "sekarang" (disabled): sembunyikan ikon kalender dan
+   jaga teks tetap terbaca (iOS Safari biasanya memudarkan input disabled).
+   Hanya untuk input yang disabled — input tanggal filter tetap punya picker. */
+.field input[type="date"]:disabled::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+.field input[type="date"]:disabled {
+  opacity: 1;
+  color: var(--color-text);
+  -webkit-text-fill-color: var(--color-text);
+  cursor: not-allowed;
+}
+
+/* Saat edit transaksi: tipe & kategori dikunci (hanya nominal + catatan yang
+   bisa diubah). Tetap terbaca, tapi jelas tidak bisa diubah. */
+.field select:disabled {
+  opacity: 1;
+  color: var(--color-text);
+  -webkit-text-fill-color: var(--color-text);
+  cursor: not-allowed;
+}
+
+.type-toggle.locked .type-btn {
+  cursor: not-allowed;
+}
+
+.type-toggle.locked .type-btn:not(.active) {
+  opacity: 0.45;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+/* ---------- Confirm dialog (centered) ---------- */
+
+.confirm-overlay {
+  align-items: center;
+  padding: 24px;
+}
+
+.confirm-dialog {
+  width: 100%;
+  max-width: 340px;
+  background: var(--color-surface);
+  border-radius: 20px;
+  padding: 24px 22px;
+  text-align: center;
+  transform: scale(0.9);
+  opacity: 0;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.confirm-overlay.open .confirm-dialog {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.confirm-icon {
+  font-size: 34px;
+  margin-bottom: 8px;
+}
+
+.confirm-dialog h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.confirm-dialog p {
+  margin: 0 0 22px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
