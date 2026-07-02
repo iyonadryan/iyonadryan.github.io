@@ -1041,6 +1041,13 @@ button, input, select {
   font-weight: 700;
 }
 
+/* Navigasi bulan (prev/next): mati kalau sudah di ujung rentang data yang
+   ada di Firebase (lihat updateMonthNavButtons() di script.js). */
+.icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 /* Varian berwarna (gradient) — dipakai tombol "+" tambah rencana,
    seragam dengan FAB tambah transaksi. */
 .icon-btn.accent {

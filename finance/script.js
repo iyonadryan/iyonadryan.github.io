@@ -238,6 +238,30 @@
     renderDashboard();
     renderAllTransactions();
     renderPlans();
+    updateMonthNavButtons();
+  }
+
+  // Batasi geser bulan (Dashboard & Transaksi berbagi viewDate yang sama) ke
+  // rentang ym terkecil–terbesar yang benar-benar ada transaksinya di
+  // Firebase. Bulan di antaranya (mis. tidak ada transaksi) tetap bisa
+  // disinggahi selama masih di dalam rentang; di luar rentang tombolnya mati.
+  function updateMonthNavButtons() {
+    const prevBtns = [document.getElementById("prevMonth"), document.getElementById("prevMonthTx")];
+    const nextBtns = [document.getElementById("nextMonth"), document.getElementById("nextMonthTx")];
+
+    if (transactions.length === 0) {
+      prevBtns.forEach((b) => (b.disabled = true));
+      nextBtns.forEach((b) => (b.disabled = true));
+      return;
+    }
+
+    const yms = transactions.map((t) => t.ym);
+    const minYm = yms.reduce((a, b) => (b < a ? b : a));
+    const maxYm = yms.reduce((a, b) => (b > a ? b : a));
+    const currentYm = viewDate.getFullYear() + "-" + pad2(viewDate.getMonth() + 1);
+
+    prevBtns.forEach((b) => (b.disabled = currentYm <= minYm));
+    nextBtns.forEach((b) => (b.disabled = currentYm >= maxYm));
   }
 
   /* ================= Utilities ================= */
