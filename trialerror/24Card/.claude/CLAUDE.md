@@ -89,6 +89,37 @@ Setiap halaman selalu include `style.css` + CSS spesifiknya:
 
 ---
 
+## Menu Utama (index.html)
+
+- Grup pertama `.menu-options`: 5 tombol mode inti (24, 36, Custom, Battle, Duel).
+- Divider `.menu-divider` ("OTHER MODE") + grup kedua `.menu-options`: mode-mode baru/eksperimental, dipisah biar gampang nambah tanpa ganggu 5 tombol utama. Ukuran tombol tetap pakai class `.menu-btn` yang sama (auto center & auto-wrap lewat flex).
+- Tiap mode baru di grup ini dapat warna border sendiri lewat class `.menu-btn-{mode}` (lihat `.menu-btn-poker` = ungu `#ab47bc`, `.menu-btn-ceki` = teal `#26a69a`) supaya gampang dibedain.
+- Icon tombol pakai `<img class="menu-btn-icon-img">` (56×56px) kalau ada asset custom di `img/`, bukan emoji — dipakai sejak Poker Card (`img/chip-poker-icon.png`) dan Ceki Card (`img/poker-cards.png`).
+
+### Status mode di menu
+
+| Mode | Status | Keterangan |
+|---|---|---|
+| Poker Card | WIP, sudah ada `poker.html` | Lihat [Mode Poker](#mode-poker-wip) |
+| Ceki Card | **Coming soon**, belum ada halaman | Tombol pakai pola "Coming Soon" di bawah, klik cuma munculin alert |
+
+### Pola Tombol "Coming Soon"
+
+Dipakai untuk fitur yang tombolnya sudah ditaruh di UI tapi belum diimplementasi (dulu dipakai `duel.js` untuk tombol Quick Match, sekarang juga `index.html` untuk Ceki Card):
+
+```javascript
+btnX.addEventListener('click', (e) => {
+  e.preventDefault();
+  alert('Fitur X masih tahap rencana, stay tuned!');
+});
+```
+
+- Tombol tetap `<a href="#">`, jangan dihapus dari DOM — biar kelihatan sebagai preview fitur mendatang.
+- Kasih visual redup (`opacity: 0.6`, naik dikit pas `:hover`) di CSS supaya user ngerti belum aktif, tanpa perlu badge/overlay tambahan.
+- **Jangan** bikin halaman/JS/Firebase path kosong buat mode yang statusnya masih "coming soon" — tunggu sampai mode itu beneran mau dikerjain (lihat [Mode Poker](#mode-poker-wip) sebagai contoh kapan baru mulai bikin file sungguhan).
+
+---
+
 ## Konvensi Penamaan
 
 ### JavaScript

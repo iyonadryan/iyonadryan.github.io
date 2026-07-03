@@ -35,15 +35,26 @@
     </div>
     <a href="leaderboard-score.html" class="menu-leaderboard-link">🏆 Leaderboard Score</a>
 
-    <div class="menu-divider"><span>OTHER MODE</span></div>
+    <div class="menu-divider"><span>♦♣♥♠ OTHER MODE ♠♥♣♦</span></div>
     <div class="menu-options">
       <a href="poker.html" class="menu-btn menu-btn-poker">
         <img src="img/chip-poker-icon.png" alt="" class="menu-btn-icon-img">
         <span class="menu-btn-desc">Poker Card</span>
       </a>
+      <a href="#" class="menu-btn menu-btn-ceki" id="btnCekiCard">
+        <img src="img/poker-cards.png" alt="" class="menu-btn-icon-img">
+        <span class="menu-btn-desc">Ceki Card</span>
+      </a>
     </div>
 
     <p class="menu-footer">IYON AdryanLF</p>
   </div>
+
+  <script>
+    document.getElementById('btnCekiCard').addEventListener('click', (e) => {
+      e.preventDefault();
+      alert('🎴 Fitur Ceki Card masih tahap rencana, stay tuned!');
+    });
+  </script>
 </body>
 </html>

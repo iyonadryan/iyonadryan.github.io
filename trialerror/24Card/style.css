@@ -844,6 +844,17 @@ header h1 {
   border-color: #8e24aa;
 }
 
+.menu-btn-ceki {
+  border-width: 2px;
+  border-color: #26a69a;
+  opacity: 0.6;
+}
+
+.menu-btn-ceki:hover {
+  border-color: #00897b;
+  opacity: 0.85;
+}
+
 .menu-divider {
   display: flex;
   align-items: center;
