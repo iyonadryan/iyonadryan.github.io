@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PokerCard - Mode Poker</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style-battle.css">
+  <link rel="stylesheet" href="style-poker.css">
+  <link rel="icon" href="img/chip-poker-icon.png">
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
+      authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
+      databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
+      projectId: "iyon-adryanlf-trialerror",
+      storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
+      messagingSenderId: "519669963248",
+      appId: "1:519669963248:web:feab50008d27c2a7226535",
+      measurementId: "G-4MFLB4B68F"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
+</head>
+<body>
+  <a href="index.html" class="btn-back-menu" title="Kembali ke menu">← Menu</a>
+
+  <div class="container poker-screen">
+    <h1 class="poker-title"><img src="img/chip-poker-icon.png" alt="" class="poker-title-icon"> Mode Poker</h1>
+    <p class="poker-subtitle">Adu strategi kartu poker bersama pemain lain secara real-time!</p>
+
+    <button id="btnInfoMode" class="btn-info-mode"><svg class="info-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Info Mode</button>
+
+    <div class="poker-options">
+      <a href="#" class="poker-btn" id="btnHost">
+        <span class="poker-btn-icon">🖥️</span>
+        <span class="poker-btn-label">Host</span>
+        <span class="poker-btn-desc">Room Master</span>
+      </a>
+      <a href="#" class="poker-btn" id="btnMobile">
+        <span class="poker-btn-icon">📱</span>
+        <span class="poker-btn-label">Mobile</span>
+        <span class="poker-btn-desc">Player</span>
+      </a>
+    </div>
+  </div>
+
+  <div id="infoOverlay" class="overlay" style="display:none">
+    <div class="overlay-content">
+      <h2>🃏 Mode Poker</h2>
+      <div class="battle-popup-rules">
+        <p>Selamat datang di <strong>Mode Poker</strong>!</p>
+        <p>📌 Diperlukan <span class="rule-highlight">1 Host</span> untuk menampilkan meja utama di layar.</p>
+        <p>📌 Setiap <span class="rule-highlight">player</span> diusahakan menggunakan <span class="rule-highlight">HP</span> untuk bergabung dan bermain, maksimal <span class="rule-highlight">6 player</span>.</p>
+        <p>📌 Setiap player memulai dengan <span class="rule-highlight">5000 token</span>.</p>
+        <p>📌 Aturan permainan lengkap akan segera hadir, stay tuned!</p>
+      </div>
+      <div class="challenge-buttons">
+        <button id="btnInfoOk" class="btn btn-challenge">👍 Mengerti</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="createRoomOverlay" class="overlay" style="display:none">
+    <div class="overlay-content">
+      <h2>🖥️ Buat Room</h2>
+      <div class="create-room-form">
+        <div class="setup-field">
+          <label class="setup-label">Nama Room</label>
+          <input type="text" id="inputRoomName" class="setup-input" maxlength="20" placeholder="Masukkan nama room..." autocomplete="off">
+        </div>
+        <div id="roomNameError" class="setup-error"></div>
+        <button id="btnCreateRoom" class="btn btn-primary btn-start">+ Create Room</button>
+        <button id="btnCreateCancel" class="btn btn-cancel">Batal</button>
+      </div>
+
+      <div class="room-divider"><span>atau</span></div>
+
+      <div class="join-room-form">
+        <div class="setup-field">
+          <label class="setup-label">Masukkan ID Room (4 angka)</label>
+          <input type="text" id="inputRoomId" class="setup-input" maxlength="4" placeholder="1234" autocomplete="off" inputmode="numeric" pattern="[0-9]*">
+        </div>
+        <div id="roomIdError" class="setup-error"></div>
+        <button id="btnJoinRoom" class="btn btn-join">Gunakan Room</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mobileOverlay" class="overlay" style="display:none">
+    <div class="overlay-content">
+      <h2>📱 Gabung Room</h2>
+      <div class="create-room-form">
+        <div class="setup-field">
+          <label class="setup-label">Nama Kamu</label>
+          <input type="text" id="inputPlayerName" class="setup-input" maxlength="20" placeholder="Masukkan nama..." autocomplete="off">
+        </div>
+        <div class="setup-field">
+          <label class="setup-label">ID Room</label>
+          <input type="text" id="inputMobileRoomId" class="setup-input" maxlength="4" placeholder="1234" autocomplete="off" inputmode="numeric" pattern="[0-9]*">
+        </div>
+        <div id="mobileError" class="setup-error"></div>
+        <button id="btnJoinMobile" class="btn btn-join">Join Room</button>
+        <button id="btnMobileCancel" class="btn btn-cancel">Batal</button>
+      </div>
+      <div class="room-divider"><span>atau</span></div>
+      <button id="btnBrowseRooms" class="btn btn-primary btn-start" style="margin-top:0">📋 Lihat Room Tersedia</button>
+    </div>
+  </div>
+
+  <div id="roomListOverlay" class="overlay" style="display:none">
+    <div class="overlay-content overlay-content-wide" style="max-height:80vh;overflow-y:auto">
+      <h2>📋 Daftar Room</h2>
+      <div class="room-list-search">
+        <input type="text" id="roomSearchInput" class="setup-input" placeholder="Cari nama atau ID room..." autocomplete="off" style="width:100%">
+      </div>
+      <div id="roomListContainer" class="room-list-container" style="max-height:none">
+        <p class="room-list-loading">⏳ Memuat daftar room...</p>
+      </div>
+      <div class="challenge-buttons" style="margin-top:16px;display:flex;gap:8px">
+        <button id="btnRefreshRooms" class="btn btn-secondary" style="flex:1">🔄 Refresh</button>
+        <button id="btnRoomListClose" class="btn btn-cancel" style="flex:1">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="poker.js"></script>
+</body>
+</html>

@@ -5,7 +5,6 @@ const roomLoading = document.getElementById('roomLoading');
 const roomContent = document.getElementById('roomContent');
 const roomIdDisplay = document.getElementById('roomIdDisplay');
 const roomNameDisplay = document.getElementById('roomNameDisplay');
-const roomModeDisplay = document.getElementById('roomModeDisplay');
 const roomCreatedDisplay = document.getElementById('roomCreatedDisplay');
 const roomExpiredDisplay = document.getElementById('roomExpiredDisplay');
 const playerGrid = document.getElementById('playerGrid');
@@ -17,6 +16,7 @@ const btnDeleteCancel = document.getElementById('btnDeleteCancel');
 const btnDeleteConfirm = document.getElementById('btnDeleteConfirm');
 
 const MAX_PLAYERS = 6;
+const DEFAULT_TOKEN = 5000;
 
 function showOverlay(el) {
   el.style.display = 'flex';
@@ -97,7 +97,7 @@ btnDeleteConfirm.addEventListener('click', () => {
   btnDeleteRoom.disabled = true;
   btnDeleteRoom.textContent = '⏳ Menghapus...';
 
-  db.ref('trial-error/24Card/battle/' + roomId).remove().then(() => {
+  db.ref('trial-error/24Card/poker/' + roomId).remove().then(() => {
     window.location.href = 'index.html';
   }).catch((err) => {
     console.error(err);
@@ -112,7 +112,7 @@ if (!roomId) {
 } else {
   roomIdDisplay.textContent = roomId;
 
-  const roomRef = db.ref('trial-error/24Card/battle/' + roomId);
+  const roomRef = db.ref('trial-error/24Card/poker/' + roomId);
 
   roomRef.on('value', (snapshot) => {
     const data = snapshot.val();
@@ -126,7 +126,6 @@ if (!roomId) {
     roomContent.style.display = 'block';
 
     roomNameDisplay.textContent = data.name;
-    roomModeDisplay.textContent = 'Mode ' + data.mode;
     roomCreatedDisplay.textContent = data.created ? formatTime(data.created) : '-';
     roomExpiredDisplay.textContent = data.expired ? formatTime(data.expired) : '-';
 
@@ -151,7 +150,7 @@ if (!roomId) {
       const updates = {};
 
       Object.keys(players).forEach((name) => {
-        updates['players/' + name + '/life'] = 100;
+        updates['players/' + name + '/token'] = DEFAULT_TOKEN;
       });
 
       updates['status'] = 'play';
@@ -160,7 +159,7 @@ if (!roomId) {
       btnReady.textContent = '⏳ ...';
 
       roomRef.update(updates).then(() => {
-        window.location.href = 'battle-host.html?roomId=' + roomId;
+        window.location.href = 'poker-host.html?roomId=' + roomId;
       }).catch((err) => {
         console.error(err);
         alert('Gagal memulai game. Coba lagi.');

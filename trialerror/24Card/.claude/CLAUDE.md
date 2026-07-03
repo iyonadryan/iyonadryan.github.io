@@ -31,6 +31,9 @@ Dokumen ini mendeskripsikan pola, konvensi, dan arsitektur proyek 24Card agar se
 ├── duel-room.html          # Room waiting duel
 ├── duel-play.html          # Layar permainan duel (host & enemy)
 ├── duel-result.html        # Hasil akhir duel
+├── poker.html               # Pilihan mode poker (host/mobile) [WIP]
+├── poker-room.html         # Room host poker — daftar pemain [WIP]
+├── poker-lobby.html        # Lobby mobile player poker [WIP]
 ├── leaderboard-score.html  # Top 25 skor
 ├── style.css               # Global styles (dipakai semua halaman)
 ├── style-battle.css        # Battle-specific styles
@@ -40,6 +43,7 @@ Dokumen ini mendeskripsikan pola, konvensi, dan arsitektur proyek 24Card agar se
 ├── style-duel.css          # Duel mode styles
 ├── style-duel-room.css     # Duel room styles
 ├── style-duel-play.css     # Duel play styles
+├── style-poker.css          # Poker mode-select styles [WIP]
 ├── script.js               # Core game logic (mode 24 & 36)
 ├── custom-mode.js          # Custom game mode logic
 ├── battle.js               # Battle navigation & room creation
@@ -54,8 +58,13 @@ Dokumen ini mendeskripsikan pola, konvensi, dan arsitektur proyek 24Card agar se
 ├── duel-play.js            # Duel gameplay logic (host & enemy)
 ├── duel-score.js           # Duel scoring formula (calculateDuelScores)
 ├── duel-result.js          # Duel result page rendering
+├── poker.js                 # Poker navigation & room creation [WIP]
+├── poker-room.js            # Host room management poker [WIP]
+├── poker-lobby.js           # Mobile lobby poker [WIP]
 └── leaderboard-score.js    # Leaderboard rendering
 ```
+
+> **[WIP]** = tampilan mode-select, host-room, dan mobile-lobby sudah jadi. Layar gameplay (`poker-host.html`/`poker-mobile.html`) dan `poker-result.html` **belum dibuat**, menunggu aturan main Poker difinalisasi. Lihat [Alur Poker](#alur-poker-wip) di bawah.
 
 ### Aturan CSS per Halaman
 
@@ -72,6 +81,11 @@ Setiap halaman selalu include `style.css` + CSS spesifiknya:
 | duel-room.html | style-battle-room.css + style-duel-room.css |
 | duel-play.html | style-battle.css + style-duel-play.css |
 | duel-result.html | style-battle.css + style-battle-result.css |
+| poker.html | style-battle.css + style-poker.css |
+| poker-room.html | style-battle-room.css *(reuse langsung — belum ada style-poker-room.css)* |
+| poker-lobby.html | style-battle-mobile.css *(reuse langsung — belum ada style-poker-mobile.css)* |
+
+> Kenapa `poker.html` tetap include `style-battle.css`: file itu isinya bukan cuma "battle", tapi juga komponen generik yang dipakai lintas mode (`.overlay`, `.create-room-form`, `.battle-popup-rules`, `.room-divider`, `.btn-join`, `.btn-cancel`, dsb) — pola yang sama dipakai `duel.html` (`style-battle.css` + `style-duel.css`). Class **tampilan utama** tiap mode (title, subtitle, options, tombol besar) HARUS ada di file `style-{mode}.css` sendiri, jangan pinjam class `.battle-title`/`.battle-btn`/dst milik mode lain — itu yang bikin `poker.html` sebelumnya salah pakai `style-battle.css` doang. `poker-room.html`/`poker-lobby.html` untuk saat ini masih reuse CSS battle 100% karena layout-nya identik (grid player, ready system) — kalau nanti butuh styling unik (misal warna token/chip khas poker), baru dipisah jadi `style-poker-room.css`/`style-poker-mobile.css` seperti pola `style-duel-room.css`.
 
 ---
 
@@ -163,6 +177,7 @@ Firebase config di-embed langsung di tiap HTML yang butuh real-time sync.
 - Database path: `trial-error/24Card/`
 - Battle: `trial-error/24Card/battle/{roomId}/`
 - Duel: `trial-error/24Card/duel/{roomId}/`
+- Poker: `trial-error/24Card/poker/{roomId}/` [WIP]
 - Leaderboard: `trial-error/24Card/leaderboard/`
 
 ### Read Once (untuk load awal / cek keberadaan room)
@@ -194,7 +209,7 @@ battle/{roomId}:
   expired: timestamp (created + 3600000)
   players:
     {playerName}:
-      status: string
+      status: "unready" | "ready"
       life: number
       successTs: number | null
   plays:
@@ -203,6 +218,8 @@ battle/{roomId}:
       numbers: array
       timestamp: number
 ```
+
+> ⚠️ Nilai status pemain yang benar adalah **`"unready"`** (bukan `"undready"` — typo lama yang sudah diperbaiki di `battle.js`/`battle-room.js`/`battle-lobby.js`/`poker.js`/`poker-room.js`/`poker-lobby.js` dan class CSS `.status-unready` di `style-battle-mobile.css`). Jangan pakai `"undready"` lagi di mode baru.
 
 ### Room ID
 
@@ -346,6 +363,46 @@ duel-room.html (waiting) → host klik READY → status: 'play'
 
 ---
 
+## Mode Poker [WIP]
+
+Mode baru bertema kartu poker (icon: `img/chip-poker-icon.png`, chip poker bergambar spade). Room system (create/join, max 6 player, min 2 player ready) di-clone 1:1 dari **Mode Battle**, hanya beda path Firebase dan tanpa mode-picker 24/36 (Poker cuma 1 varian).
+
+### Struktur Room Poker di Firebase
+
+```
+poker/{roomId}:
+  name: string
+  status: "waiting" | "play"
+  created: timestamp
+  expired: timestamp (created + 3600000)
+  players:
+    {playerName}:
+      status: "unready" | "ready"
+      token: number   # default 5000, di-set saat host klik READY
+```
+
+Tidak ada field `mode` (beda dengan battle/duel) karena Poker belum punya varian aturan.
+
+### Alur Poker (sejauh ini)
+
+```
+poker.html (pilih Host/Mobile)
+  → Host: create/join room → poker-room.html (player grid, ready check, min 2 ready)
+  → Mobile: join by ID / browse room → poker-lobby.html (toggle ready, listen status)
+  → semua ready & host klik READY → players/{name}/token = 5000, status: 'play'
+  → redirect ke poker-host.html (host) / poker-mobile.html (mobile) — BELUM DIBUAT
+```
+
+### Yang masih menyusul
+
+- `poker-host.html` / `poker-host.js` — layar meja utama saat game berlangsung
+- `poker-mobile.html` / `poker-mobile.js` — layar player saat game berlangsung
+- `poker-result.html` / `poker-result.js` — hasil akhir
+- Aturan main (giliran, taruhan, kombinasi kartu menang, dsb) — belum didefinisikan
+- Nyawa pemain pakai istilah **`token`** (bukan `life`), default **5000**, bukan skor 0–100 seperti Battle/Duel
+
+---
+
 ## CSS Design Tokens
 
 ```css
@@ -376,7 +433,7 @@ Fungsi `isSolvable(nums, target)` di `script.js` dan `custom-mode.js`:
 
 ## Aturan Konsistensi untuk Feature Baru
 
-1. **File baru:** ikuti pola `nama-mode.html` + `nama-mode.js` + `style-nama-mode.css`
+1. **File baru:** ikuti pola `nama-mode.html` + `nama-mode.js` + `style-nama-mode.css`. Class tampilan utama (title, subtitle, options, tombol besar) milik mode itu sendiri **wajib** ada di `style-nama-mode.css` sendiri — **jangan** pinjam class mode lain (mis. `.battle-title`, `.battle-btn`) walau visualnya kebetulan sama persis. Komponen generik lintas-mode (overlay, form, popup rules, tombol form) boleh tetap reuse dari `style-battle.css` (lihat pola `duel.html`).
 2. **CSS baru:** selalu extend dari `style.css`, jangan override variabel global
 3. **Firebase:** selalu pakai path `trial-error/24Card/{mode}/`
 4. **Room system:** selalu gunakan 4-digit ID + expiry 1 jam
@@ -386,3 +443,4 @@ Fungsi `isSolvable(nums, target)` di `script.js` dan `custom-mode.js`:
 8. **Solvability:** setiap mode yang generate kartu wajib run `isSolvable()` sebelum set diterima
 9. **Emojis di button:** ikon emoji diperbolehkan untuk label tombol (sudah jadi pola di proyek ini)
 10. **Tidak ada framework:** tetap Vanilla JS, tidak ada React/Vue/dll
+11. **Selalu update CLAUDE.md:** setiap ada perubahan/fitur/fix yang mengubah struktur file, konvensi, atau state proyek, dokumen ini **wajib** diupdate di commit/perubahan yang sama — supaya jadi track record proyek yang selalu akurat, bukan cuma dibaca sesekali.

@@ -6,11 +6,9 @@ const btnMobile = document.getElementById('btnMobile');
 
 const createRoomOverlay = document.getElementById('createRoomOverlay');
 const inputRoomName = document.getElementById('inputRoomName');
-const modePickerBtns = document.querySelectorAll('.mode-picker-btn');
 const btnCreateRoom = document.getElementById('btnCreateRoom');
 const btnCreateCancel = document.getElementById('btnCreateCancel');
 const roomNameError = document.getElementById('roomNameError');
-const modeError = document.getElementById('modeError');
 const inputRoomId = document.getElementById('inputRoomId');
 const btnJoinRoom = document.getElementById('btnJoinRoom');
 const roomIdError = document.getElementById('roomIdError');
@@ -29,7 +27,6 @@ const btnRoomListClose = document.getElementById('btnRoomListClose');
 const btnRefreshRooms = document.getElementById('btnRefreshRooms');
 const roomSearchInput = document.getElementById('roomSearchInput');
 
-let selectedMode = null;
 let cachedRooms = [];
 
 function showOverlay(el) {
@@ -73,21 +70,9 @@ btnCreateCancel.addEventListener('click', () => {
   hideOverlay(createRoomOverlay);
 });
 
-modePickerBtns.forEach((btn) => {
-  btn.addEventListener('click', () => {
-    modePickerBtns.forEach((b) => b.classList.remove('active'));
-    btn.classList.add('active');
-    selectedMode = btn.dataset.mode;
-    modeError.textContent = '';
-  });
-});
-
 function resetCreateForm() {
   inputRoomName.value = '';
   roomNameError.textContent = '';
-  modeError.textContent = '';
-  selectedMode = null;
-  modePickerBtns.forEach((b) => b.classList.remove('active'));
   inputRoomName.style.borderColor = '';
   inputRoomId.value = '';
   roomIdError.textContent = '';
@@ -103,7 +88,6 @@ btnCreateRoom.addEventListener('click', () => {
   let valid = true;
 
   roomNameError.textContent = '';
-  modeError.textContent = '';
   inputRoomName.style.borderColor = '';
 
   if (!name) {
@@ -112,27 +96,21 @@ btnCreateRoom.addEventListener('click', () => {
     valid = false;
   }
 
-  if (!selectedMode) {
-    modeError.textContent = 'Pilih mode permainan!';
-    valid = false;
-  }
-
   if (!valid) return;
 
   btnCreateRoom.disabled = true;
   btnCreateRoom.textContent = '⏳ Membuat...';
 
-  generateUniqueRoomId('trial-error/24Card/battle/').then((roomId) => {
+  generateUniqueRoomId('trial-error/24Card/poker/').then((roomId) => {
     const now = Date.now();
 
-    db.ref('trial-error/24Card/battle/' + roomId).set({
+    db.ref('trial-error/24Card/poker/' + roomId).set({
       name: name,
-      mode: selectedMode,
       status: 'waiting',
       created: now,
       expired: now + 3600000
     }).then(() => {
-        window.location.href = 'battle-room.html?roomId=' + roomId;
+        window.location.href = 'poker-room.html?roomId=' + roomId;
       }).catch((err) => {
         console.error(err);
         alert('Gagal membuat room. Coba lagi.');
@@ -162,7 +140,7 @@ btnJoinRoom.addEventListener('click', () => {
   btnJoinRoom.disabled = true;
   btnJoinRoom.textContent = '⏳ Memeriksa...';
 
-  db.ref('trial-error/24Card/battle/' + roomId).once('value').then((snapshot) => {
+  db.ref('trial-error/24Card/poker/' + roomId).once('value').then((snapshot) => {
     const data = snapshot.val();
     if (!data) {
       roomIdError.textContent = 'Room tidak ditemukan!';
@@ -170,7 +148,7 @@ btnJoinRoom.addEventListener('click', () => {
       btnJoinRoom.disabled = false;
       btnJoinRoom.textContent = 'Gunakan Room';
     } else {
-      window.location.href = 'battle-room.html?roomId=' + roomId;
+      window.location.href = 'poker-room.html?roomId=' + roomId;
     }
   }).catch((err) => {
     console.error(err);
@@ -223,7 +201,7 @@ btnJoinMobile.addEventListener('click', () => {
   btnJoinMobile.disabled = true;
   btnJoinMobile.textContent = '⏳ Bergabung...';
 
-  db.ref('trial-error/24Card/battle/' + roomId).once('value').then((snapshot) => {
+  db.ref('trial-error/24Card/poker/' + roomId).once('value').then((snapshot) => {
     const data = snapshot.val();
     if (!data) {
       mobileError.textContent = 'Room tidak ditemukan!';
@@ -257,10 +235,10 @@ btnJoinMobile.addEventListener('click', () => {
       return;
     }
 
-    db.ref('trial-error/24Card/battle/' + roomId + '/players/' + name).set({
+    db.ref('trial-error/24Card/poker/' + roomId + '/players/' + name).set({
       status: 'unready'
     }).then(() => {
-      window.location.href = 'battle-lobby.html?roomId=' + roomId + '&name=' + encodeURIComponent(name);
+      window.location.href = 'poker-lobby.html?roomId=' + roomId + '&name=' + encodeURIComponent(name);
     }).catch((err) => {
       console.error(err);
       alert('Gagal bergabung. Coba lagi.');
@@ -299,7 +277,7 @@ function loadRoomList() {
   roomSearchInput.value = '';
   cachedRooms = [];
 
-  db.ref('trial-error/24Card/battle/').once('value').then((snapshot) => {
+  db.ref('trial-error/24Card/poker/').once('value').then((snapshot) => {
     const all = snapshot.val();
     if (!all) {
       roomListContainer.innerHTML = '<p class="room-list-empty">Belum ada room tersedia.</p>';
@@ -327,7 +305,7 @@ function loadRoomList() {
     });
 
     expiredRooms.forEach((roomId) => {
-      db.ref('trial-error/24Card/battle/' + roomId).remove().catch((err) => {
+      db.ref('trial-error/24Card/poker/' + roomId).remove().catch((err) => {
         console.error('Gagal hapus expired room ' + roomId, err);
       });
     });
@@ -386,7 +364,7 @@ function renderRoomList(filter) {
 
       hideOverlay(roomListOverlay);
 
-      const roomRef = db.ref('trial-error/24Card/battle/' + roomId);
+      const roomRef = db.ref('trial-error/24Card/poker/' + roomId);
       roomRef.once('value').then((snapshot) => {
         const data = snapshot.val();
         if (!data || data.status !== 'waiting') {
@@ -402,10 +380,10 @@ function renderRoomList(filter) {
           alert('Nama sudah dipakai di room ini!');
           return;
         }
-        db.ref('trial-error/24Card/battle/' + roomId + '/players/' + name).set({
+        db.ref('trial-error/24Card/poker/' + roomId + '/players/' + name).set({
           status: 'unready'
         }).then(() => {
-          window.location.href = 'battle-lobby.html?roomId=' + roomId + '&name=' + encodeURIComponent(name);
+          window.location.href = 'poker-lobby.html?roomId=' + roomId + '&name=' + encodeURIComponent(name);
         }).catch((err) => {
           console.error(err);
           alert('Gagal bergabung. Coba lagi.');

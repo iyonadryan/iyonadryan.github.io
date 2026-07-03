@@ -1,0 +1,95 @@
+.poker-screen {
+  max-width: 560px;
+}
+
+.poker-title {
+  color: #fff;
+  font-size: 2.2rem;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.poker-title-icon {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+}
+
+.poker-subtitle {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 1rem;
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.poker-options {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.poker-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 200px;
+  height: 240px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(171, 71, 188, 0.3);
+  border-radius: 20px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.poker-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #ab47bc;
+  transform: translateY(-8px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.poker-btn-icon {
+  font-size: 4.2rem;
+  line-height: 1;
+  margin-bottom: 16px;
+}
+
+.poker-btn-label {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.poker-btn-desc {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 500;
+  margin-top: 6px;
+}
+
+@media (max-width: 500px) {
+  .poker-btn {
+    width: 150px;
+    height: 180px;
+  }
+
+  .poker-btn-icon {
+    font-size: 3rem;
+  }
+
+  .poker-btn-label {
+    font-size: 1.1rem;
+  }
+
+  .poker-title {
+    font-size: 1.6rem;
+  }
+
+  .poker-options {
+    gap: 16px;
+  }
+}

@@ -25,15 +25,15 @@ if (!roomId || !playerName) {
   mobileRoomId.textContent = roomId;
   mobilePlayerName.textContent = playerName;
 
-  const playerRef = db.ref('trial-error/24Card/battle/' + roomId + '/players/' + playerName);
-  const roomRef = db.ref('trial-error/24Card/battle/' + roomId);
+  const playerRef = db.ref('trial-error/24Card/poker/' + roomId + '/players/' + playerName);
+  const roomRef = db.ref('trial-error/24Card/poker/' + roomId);
 
   // Listen for game start
   roomRef.on('value', (snapshot) => {
     const data = snapshot.val();
     if (!data) return;
     if (data.status === 'play') {
-      window.location.href = 'battle-mobile.html?roomId=' + roomId + '&name=' + encodeURIComponent(playerName);
+      window.location.href = 'poker-mobile.html?roomId=' + roomId + '&name=' + encodeURIComponent(playerName);
     }
   });
 

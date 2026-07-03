@@ -835,11 +835,48 @@ header h1 {
   border-color: #e64a19;
 }
 
+.menu-btn-poker {
+  border-width: 2px;
+  border-color: #ab47bc;
+}
+
+.menu-btn-poker:hover {
+  border-color: #8e24aa;
+}
+
+.menu-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 460px;
+  margin: 32px auto 24px;
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.menu-divider::before,
+.menu-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .menu-btn-num {
   font-size: 3.8rem;
   font-weight: 800;
   color: #fff;
   line-height: 1;
+  margin-bottom: 12px;
+}
+
+.menu-btn-icon-img {
+  width: 56px;
+  height: 56px;
   margin-bottom: 12px;
 }
 

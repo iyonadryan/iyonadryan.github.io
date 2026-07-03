@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PokerCard - Lobby</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style-battle-mobile.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📱</text></svg>">
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
+      authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
+      databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
+      projectId: "iyon-adryanlf-trialerror",
+      storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
+      messagingSenderId: "519669963248",
+      appId: "1:519669963248:web:feab50008d27c2a7226535",
+      measurementId: "G-4MFLB4B68F"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
+</head>
+<body>
+  <div class="container mobile-screen">
+    <div class="mobile-header">
+      <h1 class="mobile-title">🚪 Lobby <span id="mobilePlayerName" style="font-weight:400;font-size:1.2rem;display:block;margin-top:4px">-</span></h1>
+      <p class="mobile-room-info" id="mobileRoomInfo">Room #<span id="mobileRoomId">----</span></p>
+      <p class="mobile-status" id="mobileStatusDisplay">Status: <span id="mobileStatusText">-</span></p>
+    </div>
+
+    <div class="mobile-actions">
+      <button id="btnPetunjuk" class="mobile-btn mobile-btn-white">Petunjuk</button>
+      <button id="btnReady" class="mobile-btn mobile-btn-green">Ready</button>
+      <button id="btnLeave" class="mobile-btn mobile-btn-red">Leave Room</button>
+    </div>
+  </div>
+
+  <div id="leaveConfirmOverlay" class="overlay" style="display:none">
+    <div class="overlay-content">
+      <h2>🚪 Leave Room</h2>
+      <p style="color:rgba(255,255,255,0.8);margin-bottom:28px;line-height:1.6">Yakin mau keluar dari room ini?</p>
+      <div class="challenge-buttons">
+        <button id="btnLeaveCancel" class="btn btn-secondary">Batal</button>
+        <button id="btnLeaveConfirm" class="btn btn-challenge">🚪 Keluar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="petunjukOverlay" class="overlay" style="display:none">
+    <div class="overlay-content" style="max-height:80vh;overflow-y:auto">
+      <h2>📖 Petunjuk</h2>
+      <div class="battle-popup-rules" style="text-align:left;color:rgba(255,255,255,0.85);font-size:0.9rem;line-height:1.7">
+        <p style="margin-bottom:6px">📌 Setiap player memulai dengan <span style="color:#ffd54f;font-weight:700">5000 token</span> (default)</p>
+        <p style="margin-bottom:6px">📌 Maksimal <span style="color:#ffd54f;font-weight:700">6 player</span> per room, minimal <span style="color:#ffd54f;font-weight:700">2 player ready</span> untuk memulai</p>
+        <p style="margin-bottom:6px">📌 Aturan permainan Poker lengkap (giliran, taruhan, dsb) akan segera hadir!</p>
+        <p>📌 Have fun!</p>
+      </div>
+      <div class="challenge-buttons">
+        <button id="btnPetunjukOk" class="btn btn-primary">👍 Mengerti</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="poker-lobby.js"></script>
+</body>
+</html>
