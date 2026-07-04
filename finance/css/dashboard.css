@@ -172,7 +172,15 @@
 .stat-rows {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+}
+
+/* Garis pemisah antar kategori, biar jelas baris "dari rencana" (kalau ada)
+   itu masih bagian kategori di atasnya, bukan punya kategori berikutnya.
+   Kategori terakhir tidak perlu garis (sudah dibatasi tepi card). */
+.stat-row:not(:last-child) {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .stat-row-top {

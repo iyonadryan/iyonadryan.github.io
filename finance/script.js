@@ -614,9 +614,18 @@
         let budgetHtml = "";
         if (plan) {
           const budgetPct = Math.round((row.amount / plan.limit) * 100);
-          const cls = budgetPct >= 100 ? "over" : budgetPct >= 80 ? "warning" : "";
+          // Pas 100% = sudah mencapai batas (bukan "melebihi" — itu baru kalau
+          // beneran lewat, >100%).
+          const cls = budgetPct > 100 ? "over" : budgetPct >= 80 ? "warning" : "";
           const limitText = balanceVisible ? formatCurrency(plan.limit) : MASKED_AMOUNT;
-          const label = budgetPct >= 100 ? "Melebihi rencana" : budgetPct >= 80 ? "Mendekati batas rencana" : budgetPct + "% dari rencana";
+          const label =
+            budgetPct > 100
+              ? "Melebihi rencana"
+              : budgetPct === 100
+              ? "Sudah mencapai rencana"
+              : budgetPct >= 80
+              ? "Mendekati batas rencana"
+              : budgetPct + "% dari rencana";
           budgetHtml = '<span class="stat-row-budget ' + cls + '">' + label + " (" + limitText + ")</span>";
         }
 
