@@ -620,12 +620,12 @@
           const limitText = balanceVisible ? formatCurrency(plan.limit) : MASKED_AMOUNT;
           const label =
             budgetPct > 100
-              ? "Melebihi rencana"
+              ? "Melebihi rencana bulanan"
               : budgetPct === 100
-              ? "Sudah mencapai rencana"
+              ? "Mencapai target rencana bulanan"
               : budgetPct >= 80
-              ? "Mendekati batas rencana"
-              : budgetPct + "% dari rencana";
+              ? "Mendekati batas rencana bulanan"
+              : budgetPct + "% dari rencana bulanan";
           budgetHtml = '<span class="stat-row-budget ' + cls + '">' + label + " (" + limitText + ")</span>";
         }
 

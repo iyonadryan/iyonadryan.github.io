@@ -207,5 +207,11 @@
   flex-shrink: 0;
 }
 
+/* Samakan ukuran dgn .plan-amounts (nominal) di sebelah kiri — sebelumnya
+   tidak diatur sama sekali jadi ikut ukuran default (lebih besar). */
+.stat-row-budget {
+  font-size: 12px;
+}
+
 .stat-row-budget.warning { color: var(--color-warning); }
 .stat-row-budget.over { color: var(--color-expense); }
