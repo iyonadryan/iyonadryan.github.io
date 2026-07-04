@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PokerCard - Hasil Akhir</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style-battle.css">
+  <link rel="stylesheet" href="style-battle-result.css">
+  <link rel="icon" href="img/chip-poker-icon.png">
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
+      authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
+      databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
+      projectId: "iyon-adryanlf-trialerror",
+      storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
+      messagingSenderId: "519669963248",
+      appId: "1:519669963248:web:feab50008d27c2a7226535",
+      measurementId: "G-4MFLB4B68F"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🏆 Hasil PokerCard</h1>
+      <p class="subtitle">Room #<span id="resultRoomId" style="color:#ffd54f;font-weight:700"></span></p>
+    </header>
+    <div id="resultLoading" style="text-align:center;padding:60px 0">
+      <p style="color:#fff">⏳ Memuat hasil...</p>
+    </div>
+    <div id="resultContent" style="display:none">
+      <div class="podium" id="podiumContainer"></div>
+      <div class="scoreboard result-table-parent" style="margin-top:10px">
+        <table class="scoreboard-table result-table">
+          <thead>
+            <tr>
+              <th class="col-rank">Rank</th>
+              <th class="col-name">Name</th>
+              <th class="col-life">Token</th>
+            </tr>
+          </thead>
+          <tbody id="resultBody"></tbody>
+        </table>
+      </div>
+      <div style="text-align:center;margin-top:28px">
+        <a href="index.html" class="btn btn-challenge">← Kembali ke Menu</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="poker-result.js"></script>
+</body>
+</html>

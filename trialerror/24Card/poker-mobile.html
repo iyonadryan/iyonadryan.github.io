@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PokerCard - Main</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style-poker-mobile.css">
+  <link rel="icon" href="img/chip-poker-icon.png">
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
+      authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
+      databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
+      projectId: "iyon-adryanlf-trialerror",
+      storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
+      messagingSenderId: "519669963248",
+      appId: "1:519669963248:web:feab50008d27c2a7226535",
+      measurementId: "G-4MFLB4B68F"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
+</head>
+<body>
+  <div class="container poker-mobile-screen">
+    <div id="loadingScreen" class="poker-loading">
+      <img src="img/chip-poker-icon.png" alt="" class="poker-loading-icon">
+      <p>Memuat...</p>
+    </div>
+
+    <div id="gameContent" style="display:none">
+      <div class="poker-mobile-header">
+        <div class="poker-mobile-name" id="myName">-</div>
+        <div class="poker-mobile-token">💰 <span id="myToken">0</span></div>
+      </div>
+
+      <div class="poker-mobile-status" id="statusText">Menunggu...</div>
+
+      <div class="poker-mobile-community" id="mobileCommunity"></div>
+      <div class="poker-mobile-pot">Pot: <span id="mobilePot">0</span> &nbsp;|&nbsp; To Call: <span id="mobileToCall">0</span></div>
+
+      <div class="poker-mobile-holecards">
+        <div class="poker-holecards-row" id="holeCardsRow"></div>
+        <button id="btnToggleCards" class="btn btn-secondary">👁 Lihat Kartu</button>
+      </div>
+
+      <div id="turnBanner" class="poker-turn-banner" style="display:none">🎯 Giliran kamu!</div>
+
+      <div id="actionButtons" class="poker-action-buttons" style="display:none">
+        <div class="poker-bet-input-row">
+          <button id="btnBetMinus" class="poker-bet-step">-</button>
+          <input type="number" id="betAmountInput" class="poker-bet-input">
+          <button id="btnBetPlus" class="poker-bet-step">+</button>
+        </div>
+        <div class="poker-action-grid">
+          <button id="btnFold" class="poker-action-btn poker-action-fold">Fold</button>
+          <button id="btnCheckCall" class="poker-action-btn poker-action-call">Check</button>
+          <button id="btnBetRaise" class="poker-action-btn poker-action-raise">Bet</button>
+          <button id="btnAllIn" class="poker-action-btn poker-action-allin">All In</button>
+        </div>
+      </div>
+
+      <div id="foldedBanner" class="poker-folded-banner" style="display:none">🚫 Kamu Fold ronde ini</div>
+      <div id="showdownBanner" class="poker-showdown-banner" style="display:none"></div>
+    </div>
+
+    <div id="finishedOverlay" style="display:none;text-align:center;padding:40px 0">
+      <div style="font-size:3rem;margin-bottom:12px" id="finishedEmoji">🏁</div>
+      <h2 style="color:#fff;margin-bottom:8px">Permainan Selesai</h2>
+      <p style="color:#ffd54f;font-weight:700;font-size:1.1rem" id="finishedResult"></p>
+      <a href="index.html" class="btn btn-challenge" style="margin-top:24px;display:inline-block">← Kembali ke Menu</a>
+    </div>
+  </div>
+
+  <script src="poker-rule.js"></script>
+  <script src="poker-mobile.js"></script>
+</body>
+</html>

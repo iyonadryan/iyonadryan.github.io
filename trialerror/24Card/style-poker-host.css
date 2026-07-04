@@ -1,0 +1,265 @@
+.poker-host-screen {
+  max-width: 720px;
+}
+
+@keyframes pokerChipBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-18px); }
+}
+
+.poker-loading {
+  text-align: center;
+  padding: 80px 0;
+}
+
+.poker-loading-icon {
+  width: 64px;
+  height: 64px;
+  animation: pokerChipBounce 0.8s ease-in-out infinite;
+}
+
+.poker-loading p {
+  margin-top: 16px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.poker-host-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.poker-room-id {
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-weight: 800;
+  color: #ffd54f;
+}
+
+.poker-pot {
+  font-weight: 700;
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+.poker-stage {
+  padding: 4px 14px;
+  background: linear-gradient(135deg, #ab47bc, #8e24aa);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.poker-community {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.poker-community-slot {
+  width: 84px;
+  height: 118px;
+  border-radius: 8px;
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.poker-community-card {
+  width: 84px;
+  height: 118px;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.poker-players-table {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.poker-seat {
+  position: relative;
+  width: 140px;
+  padding: 12px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  text-align: center;
+  transition: all 0.25s ease;
+}
+
+.poker-seat-turn {
+  border-color: #ffd54f;
+  box-shadow: 0 0 20px rgba(255, 213, 79, 0.3);
+}
+
+.poker-seat-folded {
+  opacity: 0.4;
+}
+
+.poker-seat-out {
+  opacity: 0.25;
+}
+
+.poker-seat-tags {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  gap: 4px;
+}
+
+.poker-tag {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 0.65rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.poker-tag-dealer {
+  background: #fff;
+  color: #000;
+}
+
+.poker-tag-sb {
+  background: #42a5f5;
+}
+
+.poker-tag-bb {
+  background: #ef5350;
+}
+
+.poker-seat-name {
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+  margin-top: 12px;
+  word-break: break-word;
+}
+
+.poker-seat-token {
+  font-size: 0.8rem;
+  color: #ffd54f;
+  font-weight: 700;
+}
+
+.poker-seat-bet {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 2px;
+}
+
+.poker-seat-badge {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.poker-badge-allin {
+  background: rgba(255, 213, 79, 0.2);
+  color: #ffd54f;
+}
+
+.poker-badge-folded {
+  background: rgba(229, 115, 115, 0.2);
+  color: #e57373;
+}
+
+.poker-seat-action {
+  margin-top: 6px;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+.poker-seat-cards {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.poker-seat-card {
+  width: 48px;
+  border-radius: 5px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.poker-host-controls {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.poker-host-controls .btn-cancel {
+  width: auto;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  background: linear-gradient(135deg, #e53935, #b71c1c);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(183, 28, 28, 0.4);
+}
+
+.poker-host-controls .btn-cancel:hover {
+  box-shadow: 0 6px 25px rgba(183, 28, 28, 0.6);
+  transform: translateY(-2px);
+}
+
+.poker-winner-banner {
+  text-align: center;
+  padding: 14px;
+  margin-bottom: 12px;
+  background: rgba(255, 213, 79, 0.1);
+  border: 2px solid rgba(255, 213, 79, 0.3);
+  border-radius: 14px;
+  color: #ffd54f;
+  font-weight: 700;
+}
+
+.poker-gameover-banner {
+  text-align: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #ab47bc, #8e24aa);
+  border-radius: 16px;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.2rem;
+}
+
+@media (max-width: 500px) {
+  .poker-seat {
+    width: 125px;
+  }
+
+  .poker-community-slot,
+  .poker-community-card {
+    width: 56px;
+    height: 78px;
+  }
+
+  .poker-seat-card {
+    width: 38px;
+  }
+}

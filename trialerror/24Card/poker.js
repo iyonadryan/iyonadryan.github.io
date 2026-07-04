@@ -38,6 +38,7 @@ function hideOverlay(el) {
 }
 
 // Info Mode
+renderHandRankPreview();
 btnInfoMode.addEventListener('click', () => {
   showOverlay(infoOverlay);
 });

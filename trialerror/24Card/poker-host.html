@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PokerCard - Meja</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style-poker-host.css">
+  <link rel="icon" href="img/chip-poker-icon.png">
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
+      authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
+      databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
+      projectId: "iyon-adryanlf-trialerror",
+      storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
+      messagingSenderId: "519669963248",
+      appId: "1:519669963248:web:feab50008d27c2a7226535",
+      measurementId: "G-4MFLB4B68F"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
+</head>
+<body>
+  <a href="index.html" class="btn-back-menu" title="Kembali ke menu">← Menu</a>
+
+  <div class="container poker-host-screen">
+    <div id="loadingScreen" class="poker-loading">
+      <img src="img/chip-poker-icon.png" alt="" class="poker-loading-icon">
+      <p>Memuat meja...</p>
+    </div>
+
+    <div id="tableContent" style="display:none">
+      <div class="poker-host-header">
+        <div class="poker-room-id">#<span id="hostRoomId">----</span></div>
+        <div class="poker-pot">💰 Pot: <span id="potDisplay">0</span></div>
+        <div class="poker-stage" id="stageDisplay">-</div>
+      </div>
+
+      <div class="poker-community" id="communityCards"></div>
+
+      <div class="poker-players-table" id="playersTable"></div>
+
+      <div class="poker-host-controls">
+        <button id="btnStartGame" class="btn btn-primary btn-start" style="display:none">🎲 Mulai Permainan</button>
+        <button id="btnNextRound" class="btn btn-primary btn-start" style="display:none">➡️ Ronde Berikutnya</button>
+        <button id="btnViewResult" class="btn btn-primary btn-start" style="display:none">🏆 Lihat Hasil Akhir</button>
+        <button id="btnEndGame" class="btn btn-cancel" style="display:none;margin-top:10px">🏁 Selesaikan Permainan</button>
+      </div>
+
+      <div id="winnerBanner" class="poker-winner-banner" style="display:none"></div>
+      <div id="gameOverBanner" class="poker-gameover-banner" style="display:none"></div>
+    </div>
+  </div>
+
+  <div id="endGameConfirmOverlay" class="overlay" style="display:none">
+    <div class="overlay-content">
+      <h2>🏁 Selesaikan Permainan</h2>
+      <p style="color:rgba(255,255,255,0.8);margin-bottom:28px;line-height:1.6">Yakin ingin mengakhiri permainan sekarang?<br>Hasil akhir akan dihitung berdasarkan token saat ini.</p>
+      <div class="challenge-buttons">
+        <button id="btnEndGameCancel" class="btn btn-secondary">Batal</button>
+        <button id="btnEndGameConfirm" class="btn btn-challenge">🏁 Selesaikan</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="poker-rule.js"></script>
+  <script src="poker-host.js"></script>
+</body>
+</html>

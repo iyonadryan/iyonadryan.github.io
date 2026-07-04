@@ -49,14 +49,33 @@
   </div>
 
   <div id="infoOverlay" class="overlay" style="display:none">
-    <div class="overlay-content">
+    <div class="overlay-content overlay-content-wide" style="max-height:80vh;overflow-y:auto">
       <h2>🃏 Mode Poker</h2>
-      <div class="battle-popup-rules">
-        <p>Selamat datang di <strong>Mode Poker</strong>!</p>
-        <p>📌 Diperlukan <span class="rule-highlight">1 Host</span> untuk menampilkan meja utama di layar.</p>
-        <p>📌 Setiap <span class="rule-highlight">player</span> diusahakan menggunakan <span class="rule-highlight">HP</span> untuk bergabung dan bermain, maksimal <span class="rule-highlight">6 player</span>.</p>
-        <p>📌 Setiap player memulai dengan <span class="rule-highlight">5000 token</span>.</p>
-        <p>📌 Aturan permainan lengkap akan segera hadir, stay tuned!</p>
+      <div class="battle-popup-rules" style="text-align:left;color:rgba(255,255,255,0.85);font-size:0.9rem;line-height:1.7">
+        <p style="margin-bottom:6px">📌 Diperlukan <span style="color:#ffd54f;font-weight:700">1 Host</span> untuk menampilkan meja utama di layar.</p>
+        <p style="margin-bottom:6px">📌 Setiap <span style="color:#ffd54f;font-weight:700">player</span> diusahakan menggunakan <span style="color:#ffd54f;font-weight:700">HP</span> untuk bergabung dan bermain, maksimal <span style="color:#ffd54f;font-weight:700">6 player</span>.</p>
+        <p style="margin-bottom:14px">📌 Mode: <span style="color:#ffd54f;font-weight:700">Texas Hold'em</span> — 2 kartu privat (hole card) + 5 kartu bersama (community card), setiap player memulai dengan <span style="color:#ffd54f;font-weight:700">5000 token</span></p>
+        <p style="margin-bottom:10px;font-weight:700;color:#fff">🃏 Urutan Kombinasi Kartu (rendah → tinggi):</p>
+        <div id="handRankPreview"></div>
+        <p style="margin:18px 0 8px;font-weight:700;color:#fff">♠♥♦♣ Urutan Simbol/Suit (rendah → tinggi):</p>
+        <p style="margin:0 0 6px;display:flex;align-items:center;gap:8px;font-size:0.95rem;flex-wrap:wrap">
+          <span style="color:rgba(255,255,255,0.55)">♣ Keriting</span>
+          <span style="color:rgba(255,255,255,0.25)">&lt;</span>
+          <span style="color:#ef9a9a">♦ Wajik</span>
+          <span style="color:rgba(255,255,255,0.25)">&lt;</span>
+          <span style="color:#ef5350">♥ Hati</span>
+          <span style="color:rgba(255,255,255,0.25)">&lt;</span>
+          <span style="color:#ffd54f">♠ Sekop</span>
+        </p>
+        <p style="margin-bottom:14px;color:rgba(255,255,255,0.5);font-size:0.78rem">Dipakai kalau 2 player dapat kombinasi & nilai yang IDENTIK (mis. sama-sama Two Pair Q & 7) — pemenang ditentukan dari kartu tertinggi dengan simbol tertinggi. Poker resmi sebenarnya seri/bagi pot rata di kasus ini, tapi di mode ini sengaja selalu ada 1 pemenang.</p>
+        <p style="margin:18px 0 10px;font-weight:700;color:#fff">🎯 Arti Tombol Aksi Taruhan:</p>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:6px">
+          <p style="margin:0"><span style="display:inline-block;width:70px;padding:2px 8px;border-radius:6px;background:linear-gradient(135deg,#e53935,#b71c1c);color:#fff;font-weight:700;font-size:0.75rem;text-align:center">Fold</span> Menyerah di ronde ini. Kartu dibuang, chip yang sudah dipasang hangus, tidak bisa menang pot ronde ini.</p>
+          <p style="margin:0"><span style="display:inline-block;width:70px;padding:2px 8px;border-radius:6px;background:linear-gradient(135deg,#43a047,#2e7d32);color:#fff;font-weight:700;font-size:0.75rem;text-align:center">Check/Call</span> <strong>Check</strong>: lanjut tanpa nambah taruhan (cuma bisa kalau belum ada yang bertaruh). <strong>Call</strong>: menyamakan taruhan yang sudah dipasang lawan.</p>
+          <p style="margin:0"><span style="display:inline-block;width:70px;padding:2px 8px;border-radius:6px;background:linear-gradient(135deg,#1e88e5,#1565c0);color:#fff;font-weight:700;font-size:0.75rem;text-align:center">Bet/Raise</span> <strong>Bet</strong>: pasang taruhan pertama di ronde ini. <strong>Raise</strong>: naikkan taruhan melebihi taruhan lawan, minimal sebesar kenaikan sebelumnya.</p>
+          <p style="margin:0"><span style="display:inline-block;width:70px;padding:2px 8px;border-radius:6px;background:linear-gradient(135deg,#ffa726,#ef6c00);color:#fff;font-weight:700;font-size:0.75rem;text-align:center">All In</span> Pasang seluruh token yang tersisa sekaligus.</p>
+        </div>
+        <p style="margin-top:14px">📌 Have fun!</p>
       </div>
       <div class="challenge-buttons">
         <button id="btnInfoOk" class="btn btn-challenge">👍 Mengerti</button>
@@ -127,6 +146,7 @@
     </div>
   </div>
 
+  <script src="poker-rule.js"></script>
   <script src="poker.js"></script>
 </body>
 </html>

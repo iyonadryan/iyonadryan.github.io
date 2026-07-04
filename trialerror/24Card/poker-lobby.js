@@ -38,6 +38,7 @@ if (!roomId || !playerName) {
   });
 
   // Petunjuk
+  renderHandRankPreview();
   btnPetunjuk.addEventListener('click', () => {
     showOverlay(petunjukOverlay);
   });
