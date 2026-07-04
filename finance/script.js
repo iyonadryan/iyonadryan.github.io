@@ -94,6 +94,17 @@
   // Kategori khusus (hanya untuk Rencana): budget gabungan seluruh pengeluaran.
   const ALL_CATEGORY = { id: "semua", label: "Semua", icon: "💰💵🪙" };
 
+  // Sentinel utk filter transaksi: mewakili kategori yang sudah dihapus
+  // (transaksi lama masih nyimpen id lama itu sbg string, tapi kategorinya
+  // sendiri sudah tidak ada di CATEGORIES). Diberi underscore ganda supaya
+  // tidak pernah bentrok dgn id kategori asli (slugifyCategoryId membuang
+  // karakter selain a-z0-9-).
+  const UNKNOWN_CATEGORY_ID = "__unknown__";
+
+  function categoryExists(type, id) {
+    return CATEGORIES[type].some((c) => c.id === id);
+  }
+
   /* ================= Firebase data layer ================= */
 
   const financeRef = db.ref(FINANCE_PATH);
@@ -313,11 +324,29 @@
     return db.ref(FINANCE_PATH + "/plans/" + period + "/" + category).remove();
   }
 
+  // Simpan (create/update) satu kategori. Menimpa seluruh node per id —
+  // id tidak pernah berubah (dikunci saat edit), jadi aman .set().
+  function saveCategory(type, data) {
+    return db.ref(FINANCE_PATH + "/categories/" + type + "/" + data.id).set({
+      id: data.id,
+      label: data.label,
+      icon: data.icon,
+      colorSlot: data.colorSlot,
+    });
+  }
+
+  function deleteCategory(type, id) {
+    return db.ref(FINANCE_PATH + "/categories/" + type + "/" + id).remove();
+  }
+
   function renderAll() {
     renderDashboard();
     renderAllTransactions();
     renderPlans();
     updateMonthNavButtons();
+    // Popup Kategori dirender saat dibuka; kalau sedang terbuka ketika data
+    // berubah (habis create/edit/delete), render ulang isinya juga.
+    if (categoriesModal.classList.contains("open")) renderCategoriesModal();
   }
 
   // Batasi geser bulan (Dashboard & Transaksi berbagi viewDate yang sama) ke
@@ -626,7 +655,11 @@
       list = list.filter((t) => t.type === currentFilter);
     }
     if (selectedCategories.length > 0) {
-      list = list.filter((t) => selectedCategories.includes(t.category));
+      list = list.filter(
+        (t) =>
+          selectedCategories.includes(t.category) ||
+          (selectedCategories.includes(UNKNOWN_CATEGORY_ID) && !categoryExists(t.type, t.category))
+      );
     }
     // Filter rentang tanggal (dalam bulan aktif). "YYYY-MM-DD" bisa dibanding string.
     if (filterStartDate) {
@@ -1011,6 +1044,25 @@
       list.appendChild(div);
     });
 
+    // Kalau ada transaksi (sesuai tab tipe aktif) yang kategorinya sudah
+    // dihapus, tambahkan opsi "Kategori Terhapus" di paling bawah supaya
+    // transaksi itu masih bisa dicari/difilter.
+    const hasUnknown = transactions.some(
+      (t) => (currentFilter === "all" || t.type === currentFilter) && !categoryExists(t.type, t.category)
+    );
+    if (hasUnknown) {
+      const div = document.createElement("div");
+      div.className = "filter-category-item";
+      const checked = selectedCategories.includes(UNKNOWN_CATEGORY_ID) ? "checked" : "";
+      div.innerHTML = `
+        <label>
+          <input type="checkbox" value="${UNKNOWN_CATEGORY_ID}" ${checked}>
+          <span>❓ Kategori Terhapus</span>
+        </label>
+      `;
+      list.appendChild(div);
+    }
+
     // Rentang tanggal = pilihan hari dalam bulan aktif, prefill dari state.
     fillDaySelect(document.getElementById("filterStartInput"), dayOf(filterStartDate));
     fillDaySelect(document.getElementById("filterEndInput"), dayOf(filterEndDate));
@@ -1196,10 +1248,12 @@
   const confirmText = document.getElementById("confirmText");
   let pendingDeleteTx = null;
   let pendingDeletePlan = null;
+  let pendingDeleteCategory = null; // { type, cat }
 
   function openDeleteConfirm(tx) {
     pendingDeleteTx = tx;
     pendingDeletePlan = null;
+    pendingDeleteCategory = null;
     confirmTitle.textContent = "Hapus Transaksi?";
     confirmText.textContent = "Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.";
     confirmModal.classList.add("open");
@@ -1208,8 +1262,19 @@
   function openDeletePlanConfirm(plan) {
     pendingDeletePlan = plan;
     pendingDeleteTx = null;
+    pendingDeleteCategory = null;
     confirmTitle.textContent = "Hapus Rencana?";
     confirmText.textContent = "Apakah Anda yakin ingin menghapus rencana anggaran untuk kategori ini?";
+    confirmModal.classList.add("open");
+  }
+
+  function openDeleteCategoryConfirm(type, cat) {
+    pendingDeleteCategory = { type, cat };
+    pendingDeleteTx = null;
+    pendingDeletePlan = null;
+    confirmTitle.textContent = "Hapus Kategori?";
+    confirmText.textContent =
+      'Apakah Anda yakin ingin menghapus kategori "' + cat.label + '"? Transaksi lama dengan kategori ini tetap tersimpan tapi tampil tanpa nama kategori.';
     confirmModal.classList.add("open");
   }
 
@@ -1217,6 +1282,7 @@
     confirmModal.classList.remove("open");
     pendingDeleteTx = null;
     pendingDeletePlan = null;
+    pendingDeleteCategory = null;
   }
 
   document.getElementById("cancelDeleteBtn").addEventListener("click", closeDeleteConfirm);
@@ -1231,6 +1297,11 @@
       deletePlan(pendingDeletePlan.period, pendingDeletePlan.category).catch((err) => {
         console.error("Gagal menghapus rencana:", err);
         alert("Gagal menghapus rencana. Cek koneksi internet.");
+      });
+    } else if (pendingDeleteCategory) {
+      deleteCategory(pendingDeleteCategory.type, pendingDeleteCategory.cat.id).catch((err) => {
+        console.error("Gagal menghapus kategori:", err);
+        alert("Gagal menghapus kategori. Cek koneksi internet.");
       });
     }
     closeDeleteConfirm();
@@ -1407,10 +1478,27 @@
 
   const categoriesModal = document.getElementById("categoriesModal");
 
+  // Kategori bawaan "Lainnya" (id tetap "lainnya-keluar"/"lainnya-masuk" dari
+  // DEFAULT_CATEGORIES, labelnya bebas diubah user mis. jadi "Lainnya
+  // (Pengeluaran)") — dicek by id, bukan label, supaya tidak lepas kalau
+  // labelnya di-custom. Sengaja tidak boleh di-edit/dihapus dari popup ini.
+  function isLainnyaCategory(cat) {
+    return cat.id === "lainnya-keluar" || cat.id === "lainnya-masuk";
+  }
+
   // Satu baris kategori: swatch warna (dari colorSlot kategori itu sendiri,
-  // expense & income sama-sama punya) + ikon + label + id.
-  function categoryRowHtml(cat) {
+  // expense & income sama-sama punya) + ikon + label + id + tombol edit/hapus
+  // (disembunyikan khusus utk kategori "Lainnya").
+  function categoryRowHtml(type, cat) {
     const slot = Number(cat.colorSlot) || 1;
+    const actions = isLainnyaCategory(cat)
+      ? ""
+      : `
+        <div class="category-actions">
+          <button class="cat-btn cat-edit" data-type="${type}" data-id="${escapeHtml(cat.id)}" aria-label="Edit">✏️</button>
+          <button class="cat-btn cat-delete" data-type="${type}" data-id="${escapeHtml(cat.id)}" aria-label="Hapus">🗑️</button>
+        </div>
+      `;
     return `
       <div class="category-row">
         <span class="category-swatch" style="background:var(--series-${slot})"></span>
@@ -1419,15 +1507,48 @@
           <p class="category-row-label">${escapeHtml(cat.label)}</p>
           <p class="category-row-id">${escapeHtml(cat.id)}</p>
         </div>
+        ${actions}
       </div>
     `;
   }
 
+  // Urutan tampil popup Kategori: A-Z by label, biar gampang dicari user
+  // saat scroll — kecuali label "Lainnya" selalu didorong ke paling akhir.
+  // (Tidak mengubah urutan CATEGORIES sendiri — itu tetap by colorSlot,
+  // dipakai dropdown/statistik supaya warna & urutan tampil di sana stabil.)
+  function sortCategoriesForModal(list) {
+    return list.slice().sort((a, b) => {
+      const aLast = isLainnyaCategory(a);
+      const bLast = isLainnyaCategory(b);
+      if (aLast !== bLast) return aLast ? 1 : -1;
+      return a.label.localeCompare(b.label, "id");
+    });
+  }
+
+  function renderCategoriesModal() {
+    document.getElementById("categoriesExpenseList").innerHTML = sortCategoriesForModal(CATEGORIES.expense)
+      .map((cat) => categoryRowHtml("expense", cat))
+      .join("");
+    document.getElementById("categoriesIncomeList").innerHTML = sortCategoriesForModal(CATEGORIES.income)
+      .map((cat) => categoryRowHtml("income", cat))
+      .join("");
+
+    categoriesModal.querySelectorAll(".cat-edit").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const cat = CATEGORIES[btn.dataset.type].find((c) => c.id === btn.dataset.id);
+        if (cat) openEditCategoryModal(btn.dataset.type, cat);
+      });
+    });
+    categoriesModal.querySelectorAll(".cat-delete").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const cat = CATEGORIES[btn.dataset.type].find((c) => c.id === btn.dataset.id);
+        if (cat) openDeleteCategoryConfirm(btn.dataset.type, cat);
+      });
+    });
+  }
+
   function openCategoriesModal() {
-    document.getElementById("categoriesExpenseList").innerHTML =
-      CATEGORIES.expense.map((cat) => categoryRowHtml(cat)).join("");
-    document.getElementById("categoriesIncomeList").innerHTML =
-      CATEGORIES.income.map((cat) => categoryRowHtml(cat)).join("");
+    renderCategoriesModal();
     categoriesModal.classList.add("open");
   }
 
@@ -1439,6 +1560,140 @@
   document.getElementById("cancelCategoriesBtn").addEventListener("click", closeCategoriesModal);
   categoriesModal.addEventListener("click", (e) => {
     if (e.target === categoriesModal) closeCategoriesModal();
+  });
+
+  /* ================= Category form modal (create/edit) ================= */
+
+  const SERIES_SLOT_COUNT = 10; // jumlah slot warna --series-1..10 di css/base.css
+
+  const categoryModal = document.getElementById("categoryModal");
+  const categoryForm = document.getElementById("categoryForm");
+  const categoryIdInput = document.getElementById("categoryIdInput");
+  const categoryLabelInput = document.getElementById("categoryLabelInput");
+  const categoryIconInput = document.getElementById("categoryIconInput");
+  const categorySlotPicker = document.getElementById("categorySlotPicker");
+
+  let editingCategory = null;  // { type, cat } saat edit; null saat create
+  let categoryFormType = "expense"; // tipe kategori yang sedang dibuat/diedit
+  let selectedSlot = 1;
+
+  // Bentuk id dari label: lowercase, spasi → "-", buang selain huruf/angka/-.
+  function slugifyCategoryId(label) {
+    return String(label)
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+  }
+
+  // Id sudah dipakai kategori lain di tipe ini, atau bentrok id reserved
+  // "semua" milik ALL_CATEGORY?
+  function isCategoryIdTaken(type, id) {
+    return id === ALL_CATEGORY.id || CATEGORIES[type].some((c) => c.id === id);
+  }
+
+  // Ambil grapheme pertama — emoji bisa terdiri dari beberapa code unit
+  // (ZWJ/varian), jadi tidak bisa pakai maxlength/slice biasa.
+  function firstGrapheme(str) {
+    const s = String(str).trim();
+    if (!s) return "";
+    if (typeof Intl !== "undefined" && Intl.Segmenter) {
+      const it = new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(s)[Symbol.iterator]();
+      const first = it.next();
+      return first.done ? "" : first.value.segment;
+    }
+    return Array.from(s)[0] || ""; // fallback: per code point
+  }
+
+  function renderSlotPicker() {
+    categorySlotPicker.innerHTML = "";
+    for (let slot = 1; slot <= SERIES_SLOT_COUNT; slot++) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "slot-option" + (slot === selectedSlot ? " selected" : "");
+      btn.style.background = "var(--series-" + slot + ")";
+      btn.setAttribute("aria-label", "Warna " + slot);
+      btn.addEventListener("click", () => {
+        selectedSlot = slot;
+        categorySlotPicker.querySelectorAll(".slot-option").forEach((o, i) => o.classList.toggle("selected", i + 1 === slot));
+      });
+      categorySlotPicker.appendChild(btn);
+    }
+  }
+
+  function openCreateCategoryModal(type) {
+    editingCategory = null;
+    categoryFormType = type;
+    document.getElementById("categoryModalTitle").textContent =
+      "Tambah Kategori " + (type === "expense" ? "Pengeluaran" : "Pemasukan");
+    categoryForm.reset();
+    categoryIdInput.disabled = false; // id bebas diisi manual saat create
+    categoryIdInput.value = "";
+    selectedSlot = 1;
+    renderSlotPicker();
+    categoryModal.classList.add("open");
+  }
+
+  function openEditCategoryModal(type, cat) {
+    editingCategory = { type, cat };
+    categoryFormType = type;
+    document.getElementById("categoryModalTitle").textContent = "Edit Kategori";
+    categoryForm.reset();
+    categoryIdInput.disabled = true; // id dikunci saat edit
+    categoryIdInput.value = cat.id;
+    categoryLabelInput.value = cat.label;
+    categoryIconInput.value = cat.icon;
+    selectedSlot = Number(cat.colorSlot) || 1;
+    renderSlotPicker();
+    categoryModal.classList.add("open");
+  }
+
+  function closeCategoryModal() {
+    categoryModal.classList.remove("open");
+    editingCategory = null;
+  }
+
+  // Icon dibatasi 1 grapheme, dipangkas realtime saat mengetik/paste.
+  categoryIconInput.addEventListener("input", () => {
+    const g = firstGrapheme(categoryIconInput.value);
+    if (categoryIconInput.value !== g) categoryIconInput.value = g;
+  });
+
+  categoryForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const label = categoryLabelInput.value.trim();
+    const icon = firstGrapheme(categoryIconInput.value);
+    if (!label || !icon) return;
+
+    let id;
+    if (editingCategory) {
+      id = editingCategory.cat.id; // id lama, tidak pernah ikut form
+    } else {
+      id = slugifyCategoryId(categoryIdInput.value);
+      if (!id) {
+        alert("ID kategori tidak boleh kosong.");
+        return;
+      }
+      if (isCategoryIdTaken(categoryFormType, id)) {
+        alert('ID "' + id + '" sudah dipakai, pilih ID lain.');
+        return;
+      }
+    }
+
+    saveCategory(categoryFormType, { id, label, icon, colorSlot: selectedSlot }).catch((err) => {
+      console.error("Gagal menyimpan kategori:", err);
+      alert("Gagal menyimpan kategori. Cek koneksi internet.");
+    });
+    closeCategoryModal();
+  });
+
+  document.getElementById("addExpenseCategoryBtn").addEventListener("click", () => openCreateCategoryModal("expense"));
+  document.getElementById("addIncomeCategoryBtn").addEventListener("click", () => openCreateCategoryModal("income"));
+  document.getElementById("cancelCategoryBtn").addEventListener("click", closeCategoryModal);
+  categoryModal.addEventListener("click", (e) => {
+    if (e.target === categoryModal) closeCategoryModal();
   });
 
   /* ================= Export Excel ================= */

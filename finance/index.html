@@ -434,13 +434,50 @@
 
       <p class="filter-section-label">Pengeluaran</p>
       <div id="categoriesExpenseList" class="category-list"></div>
+      <button type="button" class="category-add-btn btn-invert" id="addExpenseCategoryBtn">+ Buat Kategori Baru</button>
 
       <p class="filter-section-label">Pemasukan</p>
       <div id="categoriesIncomeList" class="category-list"></div>
+      <button type="button" class="category-add-btn btn-invert" id="addIncomeCategoryBtn">+ Buat Kategori Baru</button>
 
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="cancelCategoriesBtn">Tutup</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: TAMBAH/EDIT KATEGORI ===================== -->
+  <div id="categoryModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h3 id="categoryModalTitle">Tambah Kategori</h3>
+
+      <form id="categoryForm">
+        <label class="field">
+          <span>ID</span>
+          <input type="text" id="categoryIdInput" placeholder="mis. kopi" required autocomplete="off">
+        </label>
+
+        <label class="field">
+          <span>Label (Yang ditampilkan)</span>
+          <input type="text" id="categoryLabelInput" placeholder="mis. Kopi" required autocomplete="off">
+        </label>
+
+        <label class="field">
+          <span>Icon (1 karakter / emoji)</span>
+          <input type="text" id="categoryIconInput" placeholder="mis. ☕" required autocomplete="off">
+        </label>
+
+        <div class="field">
+          <span>Warna</span>
+          <div id="categorySlotPicker" class="slot-picker"></div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="cancelCategoryBtn">Batal</button>
+          <button type="submit" class="btn-primary">Simpan</button>
+        </div>
+      </form>
     </div>
   </div>
 

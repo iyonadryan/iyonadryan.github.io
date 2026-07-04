@@ -364,6 +364,14 @@
   cursor: not-allowed;
 }
 
+/* Sama utk field teks yang dikunci (mis. ID kategori saat edit). */
+.field input[type="text"]:disabled {
+  opacity: 1;
+  color: var(--color-text);
+  -webkit-text-fill-color: var(--color-text);
+  cursor: not-allowed;
+}
+
 .type-toggle.locked .type-btn {
   cursor: not-allowed;
 }
@@ -383,6 +391,9 @@
 .confirm-overlay {
   align-items: center;
   padding: 24px;
+  /* Di atas bottom-sheet (z-index 30) — konfirmasi hapus kategori dibuka
+     ketika popup Kategori masih terbuka di belakangnya. */
+  z-index: 40;
 }
 
 .confirm-dialog {

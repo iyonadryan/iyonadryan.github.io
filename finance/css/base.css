@@ -47,9 +47,9 @@
   --color-warning: #f59e0b;
   --color-warning-bg: #fef3e2;
 
-  /* Kategorikal (statistik kategori pengeluaran di Dashboard) — urutan tetap
-     mengikuti index CATEGORIES.expense di script.js, tervalidasi lewat
-     dataviz skill (validate_palette.js) terhadap surface #ffffff. */
+  /* Kategorikal (warna kategori: statistik Dashboard + picker CRUD kategori)
+     — dipetakan dari field colorSlot tiap kategori, tervalidasi lewat dataviz
+     skill (validate_palette.js) terhadap surface #ffffff. 10 slot. */
   --series-1: #2a78d6;
   --series-2: #1baf7a;
   --series-3: #eda100;
@@ -58,6 +58,8 @@
   --series-6: #e34948;
   --series-7: #e87ba4;
   --series-8: #eb6834;
+  --series-9: #0891b2;
+  --series-10: #9c5220;
 
   /* Shadows */
   --shadow-card: 0 8px 24px rgba(28, 29, 38, 0.08);
@@ -106,7 +108,7 @@
   --color-warning: #fbbf24;
   --color-warning-bg: rgba(251, 191, 36, 0.14);
 
-  /* Kategorikal — sama 8 hue, langkah untuk surface gelap (#1e1e2a). */
+  /* Kategorikal — sama 10 hue, langkah untuk surface gelap (#1e1e2a). */
   --series-1: #3987e5;
   --series-2: #199e70;
   --series-3: #c98500;
@@ -115,6 +117,8 @@
   --series-6: #e66767;
   --series-7: #d55181;
   --series-8: #d95926;
+  --series-9: #0e9db8;
+  --series-10: #b06a3e;
 
   /* Shadows */
   --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
