@@ -37,6 +37,20 @@
   align-items: flex-start;
 }
 
+/* Tombol "Ganti" pengguna — icon-btn bulat, tapi isinya foto user aktif
+   (bukan emoji generik) supaya langsung kelihatan siapa yang lagi dipakai. */
+.user-switch-btn {
+  padding: 0;
+  overflow: hidden;
+}
+
+.user-switch-btn img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 /* ---------- Export options (modal download) ---------- */
 
 .export-hint {

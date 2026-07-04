@@ -4,7 +4,7 @@ Aplikasi web untuk memanage keuangan pribadi (pemasukan & pengeluaran), berfokus
 
 ## Status saat ini
 
-UI/UX sudah jadi dan **data sudah terhubung ke Firebase Realtime Database**. Transaksi & rencana anggaran tersimpan realtime di server (bukan lagi localStorage). Hanya preferensi tema yang masih disimpan lokal (`localStorage`, key `financeapp_theme`).
+UI/UX sudah jadi dan **data sudah terhubung ke Firebase Realtime Database**. Transaksi & rencana anggaran tersimpan realtime di server (bukan lagi localStorage). Preferensi tema & pilihan pengguna aktif (Iyon/Ciwul/Both) masih disimpan lokal (`localStorage`, key `financeapp_theme` & `financeapp_user` — lihat `STORAGE_KEYS` di `script.js`, bagian "Multi-user" di bawah).
 
 ### Konfigurasi Firebase
 
@@ -25,12 +25,14 @@ finance/
       catatan:   "Makan siang"
       tanggal:   "2026-06-01"  # tanggal transaksi (lengkap); harinya tidak lagi disimpan di path, cukup dari sini/timestamp
       timestamp: 1719...       # sama dengan key
+      by:        "ciwul"       # "iyon" | "ciwul" — pembuat transaksi, lihat bagian "Multi-user"; DITAMBAHKAN, backfill via migrateTransactionOwners()
   plans/
     <periode>/                   # "harian"|"mingguan"|"bulanan"|"weekday"|"weekend"
-      <category>/                # 1 rencana per kategori per periode
+      <category>/                # 1 rencana per kategori per periode — GLOBAL, bukan per-user (lihat "Multi-user")
         category: "makanan"      # bisa juga "semua" = gabungan semua expense
         limit:    1000000
         sort:     0              # urutan tampil (kecil = atas), diatur via drag
+        by:       "ciwul"        # "iyon" | "ciwul" — cuma penanda pembuat utk visibility/badge, BUKAN path/kunci keunikan; DITAMBAHKAN, backfill via migrateLegacyPlanOwners()
   categories/
     expense/
       <id>/                       # mis. "makanan" — key = id, ditulis redundan juga sbg field
@@ -57,7 +59,7 @@ Catatan: user awalnya menuliskan struktur transaksi hanya `{ category, transaksi
 - Satu listener realtime `financeRef.on("value", ...)` pada `db.ref("finance")`. Setiap perubahan → `rebuildFromSnapshot()` membangun ulang array `transactions[]`, `plans[]`, dan `CATEGORIES.expense`/`CATEGORIES.income` lalu `renderAll()`. Jadi UI selalu reaktif; fungsi tulis **tidak** perlu memanggil render manual. `CATEGORIES.expense` diurut naik berdasarkan `colorSlot` supaya urutan tampil stabil (tidak bergantung urutan key di Firebase).
 - Tiap item `transactions[]` menyimpan `ym`, `id` (= timestamp key) supaya bisa menyusun path hapus (`deleteTransaction`); harinya didapat dari `date`/timestamp, tidak lagi jadi segmen path tersendiri.
 - Tipe internal `income`/`expense` dipetakan ke `pemasukan`/`pengeluaran` lewat `TYPE_TO_FS`/`FS_TO_TYPE`.
-- Fungsi tulis: `addTransaction`, `updateTransaction` (edit; hanya nominal & catatan, path/timestamp tetap), `deleteTransaction`, `savePlan(period, category, limit)` (menimpa per periode+kategori), `deletePlan(period, category)`, `saveCategory(type, data)` (create/update kategori; `.set()` per id, aman karena id tak pernah berubah), `deleteCategory(type, id)`, `migrateLegacyPlans` (pindah rencana lama tanpa periode → `plans/bulanan/...`, sekali jalan), `migrateLegacyCategories` (seed `categories/` dari `DEFAULT_CATEGORIES` kalau belum ada, sekali jalan), `migrateIncomeColorSlots` (backfill field `colorSlot` ke kategori income yang sudah ada dari skema lama, sekali jalan).
+- Fungsi tulis: `addTransaction` (menyertakan `by`), `updateTransaction` (edit; hanya nominal & catatan, path/timestamp/`by` tetap), `deleteTransaction`, `savePlan(period, category, limit, sort, by)` (menimpa per periode+kategori — `.set()` flat, `by` cuma field, bukan path baru), `deletePlan(period, category)`, `saveCategory(type, data)` (create/update kategori; `.set()` per id, aman karena id tak pernah berubah), `deleteCategory(type, id)`, `migrateLegacyPlans` (pindah rencana lama tanpa periode → `plans/bulanan/...`, sekali jalan), `migrateLegacyCategories` (seed `categories/` dari `DEFAULT_CATEGORIES` kalau belum ada, sekali jalan), `migrateIncomeColorSlots` (backfill field `colorSlot` ke kategori income yang sudah ada dari skema lama, sekali jalan), `migrateTransactionOwners` (backfill `by:"ciwul"` ke tiap transaksi yang belum punya field itu, sekali jalan — semua data lama dibuat oleh Ciwul), `migrateLegacyPlanOwners` (backfill field `by:"ciwul"` ke tiap rencana flat yang belum punya, pola sama seperti `migrateIncomeColorSlots`; **bukan** restrukturisasi path). Semua migrasi dipanggil tiap snapshot di `subscribeFinance()`, tapi masing-masing punya guard `let xMigrated = false` supaya cuma benar-benar menulis sekali.
 - `categoryColorVar(catId)`: cari kategori expense-nya lalu baca field `colorSlot` langsung (fallback slot 1 kalau tidak ketemu, mis. transaksi lama yang kategorinya sudah dihapus dari Firebase) → `var(--series-N)`. Dipakai kartu Statistik Pengeluaran di Dashboard.
 - Menghapus transaksi terakhir di suatu hari/bulan otomatis membersihkan node kosong (perilaku default Firebase RTDB).
 
@@ -113,23 +115,33 @@ Belum ada build tool (tidak ada npm/bundler). Cukup buka `index.html` langsung d
 5. **Tambah transaksi** lewat tombol **+ di tengah bottom nav** (`#navAdd`, `.nav-add` — bulat bergradient, menonjol ke atas, **selalu tampil di semua halaman**) → modal bottom-sheet, pilih tipe (income/expense), kategori, jumlah, catatan. **Tanggal otomatis** (field `#dateInput` `disabled`, di-set ke hari ini saat tambah; label "Tanggal (otomatis)"). Jumlah diformat ribuan realtime saat diketik (`formatAmountInput`). Setelah **tambah** transaksi berhasil, app otomatis pindah ke Dashboard (`goToPage("dashboard")`); **edit** tetap di halaman asal.
 6. **Navigasi**: bottom navigation bar ala aplikasi mobile — Dashboard, Transaksi, **[+]**, Rencana, Pengaturan (tombol + tambah transaksi ada di slot tengah, di antara Transaksi & Rencana).
 7. **Tema light/dark**: pakai atribut `data-theme` di `<html>`, variabel warna di `:root` dan `[data-theme="dark"]` pada `css/base.css`. Preferensi tersimpan di localStorage, fallback ke `prefers-color-scheme`.
+8. **Multi-user (Iyon / Ciwul / Both)**: app dipakai 2 orang, jadi tiap transaksi & rencana punya field `by` (`"iyon"` | `"ciwul"`) penanda pembuat.
+   - **Konstanta & state**: `USERS = { iyon: {id,label:"Iyon",icon:"img/iyon.png"}, ciwul: {...}, both: {id,label:"Both",icon:"img/couple.png"} }`; `currentUser` (in-memory, diisi dari `localStorage[STORAGE_KEYS.user]` saat load). Ikon sementara **placeholder PNG** (lingkaran warna + emoji 👨/👩/👫, 256×256) di `img/iyon.png`/`img/ciwul.png`/`img/couple.png` — nama file sengaja tetap dipertahankan kalau nanti ditimpa foto asli, tidak perlu ubah kode.
+   - **Pilih pengguna pertama kali**: kalau `localStorage` belum punya pilihan, `initUserSelect()` menampilkan `#userSelectOverlay` (full-screen, z-index di atas `#loadingOverlay`) berisi 3 tombol besar (foto + label). Pilih salah satu → `setCurrentUser(id)` simpan ke `localStorage`, tutup overlay, `renderAll()`. Bisa diganti kapan saja dari **Pengaturan** ("Pengguna Aktif" + tombol "Ganti" → `#userSwitchModal`, reuse render tombol yang sama).
+   - **Scoping tampilan**: `visibleTransactions()` — `currentUser === "both" ? transactions : transactions.filter(t => t.by === currentUser)` — dipakai di `renderDashboard`, `renderAllTransactions`, `renderPlans` (hitung `spent`), `updateMonthNavButtons`, `openFilterModal` (cek kategori terhapus), `openMonthPicker`, `exportTransactionsForYm`, `exportMonthlySummary`. Jadi **Dashboard, Transaksi, & export Excel otomatis ke-scope** ke user aktif; mode Both menampilkan gabungan semua data.
+   - **Rencana (Plans) — visibility-only, BUKAN per-user data**: skema Firebase plans **tetap flat** (`plans/<period>/<category>`, satu slot global per kombinasi periode+kategori, siapa pun pembuatnya) — keputusan ini final setelah user menolak proposal awal (path nested `.../<by>/...`) karena tidak perlu path baru selama sudah ada field `by`. Konsekuensinya: **Iyon & Ciwul TIDAK bisa punya rencana terpisah untuk kategori+periode yang sama** — kalau satu sudah membuat "Makanan bulanan", yang lain hanya bisa mengedit punya itu (dianggap satu rencana bersama), bukan membuat rencana kedua. `periodIsFull`/`populatePlanCategories`/`updatePeriodOptions` mengecek keunikan **global** (tidak di-scope per-user). Yang **memang** per-user hanya *tampilan list*: `renderPlans()` memfilter `plans.filter(p => p.period === currentPeriod && (currentUser === "both" || p.by === currentUser))` — jadi saat mode Iyon, rencana yang `by:"ciwul"` tersembunyi dari list (walau tetap "menghabiskan slot" global kategori itu untuk periode itu).
+   - **Field "Dibuat oleh" saat mode Both**: karena "Both" bukan orang beneran, modal Tambah/Edit Transaksi (`#transactionByField`, toggle `#transactionByToggle`) dan Tambah/Edit Rencana (`#planByField`, toggle `#planByToggle`) menampilkan toggle Iyon/Ciwul **hanya kalau `currentUser === "both"`** (`updateByFieldVisibility()`); kalau mode aktif Iyon/Ciwul, field disembunyikan dan `by` otomatis ikut `currentUser`. Saat **edit**, `by` tidak berubah (ambil dari data lama, sama seperti field lain yang dikunci). Toggle ini reuse pola `.type-toggle`/`.type-btn` yang sebelumnya cuma dipakai utk expense/income — makanya toggle tipe asli diberi `id="transactionTypeToggle"` supaya query selector bisa di-scope dan tidak tabrakan dengan toggle by yang baru.
+   - **Badge pembuat (mode Both saja)**: `renderTransactionList()` menyisipkan `<img class="creator-badge">` (pojok kanan-bawah `.tx-icon`) dan `renderPlans()` menyisipkan `<img class="creator-badge-inline">` (di samping label kategori) berisi ikon `USERS[tx.by]`. Klik badge → `openCreatorInfo(by)` membuka `#creatorInfoModal` (reuse gaya `.confirm-dialog`) menampilkan teks "Dibuat oleh: <label>". Listener klik item transaksi/rencana diabaikan kalau target ada di dalam badge (supaya tidak bentrok dengan buka detail/edit).
+   - **Drag-reorder rencana**: handle ⠿ disembunyikan & drag dimatikan saat `currentUser === "both"` (list berisi campuran rencana banyak pemilik, urutan drag jadi ambigu); di mode single-user tetap berfungsi normal.
 
 ## Model data internal (`script.js`, hasil rebuild dari Firebase)
 
 ```js
 // transactions[] (item)
-{ id, ym: "YYYY-MM", type: "income" | "expense", amount: number, category: string, note: string, date: "YYYY-MM-DD" }
+{ id, ym: "YYYY-MM", type: "income" | "expense", amount: number, category: string, note: string, date: "YYYY-MM-DD", by: "iyon" | "ciwul" }
 
 // plans[] (item)
-{ id: "<period>_<category>", period: "harian"|"mingguan"|"bulanan"|"weekday"|"weekend", category: string, limit: number, sort: number }
+{ id: "<period>_<category>", period: "harian"|"mingguan"|"bulanan"|"weekday"|"weekend", category: string, limit: number, sort: number, by: "iyon" | "ciwul" }
 // budget per periode+kategori (kategori expense atau "semua"); id = period + "_" + category; sort = urutan tampil
+// by = pembuat (utk visibility/badge) — SATU slot global per period+category, TIDAK per-user (lihat "Multi-user")
 ```
 
 `id` transaksi = timestamp key di Firebase; `ym`/`id` dipakai untuk menyusun path saat hapus. Struktur mentah di Firebase lihat bagian "Struktur data di Firebase" di atas. Kategori didefinisikan statis di `script.js` (`CATEGORIES.income` dan `CATEGORIES.expense`), masing-masing punya `id`, `label`, `icon` (emoji). Ada satu kategori khusus `ALL_CATEGORY` (`id: "semua"`) yang **hanya dipakai di Rencana** (bukan transaksi) sebagai budget gabungan semua expense.
 
 ## Rencana / TODO ke depan
 
-- **Auth**: DB masih publik readable (belum ada login). Kalau mau privat, perlu Firebase Auth + ketatkan rules per-user.
+- **Auth**: DB masih publik readable (belum ada login). Fitur multi-user (Iyon/Ciwul/Both) di atas **cuma preferensi tampilan/pelabelan**, bukan proteksi akses — siapa pun yang buka app tetap bisa memilih jadi "siapa saja". Kalau mau privat sungguhan, perlu Firebase Auth + ketatkan rules per-user.
+- Ikon `img/iyon.png`/`img/ciwul.png`/`img/couple.png` masih placeholder (lingkaran warna + emoji) — tinggal ditimpa foto asli nanti, nama file tidak perlu berubah.
 - Kemungkinan fitur lanjutan: grafik/statistik lebih detail, notifikasi budget hampir habis. (Kategori custom & export data sudah jadi.)
 - Belum ada testing otomatis / build pipeline — project murni HTML/CSS/JS statis.
 
@@ -159,7 +171,7 @@ Halaman Transaksi punya filter bertingkat yang bekerja bersama; semuanya dipakai
 - **Hapus**: `openDeleteConfirm(tx)` membuka dialog konfirmasi terpusat `#confirmModal` ("Hapus Transaksi?"). State `pendingDeleteTx`.
 
 **Rencana** — tiap plan card punya ✏️ edit & 🗑️ hapus (`.plan-actions`).
-- **Edit**: `openEditPlanModal(plan)` memakai ulang modal `#planModal`, prefill periode + kategori + limit; state `editingPlan`. **Periode & kategori dikunci** saat edit (`setPlanFieldsLocked(true)` men-`disable` `#planPeriodInput` & `#planCategoryInput`) — hanya batas anggaran yang bisa diubah; mengubah periode/kategori = rencana lain. Submit memanggil `savePlan(period, category, limit)` (menimpa per periode+kategori).
+- **Edit**: `openEditPlanModal(plan)` memakai ulang modal `#planModal`, prefill periode + kategori + limit; state `editingPlan`. **Periode, kategori, & `by`(pembuat) dikunci** saat edit (`setPlanFieldsLocked(true)` men-`disable` `#planPeriodInput` & `#planCategoryInput`, toggle "Dibuat oleh" juga disembunyikan) — hanya batas anggaran yang bisa diubah; mengubah periode/kategori = rencana lain. Submit memanggil `savePlan(period, category, limit, sort, by)` (menimpa per periode+kategori, `sort`/`by` dipertahankan dari data lama saat edit).
 - **Hapus**: `openDeletePlanConfirm(plan)` memakai `#confirmModal` yang sama ("Hapus Rencana?"). State `pendingDeletePlan`; tombol "Ya, Hapus" memanggil `deletePlan(period, category)`.
 
 **Confirm modal dipakai bersama**: `#confirmModal` melayani transaksi & rencana. Judul/teks di-set per konteks, dan hanya satu dari `pendingDeleteTx`/`pendingDeletePlan` yang terisi (yang lain di-null-kan). Tombol "Ya, Hapus" (`#confirmDeleteBtn`) memeriksa mana yang terisi lalu memanggil `deleteTransaction()` atau `deletePlan()`.

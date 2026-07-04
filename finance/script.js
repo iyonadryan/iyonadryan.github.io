@@ -6,23 +6,38 @@
    Struktur data:
      finance/
        <YYYY-MM>/
-         <timestamp>/ { transaksi, category, nominal, catatan, tanggal, timestamp }
+         <timestamp>/ { transaksi, category, nominal, catatan, tanggal, timestamp, by }
        plans/
-         <category>/ { category, limit }
+         <period>/<category>/ { category, limit, sort, by } // 1 slot per kategori+periode (global, siapa pun pembuatnya)
        categories/
          expense|income/
            <id>/ { id, label, icon, colorSlot? } // colorSlot cuma di expense
 
-   Preferensi tema tetap disimpan lokal (localStorage).
+   by = "iyon" | "ciwul" — siapa yang bikin (lihat bagian Multi-user). Preferensi
+   tema & pilihan user aktif disimpan lokal (localStorage).
    ========================================================= */
 
 (function () {
   "use strict";
 
-  /* ---------------- Storage keys (lokal, hanya untuk tema) ---------------- */
+  /* ---------------- Storage keys (lokal) ---------------- */
   const STORAGE_KEYS = {
     theme: "financeapp_theme",
+    user: "financeapp_user",
   };
+
+  /* ---------------- Multi-user (Iyon / Ciwul / Both) ---------------- */
+  // "both" cuma mode TAMPILAN (gabungan semua data) — bukan pemilik data yang
+  // valid, jadi tidak pernah muncul sbg data.by transaksi/rencana.
+  const USERS = {
+    iyon: { id: "iyon", label: "Iyon", icon: "img/iyon.png" },
+    ciwul: { id: "ciwul", label: "Ciwul", icon: "img/ciwul.png" },
+    both: { id: "both", label: "Both", icon: "img/couple.png" },
+  };
+
+  // Pilihan user aktif, diingat di localStorage (pola sama spt tema). null =
+  // belum pernah pilih (overlay #userSelectOverlay bakal tampil di init).
+  let currentUser = localStorage.getItem(STORAGE_KEYS.user) || null;
 
   /* ---------------- Categories ---------------- */
   // Diisi realtime dari Firebase (categories/expense|income/<id>), lihat
@@ -182,6 +197,52 @@
     }
   }
 
+  // Backfill field `by` ke transaksi lama (sebelum fitur multi-user) — semua
+  // dianggap punya "ciwul" karena itu satu-satunya pengguna sebelum ini.
+  // Sekali jalan pada snapshot pertama.
+  let transactionOwnersMigrated = false;
+  function migrateTransactionOwners(root) {
+    if (transactionOwnersMigrated) return;
+    transactionOwnersMigrated = true;
+    const updates = {};
+    Object.keys(root || {}).forEach((topKey) => {
+      if (!/^\d{4}-\d{2}$/.test(topKey)) return; // cuma node bulan (YYYY-MM)
+      const monthObj = root[topKey] || {};
+      Object.keys(monthObj).forEach((ts) => {
+        const t = monthObj[ts] || {};
+        if (!t.by) updates[topKey + "/" + ts + "/by"] = "ciwul";
+      });
+    });
+    if (Object.keys(updates).length) {
+      financeRef.update(updates).catch((e) => console.error("Backfill pemilik transaksi gagal:", e));
+    }
+  }
+
+  // Backfill field `by` ke rencana lama (sebelum fitur multi-user) — tetap
+  // flat (plans/<period>/<category>), `by` cukup jadi field di dalamnya
+  // (bukan segmen path baru) — jadi 1 kategori+periode tetap 1 slot bersama,
+  // cuma dicatat siapa pembuatnya. Data lama dianggap milik "ciwul". Sekali
+  // jalan pada snapshot pertama, pola sama seperti migrateIncomeColorSlots.
+  let legacyPlanOwnersMigrated = false;
+  function migrateLegacyPlanOwners(root) {
+    if (legacyPlanOwnersMigrated) return;
+    legacyPlanOwnersMigrated = true;
+    const plansObj = (root && root.plans) || {};
+    const updates = {};
+    PLAN_PERIODS.forEach((period) => {
+      const periodObj = plansObj[period] || {};
+      Object.keys(periodObj).forEach((cat) => {
+        const node = periodObj[cat] || {};
+        if (node && typeof node.limit === "number" && !node.by) {
+          updates["plans/" + period + "/" + cat + "/by"] = "ciwul";
+        }
+      });
+    });
+    if (Object.keys(updates).length) {
+      financeRef.update(updates).catch((e) => console.error("Backfill pemilik rencana gagal:", e));
+    }
+  }
+
   // Dengarkan seluruh subtree /finance secara realtime.
   function subscribeFinance() {
     financeRef.on(
@@ -191,6 +252,8 @@
         migrateLegacyPlans(root);
         migrateLegacyCategories(root);
         migrateIncomeColorSlots(root);
+        migrateTransactionOwners(root);
+        migrateLegacyPlanOwners(root);
         rebuildFromSnapshot(root);
         renderAll();
         hideLoading(); // data pertama sudah tiba
@@ -223,17 +286,23 @@
         const plansObj = root.plans || {};
         Object.keys(plansObj).forEach((key) => {
           if (PLAN_PERIODS.includes(key)) {
-            // Bentuk baru: plans/<periode>/<category>/{ limit, sort }
+            // Bentuk baru: plans/<periode>/<category>/{ limit, sort, by }
             const periodObj = plansObj[key] || {};
             Object.keys(periodObj).forEach((cat) => {
               const p = periodObj[cat] || {};
-              pl.push({ id: key + "_" + cat, period: key, category: cat, limit: Number(p.limit) || 0, sort: Number(p.sort) || 0 });
+              pl.push({
+                id: key + "_" + cat, period: key, category: cat, by: p.by || "ciwul",
+                limit: Number(p.limit) || 0, sort: Number(p.sort) || 0,
+              });
             });
           } else {
             // Bentuk lama: plans/<category>/{ limit } → diperlakukan sebagai bulanan
             // (di-migrasi ke bentuk baru oleh migrateLegacyPlans()).
             const p = plansObj[key] || {};
-            pl.push({ id: "bulanan_" + key, period: "bulanan", category: key, limit: Number(p.limit) || 0, sort: Number(p.sort) || 0 });
+            pl.push({
+              id: "bulanan_" + key, period: "bulanan", category: key, by: p.by || "ciwul",
+              limit: Number(p.limit) || 0, sort: Number(p.sort) || 0,
+            });
           }
         });
       } else if (/^\d{4}-\d{2}$/.test(topKey)) {
@@ -248,6 +317,7 @@
             category: t.category,
             note: t.catatan || "",
             date: t.tanggal || topKey,
+            by: t.by || "ciwul",
           });
         });
       }
@@ -283,13 +353,14 @@
       catatan: data.note || "",
       tanggal: data.date,
       timestamp: ts,
+      by: data.by,
     });
   }
 
   // Ubah transaksi yang sudah ada. Saat edit HANYA nominal & catatan yang bisa
-  // berubah; tipe, kategori, dan tanggal (timestamp/path) dipertahankan apa
-  // adanya dari transaksi lama. Jadi node ditulis ulang di path yang sama —
-  // timestamp A tetap A, tidak ada pemindahan node.
+  // berubah; tipe, kategori, tanggal, dan by (timestamp/path) dipertahankan
+  // apa adanya dari transaksi lama. Jadi node ditulis ulang di path yang
+  // sama — timestamp A tetap A, tidak ada pemindahan node.
   function updateTransaction(oldTx, data) {
     const path = FINANCE_PATH + "/" + oldTx.ym + "/" + oldTx.id;
     return db.ref(path).set({
@@ -299,6 +370,7 @@
       catatan: data.note || "",
       tanggal: oldTx.date,
       timestamp: Number(oldTx.id) || Date.now(),
+      by: oldTx.by,
     });
   }
 
@@ -306,11 +378,19 @@
     return db.ref(FINANCE_PATH + "/" + tx.ym + "/" + tx.id).remove();
   }
 
-  function savePlan(period, category, limit, sort) {
+  // Transaksi sesuai scope user aktif — dipakai di semua render/filter/export
+  // supaya Dashboard/Transaksi/Rencana konsisten cuma nampilin data yang
+  // relevan. Mode "both" = gabungan semua (tidak difilter).
+  function visibleTransactions() {
+    return currentUser === "both" ? transactions : transactions.filter((t) => t.by === currentUser);
+  }
+
+  function savePlan(period, category, limit, sort, by) {
     return db.ref(FINANCE_PATH + "/plans/" + period + "/" + category).set({
       category: category,
       limit: limit,
       sort: sort || 0,
+      by: by,
     });
   }
 
@@ -356,14 +436,15 @@
   function updateMonthNavButtons() {
     const prevBtns = [document.getElementById("prevMonth"), document.getElementById("prevMonthTx")];
     const nextBtns = [document.getElementById("nextMonth"), document.getElementById("nextMonthTx")];
+    const scoped = visibleTransactions();
 
-    if (transactions.length === 0) {
+    if (scoped.length === 0) {
       prevBtns.forEach((b) => (b.disabled = true));
       nextBtns.forEach((b) => (b.disabled = true));
       return;
     }
 
-    const yms = transactions.map((t) => t.ym);
+    const yms = scoped.map((t) => t.ym);
     const minYm = yms.reduce((a, b) => (b < a ? b : a));
     const maxYm = yms.reduce((a, b) => (b > a ? b : a));
     const currentYm = viewDate.getFullYear() + "-" + pad2(viewDate.getMonth() + 1);
@@ -542,7 +623,7 @@
     document.getElementById("currentMonthLabel").textContent =
       MONTH_NAMES[viewDate.getMonth()] + " " + viewDate.getFullYear();
 
-    const monthTx = transactions.filter((t) => isSameMonth(t.date, viewDate));
+    const monthTx = visibleTransactions().filter((t) => isSameMonth(t.date, viewDate));
     const totalIncome = monthTx.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
     const totalExpense = monthTx.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
     const balance = totalIncome - totalExpense;
@@ -654,7 +735,7 @@
     document.getElementById("currentMonthLabelTx").textContent =
       MONTH_NAMES[viewDate.getMonth()] + " " + viewDate.getFullYear();
 
-    let list = transactions
+    let list = visibleTransactions()
       .filter((t) => isSameMonth(t.date, viewDate))
       .sort((a, b) => {
         const byDate = new Date(b.date) - new Date(a.date);
@@ -698,10 +779,16 @@
       const ts = txTime(tx);
       const dateText = detailed ? formatDateLong(tx.date) : formatDateShort(tx.date);
       const timeText = formatTime(ts, detailed);
+      // Badge kecil penunjuk pembuat (Iyon/Ciwul) — cuma tampil mode "Both",
+      // ditumpuk di pojok tx-icon. Klik → openCreatorInfo().
+      const badgeHtml =
+        currentUser === "both" && USERS[tx.by]
+          ? `<img class="creator-badge" src="${USERS[tx.by].icon}" data-by="${tx.by}" alt="${USERS[tx.by].label}">`
+          : "";
       const item = document.createElement("div");
       item.className = "transaction-item";
       item.innerHTML = `
-        <div class="tx-icon ${tx.type}">${cat.icon}</div>
+        <div class="tx-icon ${tx.type}">${cat.icon}${badgeHtml}</div>
         <div class="tx-info">
           <p class="tx-category">${cat.label}</p>
           <p class="tx-note">${tx.note ? escapeHtml(tx.note) : "&mdash;"}</p>
@@ -716,10 +803,10 @@
           <button class="tx-btn tx-delete" data-id="${tx.id}" aria-label="Hapus">🗑️</button>
         </div>
       `;
-      // Klik kartu (di luar tombol edit/hapus) → buka popup detail (catatan
-      // sering terpotong di list mobile, popup menampilkannya utuh).
+      // Klik kartu (di luar tombol edit/hapus/badge) → buka popup detail
+      // (catatan sering terpotong di list mobile, popup menampilkannya utuh).
       item.addEventListener("click", (e) => {
-        if (e.target.closest(".tx-actions")) return;
+        if (e.target.closest(".tx-actions") || e.target.closest(".creator-badge")) return;
         openTransactionDetail(tx);
       });
       container.appendChild(item);
@@ -738,6 +825,10 @@
         if (tx) openDeleteConfirm(tx);
       });
     });
+
+    container.querySelectorAll(".creator-badge").forEach((img) => {
+      img.addEventListener("click", () => openCreatorInfo(img.dataset.by));
+    });
   }
 
   function escapeHtml(str) {
@@ -752,12 +843,14 @@
     const container = document.getElementById("plansList");
     container.innerHTML = "";
 
-    // Tombol "+" nonaktif (abu-abu) kalau semua kategori di periode ini sudah dipakai.
+    // Tombol "+" nonaktif (abu-abu) kalau semua kategori di periode ini sudah
+    // dipakai — global, tidak bergantung mode user (satu kategori+periode
+    // cuma boleh 1 rencana, siapa pun pembuatnya).
     const addBtn = document.getElementById("addPlanBtn");
     addBtn.disabled = periodIsFull(currentPeriod);
 
     const list = plans
-      .filter((p) => p.period === currentPeriod)
+      .filter((p) => p.period === currentPeriod && (currentUser === "both" || p.by === currentUser))
       .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id));
 
     if (list.length === 0) {
@@ -767,11 +860,12 @@
     }
 
     const now = new Date();
+    const scopedTx = visibleTransactions();
 
     list.forEach((plan) => {
       const cat = findCategory("expense", plan.category);
       const isAll = plan.category === ALL_CATEGORY.id;
-      const spent = transactions
+      const spent = scopedTx
         .filter((t) => t.type === "expense" && (isAll || t.category === plan.category) && txInPlanPeriod(t, plan.period, now))
         .reduce((s, t) => s + t.amount, 0);
 
@@ -780,6 +874,11 @@
       if (pct >= 100) fillClass = "over";
       else if (pct >= 80) fillClass = "warning";
 
+      const badgeHtml =
+        currentUser === "both" && USERS[plan.by]
+          ? `<img class="creator-badge-inline" src="${USERS[plan.by].icon}" data-by="${plan.by}" alt="${USERS[plan.by].label}">`
+          : "";
+
       const card = document.createElement("div");
       card.className = "plan-card";
       card.dataset.id = plan.id;
@@ -787,7 +886,7 @@
         <button class="plan-drag" data-id="${plan.id}" aria-label="Geser untuk mengubah urutan" title="Geser untuk mengubah urutan">⠿</button>
         <div class="plan-body">
           <div class="plan-top">
-            <span class="plan-category">${cat.icon} ${cat.label}</span>
+            <span class="plan-category">${cat.icon} ${cat.label}${badgeHtml}</span>
             <div class="plan-actions">
               <button class="plan-btn plan-edit" data-id="${plan.id}" aria-label="Edit">✏️</button>
               <button class="plan-btn plan-delete" data-id="${plan.id}" aria-label="Hapus">🗑️</button>
@@ -819,8 +918,20 @@
       });
     });
 
+    container.querySelectorAll(".creator-badge-inline").forEach((img) => {
+      img.addEventListener("click", () => openCreatorInfo(img.dataset.by));
+    });
+
+    // Drag-reorder cuma masuk akal per satu pemilik — di mode Both, list
+    // berisi rencana dua orang sekaligus jadi handle-nya dinonaktifkan
+    // (disembunyikan visual, tapi slot tetap ada biar layout tidak geser).
     container.querySelectorAll(".plan-drag").forEach((handle) => {
-      handle.addEventListener("pointerdown", startPlanDrag);
+      if (currentUser === "both") {
+        handle.style.visibility = "hidden";
+        handle.style.cursor = "default";
+      } else {
+        handle.addEventListener("pointerdown", startPlanDrag);
+      }
     });
   }
 
@@ -941,10 +1052,21 @@
     return [ALL_CATEGORY].concat(CATEGORIES.expense);
   }
 
-  // Apakah semua kategori di periode ini sudah punya rencana?
+  // Apakah semua kategori di periode ini sudah punya rencana? (Global — satu
+  // kategori+periode cuma boleh 1 rencana, siapa pun pembuatnya.)
   function periodIsFull(period) {
     const used = plans.filter((p) => p.period === period).map((p) => p.category);
     return planCategoryPool().every((c) => used.indexOf(c.id) !== -1);
+  }
+
+  // Dalam konteks modal (create), scope ke user yang lagi dipilih di toggle
+  // "Dibuat oleh" (atau currentUser langsung kalau bukan mode Both). Dipakai
+  // buat nyimpen field `by` — bukan buat cek keunikan kategori (itu tetap
+  // global: satu kategori+periode = satu rencana, siapa pun pembuatnya).
+  function planFormBy() {
+    if (currentUser !== "both") return currentUser;
+    const active = document.querySelector("#planByToggle .type-btn.active");
+    return active ? active.dataset.by : "iyon";
   }
 
   // Disable opsi periode yang sudah penuh di dropdown modal.
@@ -956,7 +1078,8 @@
 
   // Isi dropdown kategori untuk modal Rencana. Kategori (termasuk "Semua")
   // yang sudah punya rencana di periode itu disembunyikan supaya tidak
-  // duplikat. `keepCategory` dipertahankan (dipakai saat edit).
+  // duplikat — satu kategori+periode cuma boleh 1 rencana, siapa pun
+  // pembuatnya. `keepCategory` dipertahankan (dipakai saat edit).
   function populatePlanCategories(period, keepCategory) {
     const used = plans.filter((p) => p.period === period).map((p) => p.category);
     const available = planCategoryPool().filter((c) => c.id === keepCategory || used.indexOf(c.id) === -1);
@@ -1056,7 +1179,7 @@
     // Kalau ada transaksi (sesuai tab tipe aktif) yang kategorinya sudah
     // dihapus, tambahkan opsi "Kategori Terhapus" di paling bawah supaya
     // transaksi itu masih bisa dicari/difilter.
-    const hasUnknown = transactions.some(
+    const hasUnknown = visibleTransactions().some(
       (t) => (currentFilter === "all" || t.type === currentFilter) && !categoryExists(t.type, t.category)
     );
     if (hasUnknown) {
@@ -1133,7 +1256,7 @@
 
   function setTxType(type) {
     currentTxType = type;
-    document.querySelectorAll(".type-btn").forEach((b) => b.classList.toggle("active", b.dataset.type === type));
+    document.querySelectorAll("#transactionTypeToggle .type-btn").forEach((b) => b.classList.toggle("active", b.dataset.type === type));
     populateCategorySelect(categoryInput, type);
   }
 
@@ -1141,8 +1264,39 @@
   // diubah). Tanggal memang selalu disabled.
   function setImmutableFieldsLocked(locked) {
     categoryInput.disabled = locked;
-    document.querySelectorAll(".type-btn").forEach((b) => (b.disabled = locked));
-    document.querySelector(".type-toggle").classList.toggle("locked", locked);
+    document.querySelectorAll("#transactionTypeToggle .type-btn").forEach((b) => (b.disabled = locked));
+    document.getElementById("transactionTypeToggle").classList.toggle("locked", locked);
+  }
+
+  // Scope ke user aktif kalau bukan mode Both; kalau Both, baca toggle
+  // "Dibuat oleh" di modal (default "iyon" kalau belum ada yang aktif).
+  function transactionFormBy() {
+    if (currentUser !== "both") return currentUser;
+    const active = document.querySelector("#transactionByToggle .type-btn.active");
+    return active ? active.dataset.by : "iyon";
+  }
+
+  // Set toggle 2-tombol (Dibuat oleh) ke satu nilai, opsional dikunci
+  // (dipakai saat edit — pembuat tidak bisa diubah, sama spt field lain).
+  function setByToggleValue(toggleId, by, locked) {
+    const toggle = document.getElementById(toggleId);
+    toggle.querySelectorAll(".type-btn").forEach((b) => {
+      b.classList.toggle("active", b.dataset.by === by);
+      b.disabled = locked;
+    });
+    toggle.classList.toggle("locked", locked);
+  }
+
+  // Wiring klik toggle "Dibuat oleh" (dipakai transactionByToggle & planByToggle).
+  function wireByToggle(toggleId, onChange) {
+    const toggle = document.getElementById(toggleId);
+    toggle.querySelectorAll(".type-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (btn.disabled) return; // dikunci saat edit
+        toggle.querySelectorAll(".type-btn").forEach((b) => b.classList.toggle("active", b === btn));
+        if (onChange) onChange();
+      });
+    });
   }
 
   function openTransactionModal() {
@@ -1152,6 +1306,7 @@
     setImmutableFieldsLocked(false);
     setTxType("expense");
     dateInput.value = todayLocalDateStr();
+    setByToggleValue("transactionByToggle", currentUser !== "both" ? currentUser : "iyon", false);
     transactionModal.classList.add("open");
   }
 
@@ -1165,6 +1320,7 @@
     document.getElementById("noteInput").value = tx.note || "";
     dateInput.value = tx.date;
     setImmutableFieldsLocked(true); // kunci tipe & kategori setelah prefill
+    setByToggleValue("transactionByToggle", tx.by, true); // pembuat tidak bisa diubah
     transactionModal.classList.add("open");
   }
 
@@ -1173,7 +1329,7 @@
     editingTx = null;
   }
 
-  document.querySelectorAll(".type-btn").forEach((btn) => {
+  document.querySelectorAll("#transactionTypeToggle .type-btn").forEach((btn) => {
     btn.addEventListener("click", () => setTxType(btn.dataset.type));
   });
 
@@ -1189,6 +1345,7 @@
       category: categoryInput.value,
       note: document.getElementById("noteInput").value.trim(),
       date: dateInput.value,
+      by: editingTx ? editingTx.by : transactionFormBy(),
     };
 
     const isAdd = !editingTx;
@@ -1203,6 +1360,7 @@
 
   document.getElementById("cancelTransactionBtn").addEventListener("click", closeTransactionModal);
   document.getElementById("navAdd").addEventListener("click", openTransactionModal);
+  wireByToggle("transactionByToggle");
   document.getElementById("amountInput").addEventListener("input", function () {
     formatAmountInput(this);
   });
@@ -1336,6 +1494,7 @@
     editingPlan = null;
     planForm.reset();
     setPlanFieldsLocked(false);
+    setByToggleValue("planByToggle", currentUser !== "both" ? currentUser : "iyon", false);
     updatePeriodOptions(); // buramkan periode yang sudah penuh
     planPeriodInput.value = currentPeriod; // default ikut tab yang aktif
     populatePlanCategories(currentPeriod); // sembunyikan kategori yang sudah dipakai
@@ -1345,6 +1504,7 @@
   function openEditPlanModal(plan) {
     editingPlan = plan;
     planForm.reset();
+    setByToggleValue("planByToggle", plan.by, true); // pembuat tidak bisa diubah
     planPeriodInput.value = plan.period;
     populatePlanCategories(plan.period, plan.category);
     planCategoryInput.value = plan.category;
@@ -1364,15 +1524,16 @@
     const limit = parseFloat(rawLimit);
     if (!limit || limit <= 0) return;
 
-    // Disimpan per periode+kategori: menyimpan kombinasi yang sama akan
-    // menimpa limit lama. Sort dipertahankan kalau rencana sudah ada,
-    // rencana baru ditaruh paling akhir.
+    // Disimpan per periode+kategori+pemilik: menyimpan kombinasi yang sama
+    // akan menimpa limit lama. Sort dipertahankan kalau rencana sudah ada,
+    // rencana baru ditaruh paling akhir (dalam set milik user itu).
     const period = planPeriodInput.value;
     const category = planCategoryInput.value;
     if (!category) return; // tidak ada kategori tersedia (semua sudah dipakai)
+    const by = editingPlan ? editingPlan.by : planFormBy();
     const existing = plans.find((p) => p.id === period + "_" + category);
     const sort = existing ? existing.sort : nextSortForPeriod(period);
-    savePlan(period, category, limit, sort).catch((err) => {
+    savePlan(period, category, limit, sort, by).catch((err) => {
       console.error("Gagal menyimpan rencana:", err);
       alert("Gagal menyimpan rencana. Cek koneksi internet.");
     });
@@ -1386,6 +1547,7 @@
 
   document.getElementById("cancelPlanBtn").addEventListener("click", closePlanModal);
   document.getElementById("addPlanBtn").addEventListener("click", openPlanModal);
+  wireByToggle("planByToggle"); // kategori/periode global, tidak perlu repopulasi saat ganti "Dibuat oleh"
 
   /* ================= Overlay click-to-close ================= */
 
@@ -1482,6 +1644,108 @@
 
   document.getElementById("themeToggle").addEventListener("click", toggleTheme);
   document.getElementById("settingsThemeToggle").addEventListener("click", toggleTheme);
+
+  /* ================= Multi-user (Iyon / Ciwul / Both) ================= */
+
+  const userSelectOverlay = document.getElementById("userSelectOverlay");
+  const userSwitchModal = document.getElementById("userSwitchModal");
+
+  // Render 3 tombol Iyon/Ciwul/Both ke sebuah container — dipakai ulang utk
+  // overlay pilih user pertama kali & modal ganti user di Pengaturan.
+  function renderUserButtons(container, onSelect) {
+    container.innerHTML = "";
+    ["iyon", "ciwul", "both"].forEach((id) => {
+      const user = USERS[id];
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "user-select-btn" + (currentUser === id ? " active" : "");
+      btn.innerHTML = `<img src="${user.icon}" alt="${user.label}"><span>${user.label}</span>`;
+      btn.addEventListener("click", () => onSelect(id));
+      container.appendChild(btn);
+    });
+  }
+
+  // Update semua indikator visual user aktif: deskripsi di Pengaturan, ikon
+  // kecil di header, dan ikon tombol "Ganti" (yang sekarang pakai foto user
+  // aktif, bukan ikon generik) — supaya ketiganya selalu sinkron tiap ganti user.
+  function updateActiveUserDesc() {
+    const desc = document.getElementById("activeUserDesc");
+    if (desc) desc.textContent = currentUser ? USERS[currentUser].label : "Belum dipilih";
+
+    const user = currentUser ? USERS[currentUser] : null;
+    [document.getElementById("headerUserIcon"), document.getElementById("switchUserBtnIcon")].forEach((img) => {
+      if (!img) return;
+      if (user) {
+        img.src = user.icon;
+        img.alt = user.label;
+        img.hidden = false;
+      } else {
+        img.hidden = true;
+      }
+    });
+
+    const switchBtn = document.getElementById("switchUserBtn");
+    if (switchBtn) switchBtn.title = user ? "Ganti pengguna (aktif: " + user.label + ")" : "Ganti pengguna";
+  }
+
+  // Field "Dibuat oleh" di modal Transaksi/Rencana cuma relevan kalau mode
+  // aktifnya "Both" (Iyon/Ciwul sendiri tidak perlu ditanya, sudah jelas).
+  function updateByFieldVisibility() {
+    const showBy = currentUser === "both";
+    document.getElementById("transactionByField").hidden = !showBy;
+    document.getElementById("planByField").hidden = !showBy;
+  }
+
+  function setCurrentUser(id) {
+    currentUser = id;
+    localStorage.setItem(STORAGE_KEYS.user, id);
+    userSelectOverlay.classList.remove("open");
+    userSwitchModal.classList.remove("open");
+    updateActiveUserDesc();
+    updateByFieldVisibility();
+    renderAll();
+  }
+
+  // Tampilkan overlay pilih user kalau localStorage belum punya pilihan
+  // (pertama kali buka app / storage-nya dibersihkan).
+  function initUserSelect() {
+    renderUserButtons(document.getElementById("userSelectOptions"), setCurrentUser);
+    renderUserButtons(document.getElementById("userSwitchOptions"), setCurrentUser);
+    updateActiveUserDesc();
+    updateByFieldVisibility();
+    if (!currentUser) userSelectOverlay.classList.add("open");
+  }
+
+  document.getElementById("switchUserBtn").addEventListener("click", () => {
+    renderUserButtons(document.getElementById("userSwitchOptions"), setCurrentUser);
+    userSwitchModal.classList.add("open");
+  });
+  document.getElementById("cancelUserSwitchBtn").addEventListener("click", () => {
+    userSwitchModal.classList.remove("open");
+  });
+  userSwitchModal.addEventListener("click", (e) => {
+    if (e.target === userSwitchModal) userSwitchModal.classList.remove("open");
+  });
+
+  // Info "Dibuat oleh" (mode Both) — popup read-only, reuse gaya confirm-dialog.
+  const creatorInfoModal = document.getElementById("creatorInfoModal");
+
+  function openCreatorInfo(by) {
+    const user = USERS[by] || { label: by, icon: "" };
+    const iconEl = document.getElementById("creatorInfoIcon");
+    iconEl.innerHTML = user.icon
+      ? `<img src="${user.icon}" alt="${user.label}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">`
+      : "👤";
+    document.getElementById("creatorInfoText").textContent = "Dibuat oleh: " + user.label;
+    creatorInfoModal.classList.add("open");
+  }
+
+  document.getElementById("closeCreatorInfoBtn").addEventListener("click", () => {
+    creatorInfoModal.classList.remove("open");
+  });
+  creatorInfoModal.addEventListener("click", (e) => {
+    if (e.target === creatorInfoModal) creatorInfoModal.classList.remove("open");
+  });
 
   /* ================= Category list modal ================= */
 
@@ -1741,7 +2005,7 @@
   // Buka popup pilih bulan (daftar bulan yang punya transaksi, terbaru dulu).
   function openMonthPicker() {
     if (!excelReady()) return;
-    const yms = Array.from(new Set(transactions.map((t) => t.ym))).sort().reverse();
+    const yms = Array.from(new Set(visibleTransactions().map((t) => t.ym))).sort().reverse();
     if (yms.length === 0) {
       alert("Tidak ada data untuk diekspor.");
       return;
@@ -1764,7 +2028,7 @@
 
   function exportTransactionsForYm(ym) {
     if (!excelReady()) return;
-    const monthTx = transactions
+    const monthTx = visibleTransactions()
       .filter((t) => t.ym === ym)
       .sort((a, b) => {
         const byDate = new Date(a.date) - new Date(b.date);
@@ -1788,13 +2052,14 @@
 
   function exportMonthlySummary() {
     if (!excelReady()) return;
-    if (transactions.length === 0) {
+    const scoped = visibleTransactions();
+    if (scoped.length === 0) {
       alert("Tidak ada data untuk diekspor.");
       return;
     }
     // Kelompokkan total income/expense per bulan (ym = "YYYY-MM").
     const byMonth = {};
-    transactions.forEach((t) => {
+    scoped.forEach((t) => {
       if (!byMonth[t.ym]) byMonth[t.ym] = { income: 0, expense: 0 };
       byMonth[t.ym][t.type] += t.amount;
     });
@@ -1826,6 +2091,7 @@
   /* ================= Init ================= */
 
   initTheme();
+  initUserSelect();        // tampilkan overlay pilih user kalau belum pernah pilih
   updateBalanceToggleIcon();
   renderDashboard();       // render awal (masih kosong sampai data Firebase tiba)
   subscribeFinance();      // mulai dengarkan data realtime dari /finance

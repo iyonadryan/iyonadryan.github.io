@@ -45,6 +45,13 @@
   <p class="loading-text">Menghubungkan ke server…</p>
 </div>
 
+<!-- Overlay pilih pengguna aktif — tampil kalau localStorage belum punya pilihan
+     (lihat initUserSelect() di script.js). Z-index di atas loading overlay. -->
+<div id="userSelectOverlay" class="user-select-overlay">
+  <p class="user-select-title">Siapa yang pakai?</p>
+  <div class="user-select-options" id="userSelectOptions"></div>
+</div>
+
 <div class="app-shell">
 
   <!-- Header -->
@@ -53,6 +60,10 @@
       <div class="brand">
         <span class="brand-logo">💰</span>
         <h1>Finance App</h1>
+        <!-- Ikon kecil penunjuk pengguna aktif (Iyon/Ciwul/Both) — di-set oleh
+             updateActiveUserDesc() di script.js, disembunyikan sebelum user
+             pertama kali memilih. -->
+        <img id="headerUserIcon" class="header-user-icon" alt="" hidden>
       </div>
       <button id="themeToggle" class="icon-btn" title="Ganti tema" aria-label="Ganti tema">🌙</button>
     </div>
@@ -174,6 +185,16 @@
       <div class="settings-list">
         <div class="settings-item">
           <div>
+            <p class="settings-title">Pengguna Aktif</p>
+            <p class="settings-desc" id="activeUserDesc">&mdash;</p>
+          </div>
+          <button id="switchUserBtn" class="icon-btn user-switch-btn" title="Ganti pengguna" aria-label="Ganti pengguna">
+            <img id="switchUserBtnIcon" alt="" hidden>
+          </button>
+        </div>
+
+        <div class="settings-item">
+          <div>
             <p class="settings-title">Mode Tampilan</p>
             <p class="settings-desc">Terang atau gelap</p>
           </div>
@@ -233,7 +254,7 @@
       <div class="modal-handle"></div>
       <h3 id="transactionModalTitle">Tambah Transaksi</h3>
 
-      <div class="type-toggle">
+      <div class="type-toggle" id="transactionTypeToggle">
         <button type="button" data-type="expense" class="type-btn active">Pengeluaran</button>
         <button type="button" data-type="income" class="type-btn">Pemasukan</button>
       </div>
@@ -258,6 +279,16 @@
           <span>Tanggal (otomatis)</span>
           <input type="date" id="dateInput" disabled>
         </label>
+
+        <!-- Cuma tampil kalau mode aktifnya "Both" — "Both" bukan orang beneran,
+             jadi transaksi baru wajib ditandai dibuat oleh siapa. -->
+        <div class="field by-field" id="transactionByField" hidden>
+          <span>Dibuat oleh</span>
+          <div class="type-toggle" id="transactionByToggle">
+            <button type="button" data-by="iyon" class="type-btn active">Iyon</button>
+            <button type="button" data-by="ciwul" class="type-btn">Ciwul</button>
+          </div>
+        </div>
 
         <div class="modal-actions">
           <button type="button" class="btn-secondary" id="cancelTransactionBtn">Batal</button>
@@ -329,11 +360,32 @@
           <input type="text" id="planLimitInput" placeholder="0" required inputmode="numeric" autocomplete="off">
         </label>
 
+        <!-- Cuma tampil kalau mode aktifnya "Both", sama seperti di modal Transaksi. -->
+        <div class="field by-field" id="planByField" hidden>
+          <span>Dibuat oleh</span>
+          <div class="type-toggle" id="planByToggle">
+            <button type="button" data-by="iyon" class="type-btn active">Iyon</button>
+            <button type="button" data-by="ciwul" class="type-btn">Ciwul</button>
+          </div>
+        </div>
+
         <div class="modal-actions">
           <button type="button" class="btn-secondary" id="cancelPlanBtn">Batal</button>
           <button type="submit" class="btn-primary">Simpan</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: CREATOR INFO (mode Both) ===================== -->
+  <div id="creatorInfoModal" class="modal-overlay confirm-overlay">
+    <div class="confirm-dialog">
+      <div class="confirm-icon" id="creatorInfoIcon">👤</div>
+      <h3>Dibuat oleh</h3>
+      <p id="creatorInfoText">&mdash;</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-primary" id="closeCreatorInfoBtn">Tutup</button>
+      </div>
     </div>
   </div>
 
@@ -442,6 +494,18 @@
 
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="cancelCategoriesBtn">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: GANTI PENGGUNA ===================== -->
+  <div id="userSwitchModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h3>Ganti Pengguna</h3>
+      <div class="user-select-options" id="userSwitchOptions"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="cancelUserSwitchBtn">Batal</button>
       </div>
     </div>
   </div>

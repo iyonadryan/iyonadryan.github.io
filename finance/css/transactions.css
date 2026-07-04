@@ -31,6 +31,7 @@
 }
 
 .tx-icon {
+  position: relative;
   width: 42px;
   height: 42px;
   border-radius: 12px;
@@ -47,6 +48,21 @@
 
 .tx-icon.expense {
   background: var(--color-expense-bg);
+}
+
+/* Badge kecil penunjuk pembuat transaksi (Iyon/Ciwul) — cuma muncul saat mode
+   aktif "Both", ditumpuk di pojok kanan-bawah tx-icon. Bisa diklik → info
+   "Dibuat oleh" (lihat openCreatorInfo() di script.js). */
+.creator-badge {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--color-surface);
+  object-fit: cover;
+  cursor: pointer;
 }
 
 .tx-info {

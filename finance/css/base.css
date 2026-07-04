@@ -214,6 +214,77 @@ button, input, select {
   }
 }
 
+/* ---------- User select overlay (pilih Iyon/Ciwul/Both) ---------- */
+/* Tampil di atas loading overlay (z-index lebih tinggi) kalau localStorage
+   belum punya pilihan user — lihat initUserSelect() di script.js. Tombol yang
+   sama (.user-select-options/.user-select-btn) dipakai ulang di modal Ganti
+   Pengguna (Pengaturan), cuma beda kontainer. */
+
+.user-select-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  background: var(--color-bg);
+  padding: 20px;
+  text-align: center;
+}
+
+.user-select-overlay.open {
+  display: flex;
+}
+
+.user-select-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.user-select-options {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.user-select-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.user-select-btn img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid var(--color-border);
+  object-fit: cover;
+  transition: border-color 0.15s ease, transform 0.12s ease;
+}
+
+.user-select-btn.active img {
+  border-color: var(--color-primary);
+}
+
+.user-select-btn:active img {
+  transform: scale(0.94);
+}
+
+.user-select-btn span {
+  font-size: 13px;
+  font-weight: 600;
+}
+
 /* ---------- App shell (mobile screen simulation) ---------- */
 
 .app-shell {
@@ -267,6 +338,16 @@ button, input, select {
   font-size: 19px;
   font-weight: 700;
   margin: 0;
+}
+
+/* Ikon pengguna aktif di header — di antara brand & tombol tema, muncul
+   otomatis di tengah lewat justify-content:space-between milik .header-top. */
+.header-user-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  object-fit: cover;
 }
 
 /* ---------- Main / pages ---------- */

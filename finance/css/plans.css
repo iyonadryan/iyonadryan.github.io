@@ -106,8 +106,23 @@
 }
 
 .plan-category {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 700;
   font-size: 14px;
+}
+
+/* Badge pembuat rencana (Iyon/Ciwul), cuma tampil mode "Both" — inline di
+   samping label kategori (beda dgn .creator-badge di tx-icon yang absolute). */
+.creator-badge-inline {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  object-fit: cover;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .plan-amounts {
