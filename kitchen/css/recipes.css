@@ -1,0 +1,251 @@
+/* =========================================================
+   Kitchen App — recipes.css
+   List resep (Dashboard & halaman Resep), kartu resep, dan
+   popup detail resep (bahan + langkah).
+   ========================================================= */
+
+/* ---------- Recipe list ---------- */
+
+.recipe-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recipe-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.recipe-item:active {
+  transform: scale(0.98);
+}
+
+.recipe-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.recipe-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.recipe-name {
+  font-weight: 700;
+  font-size: 14px;
+  margin: 0 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recipe-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  display: flex;
+  gap: 10px;
+}
+
+.recipe-category-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+/* ---------- Search ---------- */
+
+.search-box {
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 12px 14px 12px 40px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.search-box input:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.search-box::before {
+  content: "🔍";
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+/* ---------- Recipe detail modal ---------- */
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.detail-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.detail-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-header-text h3 {
+  margin: 0 0 4px;
+}
+
+.detail-meta-row {
+  display: flex;
+  gap: 16px;
+  margin: 16px 0;
+  padding: 12px 14px;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-sm);
+}
+
+.detail-meta-item {
+  flex: 1;
+  text-align: center;
+}
+
+.detail-meta-item strong {
+  display: block;
+  font-size: 15px;
+}
+
+.detail-meta-item span {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.detail-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  margin: 16px 0 8px;
+}
+
+.ingredient-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ingredient-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ingredient-list li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.ingredient-list .ing-name {
+  font-weight: 600;
+}
+
+.ingredient-list .ing-qty {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.step-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: step;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.step-list li {
+  counter-increment: step;
+  display: flex;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.step-list li::before {
+  content: counter(step);
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detail-note {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  white-space: pre-wrap;
+}
+
+.detail-actions-row {
+  display: flex;
+  gap: 8px;
+  margin: 18px 0 6px;
+}
+
+.detail-actions-row .btn-secondary,
+.detail-actions-row .btn-danger-solid {
+  padding: 11px;
+  font-size: 14px;
+}
