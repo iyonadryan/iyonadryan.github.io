@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iyon App</title>
+<link rel="icon" href="webimg/iyon-favicon.ico" type="image/x-icon">
+<link rel="stylesheet" href="style-app.css">
+</head>
+<body>
+<div class="app-shell">
+  <header class="hero">
+    <button class="theme-toggle" id="themeToggle" aria-label="Ganti tema">
+      <span id="themeIcon">🌙</span>
+    </button>
+    <h1 class="hero-title">Iyon App</h1>
+    <p class="hero-sub">Kumpulan aplikasi web &amp; mobile</p>
+  </header>
+
+  <main>
+    <p class="section-label">Aplikasi</p>
+    <div class="app-list">
+      <a class="app-card" href="kitchen/index.html">
+        <div class="app-icon kitchen">🍳</div>
+        <div class="app-info">
+          <p class="app-name">Kitchen App</p>
+          <p class="app-desc">Catatan resep &amp; daftar belanja dapur</p>
+        </div>
+        <div class="app-arrow">›</div>
+      </a>
+
+      <a class="app-card" href="finance/index.html">
+        <div class="app-icon finance">💰</div>
+        <div class="app-info">
+          <p class="app-name">Finance App</p>
+          <p class="app-desc">Kelola pemasukan &amp; pengeluaran pribadi</p>
+        </div>
+        <div class="app-arrow">›</div>
+      </a>
+
+      <div class="empty-slot">+ Aplikasi berikutnya nanti muncul di sini</div>
+    </div>
+
+    <footer class="hint">Iyon App &middot; iyonadryan.github.io</footer>
+  </main>
+</div>
+
+<script>
+  (function () {
+    var STORAGE_KEY = "iyonapp_theme";
+    var root = document.documentElement;
+    var toggleBtn = document.getElementById("themeToggle");
+    var iconEl = document.getElementById("themeIcon");
+
+    function applyTheme(theme) {
+      root.setAttribute("data-theme", theme);
+      iconEl.textContent = theme === "dark" ? "☀️" : "🌙";
+    }
+
+    var saved = localStorage.getItem(STORAGE_KEY);
+    var initial = saved || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    applyTheme(initial);
+
+    toggleBtn.addEventListener("click", function () {
+      var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      localStorage.setItem(STORAGE_KEY, next);
+      applyTheme(next);
+    });
+  })();
+</script>
+</body>
+</html>

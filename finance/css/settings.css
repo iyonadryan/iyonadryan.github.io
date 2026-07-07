@@ -37,6 +37,13 @@
   align-items: flex-start;
 }
 
+.settings-item a.btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
 /* Tombol "Ganti" pengguna — icon-btn bulat, tapi isinya foto user aktif
    (bukan emoji generik) supaya langsung kelihatan siapa yang lagi dipakai. */
 .user-switch-btn {
