@@ -94,9 +94,9 @@ Belum ada build tool. Cukup buka `index.html` langsung di browser atau lewat liv
    - **Bulan Ini** (`#checkMonth`): rutinitas `bulanan` — `routinesForMonth()`.
    - Tiap section: item yang sudah dicek pindah ke bawah & nama dicoret (pola sama dgn Belanja Kitchen App), klik area manapun di item (bukan cuma lingkaran centang, dan bukan `.creator-badge-inline`) → toggle `completions/<id>/<periodKey>` langsung tulis Firebase, **tanpa konfirmasi** (low-stakes, gampang di-uncheck lagi). Klik `.creator-badge-inline` (mode Both) → info pembuat.
    - **Tidak ada tombol hapus di sini** — hapus rutinitas cuma lewat halaman Rutinitas (pemisahan tanggung jawab: Rutinitas = CRUD, Cek = tracking harian).
-4. **Pengaturan** (`#settings`)
-   - Toggle tema light/dark.
+4. **Pengaturan** (`#settings`) — urutan card: Pengguna Aktif → Mode Tampilan → Semua Aplikasi → Tentang (Pengguna Aktif sengaja paling atas, beda dari Kitchen/Finance yang taruh toggle tema paling atas, krn di app ini siapa yang aktif lebih penting dilihat duluan).
    - **Pengguna Aktif** (`#activeUserDesc` + tombol "Ganti" `#switchUserBtn` → `#userSwitchModal`) — lihat "Multi-user".
+   - Toggle tema light/dark.
    - **Semua Aplikasi** — `.settings-item` berisi `<a class="btn-secondary">Iyon App</a>` → `../app.html` (hub Iyon App), pola identik dgn Kitchen/Finance App.
    - Info "Tentang".
 5. **Navigasi**: bottom nav — Dashboard, Rutinitas, **[+]** (tambah rutinitas, selalu tampil), Cek, Pengaturan. Pola sama dgn Kitchen App (`goToPage()`).
