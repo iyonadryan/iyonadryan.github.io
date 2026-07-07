@@ -62,3 +62,17 @@
   flex-shrink: 0;
   font-size: 18px;
 }
+
+/* Badge pembuat rutinitas (Iyon/Ciwul), cuma tampil mode "Both" — inline di
+   samping nama (beda dgn .creator-badge di routine-icon yang absolute).
+   Pola identik dgn .creator-badge-inline Finance App (dipakai di Rencana). */
+.creator-badge-inline {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  object-fit: cover;
+  cursor: pointer;
+  vertical-align: middle;
+  margin-left: 6px;
+}

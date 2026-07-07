@@ -45,6 +45,13 @@
   <p class="loading-text">Menghubungkan ke server…</p>
 </div>
 
+<!-- Overlay pilih pengguna aktif — tampil kalau localStorage belum punya pilihan
+     (lihat initUserSelect() di script.js). Z-index di atas loading overlay. -->
+<div id="userSelectOverlay" class="user-select-overlay">
+  <p class="user-select-title">Siapa yang pakai?</p>
+  <div class="user-select-options" id="userSelectOptions"></div>
+</div>
+
 <div class="app-shell">
 
   <!-- Header -->
@@ -53,6 +60,10 @@
       <div class="brand">
         <span class="brand-logo">🔁</span>
         <h1>Routine App</h1>
+        <!-- Ikon kecil penunjuk pengguna aktif (Iyon/Ciwul/Both) — di-set oleh
+             updateActiveUserDesc() di script.js, disembunyikan sebelum user
+             pertama kali memilih. -->
+        <img id="headerUserIcon" class="header-user-icon" alt="" hidden>
       </div>
       <button id="themeToggle" class="icon-btn" title="Ganti tema" aria-label="Ganti tema">🌙</button>
     </div>
@@ -151,6 +162,16 @@
 
         <div class="settings-item">
           <div>
+            <p class="settings-title">Pengguna Aktif</p>
+            <p class="settings-desc" id="activeUserDesc">&mdash;</p>
+          </div>
+          <button id="switchUserBtn" class="icon-btn user-switch-btn" title="Ganti pengguna" aria-label="Ganti pengguna">
+            <img id="switchUserBtnIcon" alt="" hidden>
+          </button>
+        </div>
+
+        <div class="settings-item">
+          <div>
             <p class="settings-title">Semua Aplikasi</p>
             <p class="settings-desc">Lihat daftar aplikasi lainnya</p>
           </div>
@@ -235,6 +256,16 @@
           <input type="text" id="routineIconInput" placeholder="mis. 🏃" autocomplete="off">
         </label>
 
+        <!-- Cuma tampil kalau mode aktifnya "Both" — "Both" bukan orang beneran,
+             jadi rutinitas baru wajib ditandai dibuat oleh siapa. -->
+        <div class="field" id="routineByField" hidden>
+          <span>Dibuat oleh</span>
+          <div class="mode-toggle" id="routineByToggle">
+            <button type="button" data-by="iyon" class="mode-btn active">Iyon</button>
+            <button type="button" data-by="ciwul" class="mode-btn">Ciwul</button>
+          </div>
+        </div>
+
         <div class="modal-actions">
           <button type="button" class="btn-secondary" id="cancelRoutineBtn">Batal</button>
           <button type="submit" class="btn-primary">Simpan</button>
@@ -284,6 +315,30 @@
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="cancelDeleteBtn">Batal</button>
         <button type="button" class="btn-danger-solid" id="confirmDeleteBtn">Ya, Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: GANTI PENGGUNA ===================== -->
+  <div id="userSwitchModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h3>Ganti Pengguna</h3>
+      <div class="user-select-options" id="userSwitchOptions"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="cancelUserSwitchBtn">Batal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: CREATOR INFO (mode Both) ===================== -->
+  <div id="creatorInfoModal" class="modal-overlay confirm-overlay">
+    <div class="confirm-dialog">
+      <div class="confirm-icon" id="creatorInfoIcon">👤</div>
+      <h3>Dibuat oleh</h3>
+      <p id="creatorInfoText">&mdash;</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-primary" id="closeCreatorInfoBtn">Tutup</button>
       </div>
     </div>
   </div>

@@ -6,13 +6,16 @@
    Struktur data:
      routine/
        routines/
-         <timestamp>/ { name, period, icon, days, createdAt }
+         <timestamp>/ { name, period, icon, days, by, createdAt }
          // period: "harian" | "mingguan" | "bulanan"
          // days: array angka 0-6 (0=Minggu … 6=Sabtu, konvensi Date.getDay()),
          //   HANYA relevan kalau period === "harian". [] = mode "Tiap Hari"
          //   (aktif tiap hari); non-kosong = mode "Hari Tertentu" (cuma aktif
          //   di hari-hari itu, mis. [1,4] = "Senin & Kamis" utk rutinitas
          //   "Puasa Senin Kamis"). Diabaikan (selalu []) utk mingguan/bulanan.
+         // by: "iyon" | "ciwul" — pembuat, lihat bagian Multi-user. Rutinitas
+         //   lama tanpa field ini di-backfill sekali jalan ke "iyon" oleh
+         //   migrateRoutineOwners().
        completions/
          <routineId>/
            <periodKey>: true
@@ -21,13 +24,27 @@
            //   mingguan   -> "YYYY-MM-DD" Senin minggu berjalan
            //   bulanan    -> "YYYY-MM"
 
-   Preferensi tema disimpan lokal (localStorage).
+   Preferensi tema & pilihan pengguna aktif disimpan lokal (localStorage).
    ========================================================= */
 
 (function () {
   "use strict";
 
-  const STORAGE_KEYS = { theme: "routineapp_theme" };
+  const STORAGE_KEYS = { theme: "routineapp_theme", user: "routineapp_user" };
+
+  /* ---------------- Multi-user (Iyon / Ciwul / Both) ---------------- */
+  // "both" cuma mode TAMPILAN (gabungan semua data) — bukan pemilik data yang
+  // valid, jadi tidak pernah muncul sbg data.by rutinitas. Pola identik dgn
+  // Finance App (lihat finance/script.js & finance/.claude/CLAUDE.md).
+  const USERS = {
+    iyon: { id: "iyon", label: "Iyon", icon: "img/iyon.png" },
+    ciwul: { id: "ciwul", label: "Ciwul", icon: "img/ciwul.png" },
+    both: { id: "both", label: "Both", icon: "img/couple.png" },
+  };
+
+  // Pilihan user aktif, diingat di localStorage (pola sama spt tema). null =
+  // belum pernah pilih (overlay #userSelectOverlay bakal tampil di init).
+  let currentUser = localStorage.getItem(STORAGE_KEYS.user) || null;
 
   /* ---------------- Metadata periode (enum tetap, bukan kategori bikinan user) ---------------- */
   const PERIOD_ORDER = ["harian", "mingguan", "bulanan"];
@@ -50,6 +67,13 @@
   let routines = [];
   let completions = {}; // { [routineId]: { [periodKey]: true } }
   let activePeriodFilter = "all";
+
+  // Scope tampilan ke user aktif — "both" menampilkan gabungan semua data.
+  // Dipakai Dashboard, Rutinitas, & Cek Rutinitas (bukan cuma satu tempat),
+  // pola identik dgn visibleTransactions() Finance App.
+  function visibleRoutines() {
+    return currentUser === "both" ? routines : routines.filter((r) => r.by === currentUser);
+  }
 
   function getMeta(period) {
     return PERIOD_META[period] || PERIOD_META.harian;
@@ -92,15 +116,15 @@
   }
 
   function routinesForToday(now) {
-    return routines.filter((r) => r.period === "harian" && isRoutineActiveToday(r, now));
+    return visibleRoutines().filter((r) => r.period === "harian" && isRoutineActiveToday(r, now));
   }
 
   function routinesForWeek() {
-    return routines.filter((r) => r.period === "mingguan");
+    return visibleRoutines().filter((r) => r.period === "mingguan");
   }
 
   function routinesForMonth() {
-    return routines.filter((r) => r.period === "bulanan");
+    return visibleRoutines().filter((r) => r.period === "bulanan");
   }
 
   /* ================= Firebase data layer ================= */
@@ -112,6 +136,7 @@
       "value",
       (snapshot) => {
         const root = snapshot.val() || {};
+        migrateRoutineOwners(root);
         rebuildFromSnapshot(root);
         renderAll();
         hideLoading();
@@ -121,6 +146,21 @@
         hideLoading();
       }
     );
+  }
+
+  // Backfill sekali jalan: rutinitas lama (dibuat sebelum fitur multi-user
+  // ada) belum punya field `by` — anggap semua milik "iyon" sekali jalan,
+  // pola sama dgn migrateTransactionOwners() Finance App.
+  let ownersMigrated = false;
+  function migrateRoutineOwners(root) {
+    if (ownersMigrated) return;
+    ownersMigrated = true;
+    const routinesObj = root.routines || {};
+    const updates = {};
+    Object.keys(routinesObj).forEach((id) => {
+      if (!routinesObj[id].by) updates["routines/" + id + "/by"] = "iyon";
+    });
+    if (Object.keys(updates).length) routineRef.update(updates).catch((e) => console.error("Migrasi pemilik rutinitas gagal:", e));
   }
 
   function rebuildFromSnapshot(root) {
@@ -133,6 +173,7 @@
         period: PERIOD_META[r.period] ? r.period : "harian",
         icon: r.icon || "",
         days: Array.isArray(r.days) ? r.days.map(Number) : [],
+        by: r.by === "ciwul" ? "ciwul" : "iyon",
         createdAt: Number(r.createdAt) || 0,
       };
     });
@@ -241,9 +282,13 @@
   function routineCardHTML(routine) {
     const meta = getMeta(routine.period);
     const icon = routine.icon || meta.icon;
+    const creatorBadge =
+      currentUser === "both" && USERS[routine.by]
+        ? '<img class="creator-badge" src="' + USERS[routine.by].icon + '" data-by="' + routine.by + '" alt="' + USERS[routine.by].label + '">'
+        : "";
     return (
       '<div class="routine-item" data-id="' + routine.id + '">' +
-      '<div class="routine-icon" style="' + periodChipStyle(routine.period) + '">' + escapeHtml(icon) + "</div>" +
+      '<div class="routine-icon" style="' + periodChipStyle(routine.period) + '">' + escapeHtml(icon) + creatorBadge + "</div>" +
       '<div class="routine-info">' +
       '<p class="routine-name">' + escapeHtml(routine.name) + "</p>" +
       "</div>" +
@@ -253,7 +298,8 @@
   }
 
   function renderDashboard() {
-    document.getElementById("statRoutineCount").textContent = routines.length;
+    const scoped = visibleRoutines();
+    document.getElementById("statRoutineCount").textContent = scoped.length;
 
     const now = new Date();
     const todayLeft = routinesForToday(now).filter((r) => !isDone(r, now)).length;
@@ -261,7 +307,7 @@
     document.getElementById("statTodayLeft").textContent = todayLeft;
     document.getElementById("statWeekLeft").textContent = weekLeft;
 
-    const recent = [...routines].sort((a, b) => b.createdAt - a.createdAt).slice(0, 4);
+    const recent = [...scoped].sort((a, b) => b.createdAt - a.createdAt).slice(0, 4);
     const recentEl = document.getElementById("recentRoutines");
     recentEl.innerHTML = recent.length
       ? recent.map(routineCardHTML).join("")
@@ -271,7 +317,7 @@
     const withCount = PERIOD_ORDER.map((p) => ({
       period: p,
       label: PERIOD_META[p].label,
-      count: routines.filter((r) => r.period === p).length,
+      count: scoped.filter((r) => r.period === p).length,
     })).filter((p) => p.count > 0);
     breakdownEl.innerHTML = withCount.length
       ? withCount
@@ -312,7 +358,7 @@
 
   function renderRoutineList() {
     const listEl = document.getElementById("routineList");
-    let filtered = routines;
+    let filtered = visibleRoutines();
     if (activePeriodFilter !== "all") filtered = filtered.filter((r) => r.period === activePeriodFilter);
     filtered = [...filtered].sort((a, b) => b.createdAt - a.createdAt);
 
@@ -330,6 +376,8 @@
   const dailyDaysField = document.getElementById("dailyDaysField");
   const dailyModeToggle = document.getElementById("dailyModeToggle");
   const dailyDaysPicker = document.getElementById("dailyDaysPicker");
+  const routineByField = document.getElementById("routineByField");
+  const routineByToggle = document.getElementById("routineByToggle");
   let editingRoutineId = null;
   let currentDailyMode = "setiap"; // "setiap" | "tertentu" — cuma state UI, tidak disimpan langsung (disimpulkan dari `days.length` saat dibuka lagi)
   let selectedDays = [];
@@ -370,6 +418,33 @@
     renderDayPicker();
   });
 
+  // Set toggle 2-tombol (Dibuat oleh) ke satu nilai, opsional dikunci
+  // (dipakai saat edit — pembuat tidak bisa diubah). Pola identik dgn
+  // setByToggleValue() Finance App.
+  function setByToggleValue(toggleId, by, locked) {
+    const toggle = document.getElementById(toggleId);
+    toggle.querySelectorAll(".mode-btn").forEach((b) => {
+      b.classList.toggle("active", b.dataset.by === by);
+      b.disabled = locked;
+    });
+    toggle.classList.toggle("locked", locked);
+  }
+
+  routineByToggle.querySelectorAll(".mode-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (btn.disabled) return; // dikunci saat edit
+      routineByToggle.querySelectorAll(".mode-btn").forEach((b) => b.classList.toggle("active", b === btn));
+    });
+  });
+
+  // Scope ke user aktif kalau bukan mode Both; kalau Both, baca toggle
+  // "Dibuat oleh" di modal (default "iyon" kalau belum ada yang aktif).
+  function routineFormBy() {
+    if (currentUser !== "both") return currentUser;
+    const active = routineByToggle.querySelector(".mode-btn.active");
+    return active ? active.dataset.by : "iyon";
+  }
+
   function openRoutineModal(routine) {
     editingRoutineId = routine ? routine.id : null;
     document.getElementById("routineModalTitle").textContent = routine ? "Ubah Rutinitas" : "Tambah Rutinitas";
@@ -381,6 +456,8 @@
     renderDayPicker();
     setDailyMode(selectedDays.length ? "tertentu" : "setiap");
     updatePeriodFieldsVisibility();
+
+    setByToggleValue("routineByToggle", routine ? routine.by : currentUser !== "both" ? currentUser : "iyon", !!routine);
 
     routineModal.classList.add("open");
   }
@@ -411,6 +488,7 @@
       // Selalu disertakan (walau kosong) supaya update() bersih menimpa `days`
       // lama kalau period/mode diganti — bukan cuma di-skip merge.
       days: isDailyTertentu ? [...selectedDays].sort((a, b) => a - b) : [],
+      by: routineFormBy(),
     };
     if (!data.name) return;
 
@@ -488,6 +566,14 @@
 
   [document.getElementById("recentRoutines"), document.getElementById("routineList")].forEach((container) => {
     container.addEventListener("click", (e) => {
+      // Delegated ke container (bukan per-elemen) krn list di-render ulang
+      // lewat innerHTML tiap snapshot Firebase berubah — listener per-badge
+      // akan hilang kalau dipasang di render function seperti Finance App.
+      const badge = e.target.closest(".creator-badge");
+      if (badge) {
+        openCreatorInfo(badge.dataset.by);
+        return;
+      }
       const item = e.target.closest(".routine-item");
       if (!item) return;
       const routine = routines.find((r) => r.id === item.dataset.id);
@@ -528,6 +614,10 @@
     const meta = getMeta(routine.period);
     const icon = routine.icon || meta.icon;
     const done = isDone(routine, now);
+    const creatorBadge =
+      currentUser === "both" && USERS[routine.by]
+        ? '<img class="creator-badge-inline" src="' + USERS[routine.by].icon + '" data-by="' + routine.by + '" alt="' + USERS[routine.by].label + '">'
+        : "";
     return (
       '<div class="check-item' +
       (done ? " done" : "") +
@@ -543,6 +633,7 @@
       '<div class="check-info">' +
       '<p class="check-name">' +
       escapeHtml(routine.name) +
+      creatorBadge +
       "</p>" +
       "</div>" +
       "</div>"
@@ -569,6 +660,11 @@
 
   document.querySelectorAll(".check-list").forEach((container) => {
     container.addEventListener("click", (e) => {
+      const badge = e.target.closest(".creator-badge-inline");
+      if (badge) {
+        openCreatorInfo(badge.dataset.by);
+        return;
+      }
       const item = e.target.closest(".check-item");
       if (!item) return;
       const routine = routines.find((r) => r.id === item.dataset.id);
@@ -585,6 +681,106 @@
   function escapeHtml(str) {
     return String(str == null ? "" : str).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
   }
+
+  /* ================= Multi-user (Iyon / Ciwul / Both) ================= */
+
+  const userSelectOverlay = document.getElementById("userSelectOverlay");
+  const userSwitchModal = document.getElementById("userSwitchModal");
+
+  // Render 3 tombol Iyon/Ciwul/Both ke sebuah container — dipakai ulang utk
+  // overlay pilih user pertama kali & modal ganti user di Pengaturan. Pola
+  // identik dgn renderUserButtons() Finance App.
+  function renderUserButtons(container, onSelect) {
+    container.innerHTML = "";
+    ["iyon", "ciwul", "both"].forEach((id) => {
+      const user = USERS[id];
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "user-select-btn" + (currentUser === id ? " active" : "");
+      btn.innerHTML = '<img src="' + user.icon + '" alt="' + user.label + '"><span>' + user.label + "</span>";
+      btn.addEventListener("click", () => onSelect(id));
+      container.appendChild(btn);
+    });
+  }
+
+  // Update indikator visual user aktif: deskripsi di Pengaturan & ikon kecil
+  // di header, supaya keduanya selalu sinkron tiap ganti user.
+  function updateActiveUserDesc() {
+    const desc = document.getElementById("activeUserDesc");
+    if (desc) desc.textContent = currentUser ? USERS[currentUser].label : "Belum dipilih";
+
+    const user = currentUser ? USERS[currentUser] : null;
+    [document.getElementById("headerUserIcon"), document.getElementById("switchUserBtnIcon")].forEach((img) => {
+      if (!img) return;
+      if (user) {
+        img.src = user.icon;
+        img.alt = user.label;
+        img.hidden = false;
+      } else {
+        img.hidden = true;
+      }
+    });
+
+    const switchBtn = document.getElementById("switchUserBtn");
+    if (switchBtn) switchBtn.title = user ? "Ganti pengguna (aktif: " + user.label + ")" : "Ganti pengguna";
+  }
+
+  // Field "Dibuat oleh" di modal Rutinitas cuma relevan kalau mode aktifnya
+  // "Both" (Iyon/Ciwul sendiri tidak perlu ditanya, sudah jelas).
+  function updateByFieldVisibility() {
+    routineByField.hidden = currentUser !== "both";
+  }
+
+  function setCurrentUser(id) {
+    currentUser = id;
+    localStorage.setItem(STORAGE_KEYS.user, id);
+    userSelectOverlay.classList.remove("open");
+    userSwitchModal.classList.remove("open");
+    updateActiveUserDesc();
+    updateByFieldVisibility();
+    renderAll();
+  }
+
+  // Tampilkan overlay pilih user kalau localStorage belum punya pilihan
+  // (pertama kali buka app / storage-nya dibersihkan).
+  function initUserSelect() {
+    renderUserButtons(document.getElementById("userSelectOptions"), setCurrentUser);
+    renderUserButtons(document.getElementById("userSwitchOptions"), setCurrentUser);
+    updateActiveUserDesc();
+    updateByFieldVisibility();
+    if (!currentUser) userSelectOverlay.classList.add("open");
+  }
+
+  document.getElementById("switchUserBtn").addEventListener("click", () => {
+    renderUserButtons(document.getElementById("userSwitchOptions"), setCurrentUser);
+    userSwitchModal.classList.add("open");
+  });
+  document.getElementById("cancelUserSwitchBtn").addEventListener("click", () => {
+    userSwitchModal.classList.remove("open");
+  });
+  userSwitchModal.addEventListener("click", (e) => {
+    if (e.target === userSwitchModal) userSwitchModal.classList.remove("open");
+  });
+
+  // Info "Dibuat oleh" (mode Both) — popup read-only, reuse gaya confirm-dialog.
+  const creatorInfoModal = document.getElementById("creatorInfoModal");
+
+  function openCreatorInfo(by) {
+    const user = USERS[by] || { label: by, icon: "" };
+    const iconEl = document.getElementById("creatorInfoIcon");
+    iconEl.innerHTML = user.icon
+      ? '<img src="' + user.icon + '" alt="' + user.label + '" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">'
+      : "👤";
+    document.getElementById("creatorInfoText").textContent = "Dibuat oleh: " + user.label;
+    creatorInfoModal.classList.add("open");
+  }
+
+  document.getElementById("closeCreatorInfoBtn").addEventListener("click", () => {
+    creatorInfoModal.classList.remove("open");
+  });
+  creatorInfoModal.addEventListener("click", (e) => {
+    if (e.target === creatorInfoModal) creatorInfoModal.classList.remove("open");
+  });
 
   /* ================= Wiring ================= */
 
@@ -611,5 +807,6 @@
   /* ================= Init ================= */
 
   initTheme();
+  initUserSelect();
   subscribeRoutine();
 })();
