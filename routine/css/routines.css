@@ -1,7 +1,8 @@
 /* =========================================================
    Routine App — routines.css
    List rutinitas (Dashboard & halaman Rutinitas), kartu
-   rutinitas, popup detail, dan warna tab per periode.
+   rutinitas, popup detail, warna tab per periode, dan form
+   mode Harian (Tiap Hari / Hari Tertentu + pemilih hari).
    ========================================================= */
 
 /* ---------- Routine list ---------- */
@@ -64,9 +65,8 @@
 
 /* ---------- Warna tab per periode ----------
    Harian pakai .filter-tab.active bawaan (var(--color-primary)).
-   4 periode lain diberi warna sendiri biar gampang dibedakan
-   sekilas — sama semangat dgn .tab-weekday/.tab-weekend Finance
-   App, di sini diperluas ke semua periode. */
+   Mingguan & Bulanan diberi warna sendiri biar gampang dibedakan
+   sekilas. */
 
 .filter-tab.tab-mingguan {
   border-color: var(--period-mingguan);
@@ -85,26 +85,6 @@
 .filter-tab.tab-bulanan.active {
   background: var(--period-bulanan);
   border-color: var(--period-bulanan);
-  color: #fff;
-}
-
-.filter-tab.tab-weekday {
-  border-color: var(--period-weekday);
-  color: var(--period-weekday);
-}
-.filter-tab.tab-weekday.active {
-  background: var(--period-weekday);
-  border-color: var(--period-weekday);
-  color: #fff;
-}
-
-.filter-tab.tab-weekend {
-  border-color: var(--period-weekend);
-  color: var(--period-weekend);
-}
-.filter-tab.tab-weekend.active {
-  background: var(--period-weekend);
-  border-color: var(--period-weekend);
   color: #fff;
 }
 
@@ -171,4 +151,70 @@
 .detail-actions-row .btn-danger-solid {
   padding: 11px;
   font-size: 14px;
+}
+
+.detail-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  margin: 16px 0 8px;
+}
+
+.detail-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Form: mode Harian (Tiap Hari / Hari Tertentu) ---------- */
+
+.mode-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mode-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.day-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.day-chip {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.day-chip.selected {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
 }

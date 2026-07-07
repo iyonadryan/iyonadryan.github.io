@@ -120,7 +120,7 @@
 
       <div class="section-heading"><h3>Hari Ini</h3></div>
       <div id="checkToday" class="check-list">
-        <p class="empty-state">Tidak ada rutinitas harian untuk hari ini.</p>
+        <p class="empty-state">Belum ada rutinitas harian untuk hari ini.</p>
       </div>
 
       <div class="section-heading"><h3>Minggu Ini</h3></div>
@@ -206,10 +206,29 @@
             <option value="harian">Harian</option>
             <option value="mingguan">Mingguan</option>
             <option value="bulanan">Bulanan</option>
-            <option value="weekday">Weekday (Senin—Jumat)</option>
-            <option value="weekend">Weekend (Sabtu—Minggu)</option>
           </select>
         </label>
+
+        <div class="field" id="dailyModeField">
+          <span>Mode Harian</span>
+          <div class="mode-toggle" id="dailyModeToggle">
+            <button type="button" class="mode-btn active" data-mode="setiap">Tiap Hari</button>
+            <button type="button" class="mode-btn" data-mode="tertentu">Hari Tertentu</button>
+          </div>
+        </div>
+
+        <div class="field" id="dailyDaysField" hidden>
+          <span>Pilih Hari</span>
+          <div class="day-picker" id="dailyDaysPicker">
+            <button type="button" class="day-chip" data-day="1">Sen</button>
+            <button type="button" class="day-chip" data-day="2">Sel</button>
+            <button type="button" class="day-chip" data-day="3">Rab</button>
+            <button type="button" class="day-chip" data-day="4">Kam</button>
+            <button type="button" class="day-chip" data-day="5">Jum</button>
+            <button type="button" class="day-chip" data-day="6">Sab</button>
+            <button type="button" class="day-chip" data-day="0">Min</button>
+          </div>
+        </div>
 
         <label class="field">
           <span>Icon (opsional)</span>
@@ -242,6 +261,11 @@
           <strong id="detailCreatedAt">&mdash;</strong>
           <span>Dibuat Sejak</span>
         </div>
+      </div>
+
+      <div id="detailDaysWrap" hidden>
+        <p class="detail-section-label">Hari Aktif</p>
+        <p class="detail-note" id="detailDaysText"></p>
       </div>
 
       <div class="detail-actions-row">

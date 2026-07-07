@@ -6,15 +6,20 @@
    Struktur data:
      routine/
        routines/
-         <timestamp>/ { name, period, icon, createdAt }
-         // period: "harian" | "mingguan" | "bulanan" | "weekday" | "weekend"
+         <timestamp>/ { name, period, icon, days, createdAt }
+         // period: "harian" | "mingguan" | "bulanan"
+         // days: array angka 0-6 (0=Minggu … 6=Sabtu, konvensi Date.getDay()),
+         //   HANYA relevan kalau period === "harian". [] = mode "Tiap Hari"
+         //   (aktif tiap hari); non-kosong = mode "Hari Tertentu" (cuma aktif
+         //   di hari-hari itu, mis. [1,4] = "Senin & Kamis" utk rutinitas
+         //   "Puasa Senin Kamis"). Diabaikan (selalu []) utk mingguan/bulanan.
        completions/
          <routineId>/
            <periodKey>: true
            // periodKey tergantung period rutinitas itu (lihat periodKeyFor()):
-           //   harian/weekday/weekend -> "YYYY-MM-DD" (tanggal lokal hari ini)
-           //   mingguan               -> "YYYY-MM-DD" Senin minggu berjalan
-           //   bulanan                -> "YYYY-MM"
+           //   harian     -> "YYYY-MM-DD" (tanggal lokal hari ini)
+           //   mingguan   -> "YYYY-MM-DD" Senin minggu berjalan
+           //   bulanan    -> "YYYY-MM"
 
    Preferensi tema disimpan lokal (localStorage).
    ========================================================= */
@@ -25,19 +30,21 @@
   const STORAGE_KEYS = { theme: "routineapp_theme" };
 
   /* ---------------- Metadata periode (enum tetap, bukan kategori bikinan user) ---------------- */
-  const PERIOD_ORDER = ["harian", "mingguan", "bulanan", "weekday", "weekend"];
+  const PERIOD_ORDER = ["harian", "mingguan", "bulanan"];
   const PERIOD_META = {
     harian: { label: "Harian", icon: "🔁", varName: "--color-primary" },
     mingguan: { label: "Mingguan", icon: "📆", varName: "--period-mingguan" },
     bulanan: { label: "Bulanan", icon: "🗓️", varName: "--period-bulanan" },
-    weekday: { label: "Weekday", icon: "💼", varName: "--period-weekday" },
-    weekend: { label: "Weekend", icon: "🎉", varName: "--period-weekend" },
   };
 
   const MONTH_NAMES = [
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
     "Juli", "Agustus", "September", "Oktober", "November", "Desember",
   ];
+
+  // Index 0 = Minggu, sama konvensi dgn Date.getDay().
+  const DAY_ABBR = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+  const DAY_FULL = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
   /* ---------------- State ---------------- */
   let routines = [];
@@ -66,20 +73,10 @@
     return d;
   }
 
-  function isWeekdayNow(now) {
-    const day = now.getDay(); // 0=Minggu … 6=Sabtu
-    return day >= 1 && day <= 5;
-  }
-
-  function isWeekendNow(now) {
-    const day = now.getDay();
-    return day === 0 || day === 6;
-  }
-
   function periodKeyFor(period, now) {
     if (period === "bulanan") return now.getFullYear() + "-" + pad2(now.getMonth() + 1);
     if (period === "mingguan") return dateStr(startOfWeek(now));
-    return dateStr(now); // harian, weekday, weekend -> reset tiap hari
+    return dateStr(now); // harian -> reset tiap hari
   }
 
   function isDone(routine, now) {
@@ -87,12 +84,15 @@
     return !!(completions[routine.id] && completions[routine.id][key]);
   }
 
-  // Rutinitas yang "aktif dicek" hari ini: harian selalu, weekday/weekend
-  // cuma kalau harinya cocok.
+  // Rutinitas harian mode "Tiap Hari" (days kosong) selalu aktif; mode "Hari
+  // Tertentu" (days terisi) cuma aktif kalau hari ini (now.getDay()) ada di
+  // daftar days-nya, mis. days=[1,4] ("Puasa Senin Kamis") cuma aktif Senin & Kamis.
+  function isRoutineActiveToday(routine, now) {
+    return !routine.days.length || routine.days.includes(now.getDay());
+  }
+
   function routinesForToday(now) {
-    return routines.filter(
-      (r) => r.period === "harian" || (r.period === "weekday" && isWeekdayNow(now)) || (r.period === "weekend" && isWeekendNow(now))
-    );
+    return routines.filter((r) => r.period === "harian" && isRoutineActiveToday(r, now));
   }
 
   function routinesForWeek() {
@@ -132,6 +132,7 @@
         name: r.name || "",
         period: PERIOD_META[r.period] ? r.period : "harian",
         icon: r.icon || "",
+        days: Array.isArray(r.days) ? r.days.map(Number) : [],
         createdAt: Number(r.createdAt) || 0,
       };
     });
@@ -214,6 +215,18 @@
     return "background: var(" + getMeta(period).varName + ");";
   }
 
+  // Badge/label periode: rutinitas harian mode "Hari Tertentu" menampilkan
+  // nama hari-nya langsung (mis. "Sen, Kam") supaya lebih informatif drpd
+  // cuma "Harian" generik. `full` = pakai nama hari lengkap (dipakai di
+  // popup detail), default singkatan (dipakai di badge kartu/list yg sempit).
+  function routinePeriodLabel(routine, full) {
+    if (routine.period === "harian" && routine.days.length) {
+      const names = full ? DAY_FULL : DAY_ABBR;
+      return [...routine.days].sort((a, b) => a - b).map((d) => names[d]).join(", ");
+    }
+    return getMeta(routine.period).label;
+  }
+
   /* ================= Render: all ================= */
 
   function renderAll() {
@@ -234,7 +247,7 @@
       '<div class="routine-info">' +
       '<p class="routine-name">' + escapeHtml(routine.name) + "</p>" +
       "</div>" +
-      '<span class="routine-period-badge" style="' + periodChipStyle(routine.period) + '">' + escapeHtml(meta.label) + "</span>" +
+      '<span class="routine-period-badge" style="' + periodChipStyle(routine.period) + '">' + escapeHtml(routinePeriodLabel(routine)) + "</span>" +
       "</div>"
     );
   }
@@ -312,14 +325,63 @@
 
   const routineModal = document.getElementById("routineModal");
   const routineForm = document.getElementById("routineForm");
+  const routinePeriodInput = document.getElementById("routinePeriodInput");
+  const dailyModeField = document.getElementById("dailyModeField");
+  const dailyDaysField = document.getElementById("dailyDaysField");
+  const dailyModeToggle = document.getElementById("dailyModeToggle");
+  const dailyDaysPicker = document.getElementById("dailyDaysPicker");
   let editingRoutineId = null;
+  let currentDailyMode = "setiap"; // "setiap" | "tertentu" — cuma state UI, tidak disimpan langsung (disimpulkan dari `days.length` saat dibuka lagi)
+  let selectedDays = [];
+
+  function setDailyMode(mode) {
+    currentDailyMode = mode;
+    dailyModeToggle.querySelectorAll(".mode-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.mode === mode));
+    updatePeriodFieldsVisibility();
+  }
+
+  function renderDayPicker() {
+    dailyDaysPicker.querySelectorAll(".day-chip").forEach((chip) => {
+      chip.classList.toggle("selected", selectedDays.includes(Number(chip.dataset.day)));
+    });
+  }
+
+  function updatePeriodFieldsVisibility() {
+    const isHarian = routinePeriodInput.value === "harian";
+    dailyModeField.hidden = !isHarian;
+    dailyDaysField.hidden = !isHarian || currentDailyMode !== "tertentu";
+  }
+
+  routinePeriodInput.addEventListener("change", updatePeriodFieldsVisibility);
+
+  dailyModeToggle.addEventListener("click", (e) => {
+    const btn = e.target.closest(".mode-btn");
+    if (!btn) return;
+    setDailyMode(btn.dataset.mode);
+  });
+
+  dailyDaysPicker.addEventListener("click", (e) => {
+    const chip = e.target.closest(".day-chip");
+    if (!chip) return;
+    const day = Number(chip.dataset.day);
+    const idx = selectedDays.indexOf(day);
+    if (idx === -1) selectedDays.push(day);
+    else selectedDays.splice(idx, 1);
+    renderDayPicker();
+  });
 
   function openRoutineModal(routine) {
     editingRoutineId = routine ? routine.id : null;
     document.getElementById("routineModalTitle").textContent = routine ? "Ubah Rutinitas" : "Tambah Rutinitas";
     document.getElementById("routineNameInput").value = routine ? routine.name : "";
-    document.getElementById("routinePeriodInput").value = routine ? routine.period : "harian";
+    routinePeriodInput.value = routine ? routine.period : "harian";
     document.getElementById("routineIconInput").value = routine ? routine.icon : "";
+
+    selectedDays = routine ? routine.days.slice() : [];
+    renderDayPicker();
+    setDailyMode(selectedDays.length ? "tertentu" : "setiap");
+    updatePeriodFieldsVisibility();
+
     routineModal.classList.add("open");
   }
 
@@ -335,10 +397,20 @@
 
   routineForm.addEventListener("submit", (e) => {
     e.preventDefault();
+    const period = routinePeriodInput.value;
+    const isDailyTertentu = period === "harian" && currentDailyMode === "tertentu";
+    if (isDailyTertentu && !selectedDays.length) {
+      alert("Pilih minimal satu hari untuk mode Hari Tertentu.");
+      return;
+    }
+
     const data = {
       name: document.getElementById("routineNameInput").value.trim(),
-      period: document.getElementById("routinePeriodInput").value,
+      period,
       icon: document.getElementById("routineIconInput").value.trim(),
+      // Selalu disertakan (walau kosong) supaya update() bersih menimpa `days`
+      // lama kalau period/mode diganti — bukan cuma di-skip merge.
+      days: isDailyTertentu ? [...selectedDays].sort((a, b) => a - b) : [],
     };
     if (!data.name) return;
 
@@ -369,10 +441,20 @@
     document.getElementById("detailIcon").textContent = icon;
     document.getElementById("detailName").textContent = routine.name;
     const badge = document.getElementById("detailPeriodBadge");
-    badge.textContent = meta.label;
+    badge.textContent = routinePeriodLabel(routine);
     badge.style.cssText = periodChipStyle(routine.period);
 
     document.getElementById("detailCreatedAt").textContent = routine.createdAt ? formatDateLong(routine.createdAt) : "—";
+
+    const daysWrap = document.getElementById("detailDaysWrap");
+    if (routine.period === "harian") {
+      daysWrap.hidden = false;
+      document.getElementById("detailDaysText").textContent = routine.days.length
+        ? [...routine.days].sort((a, b) => a - b).map((d) => DAY_FULL[d]).join(", ")
+        : "Setiap hari";
+    } else {
+      daysWrap.hidden = true;
+    }
 
     routineDetailModal.classList.add("open");
   }
@@ -480,7 +562,7 @@
 
   function renderCheckLists() {
     const now = new Date();
-    renderCheckGroup("checkToday", routinesForToday(now), now, "Tidak ada rutinitas harian untuk hari ini.");
+    renderCheckGroup("checkToday", routinesForToday(now), now, "Belum ada rutinitas harian untuk hari ini.");
     renderCheckGroup("checkWeek", routinesForWeek(), now, "Belum ada rutinitas mingguan.");
     renderCheckGroup("checkMonth", routinesForMonth(), now, "Belum ada rutinitas bulanan.");
   }

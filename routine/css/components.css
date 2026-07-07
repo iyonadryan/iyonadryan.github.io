@@ -272,6 +272,14 @@
   color: var(--color-text-muted);
 }
 
+/* `.field { display: block }` di atas punya spesifisitas sama dgn `[hidden]`
+   bawaan browser (`display: none`) — author style menang, jadi field yang
+   di-hidden via JS (mis. #dailyModeField/#dailyDaysField) tetap kelihatan
+   tanpa override eksplisit ini. */
+.field[hidden] {
+  display: none;
+}
+
 .field span {
   display: block;
   margin-bottom: 6px;

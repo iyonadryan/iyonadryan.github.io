@@ -41,16 +41,12 @@
   --color-done: #22c55e;
   --color-done-bg: #e8f8ee;
 
-  /* Warna periode (Harian pakai --color-primary langsung, 4 lainnya fixed
+  /* Warna periode (Harian pakai --color-primary langsung, 2 lainnya fixed
      di bawah) — dipakai badge/tab periode. BUKAN palet kategorikal bebas
-     (tidak perlu divalidasi lewat dataviz skill) karena cuma 5 nilai enum
-     tetap (harian/mingguan/bulanan/weekday/weekend), bukan kategori bikinan
-     user. Weekday/weekend sengaja indigo/oranye — konsisten dgn makna warna
-     yang sama di Finance App (`.tab-weekday`/`.tab-weekend`). */
+     (tidak perlu divalidasi lewat dataviz skill) karena cuma 3 nilai enum
+     tetap (harian/mingguan/bulanan), bukan kategori bikinan user. */
   --period-mingguan: #0891b2;
   --period-bulanan: #7c3aed;
-  --period-weekday: #6366f1;
-  --period-weekend: #f97316;
 
   /* Shadows */
   --shadow-card: 0 8px 24px rgba(33, 29, 44, 0.08);
@@ -95,8 +91,6 @@
 
   --period-mingguan: #22d3ee;
   --period-bulanan: #a78bfa;
-  --period-weekday: #818cf8;
-  --period-weekend: #fb923c;
 
   --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
   --shadow-fab: 0 10px 24px rgba(139, 158, 224, 0.4);
