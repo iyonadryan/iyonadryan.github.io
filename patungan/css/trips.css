@@ -1,0 +1,307 @@
+/* =========================================================
+   Patungan App — trips.css
+   List trip (Dashboard & halaman Trip), popup detail trip
+   (peserta + pengeluaran), dan popup Ringkasan (saldo +
+   siapa bayar ke siapa).
+   ========================================================= */
+
+/* ---------- Trip list ---------- */
+
+.trip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.trip-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.trip-item:active {
+  transform: scale(0.98);
+}
+
+.trip-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--color-primary) 18%, var(--color-surface));
+  color: var(--color-primary);
+}
+
+.trip-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.trip-name {
+  font-weight: 700;
+  font-size: 14px;
+  margin: 0 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trip-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  display: flex;
+  gap: 10px;
+}
+
+.trip-total {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
+
+/* ---------- Trip detail modal ---------- */
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.detail-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-header-text h3 {
+  margin: 0 0 4px;
+}
+
+.detail-header-text span {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.detail-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  margin: 18px 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ---------- Peserta (chip list) ---------- */
+
+.participant-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.participant-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 6px 8px 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.participant-chip button {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-border);
+  color: var(--color-text);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.participant-add-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.participant-add-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.participant-add-row button {
+  flex-shrink: 0;
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ---------- Pengeluaran (nota) list ---------- */
+
+.expense-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.expense-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.expense-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.expense-desc {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.expense-meta {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.expense-amount {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ---------- Split checkbox list (modal tambah/ubah pengeluaran) ---------- */
+
+.split-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.split-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.split-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+}
+
+/* ---------- Ringkasan (popup saldo & settlement) ---------- */
+
+.balance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.balance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.balance-amount {
+  font-weight: 700;
+}
+
+.balance-amount.positive {
+  color: var(--color-positive);
+}
+
+.balance-amount.negative {
+  color: var(--color-negative);
+}
+
+.settlement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settlement-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.settlement-arrow {
+  color: var(--color-text-muted);
+}
+
+.settlement-amount {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--color-primary);
+}

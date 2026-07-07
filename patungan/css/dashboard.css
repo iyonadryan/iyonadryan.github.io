@@ -1,0 +1,64 @@
+/* =========================================================
+   Patungan App — dashboard.css
+   Hero card ringkasan (total trip, nota, & pengeluaran) dan
+   daftar trip terbaru.
+   ========================================================= */
+
+/* ---------- Hero stat card ---------- */
+
+.stat-hero {
+  position: relative;
+  background: var(--gradient-card);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: 22px 20px 20px;
+  box-shadow: var(--shadow-card);
+}
+
+.stat-hero-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stat-hero-icon {
+  font-size: 26px;
+}
+
+.stat-hero-label {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.stat-hero-row {
+  display: flex;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.stat-hero-item {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+
+.stat-hero-item strong {
+  display: block;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.stat-hero-item span {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+/* ---------- Trip cards (recent, Dashboard) ---------- */
+
+.trip-mini-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}

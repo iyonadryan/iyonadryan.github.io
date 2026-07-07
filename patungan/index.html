@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e11d48">
+<title>Patungan App</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧾</text></svg>">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/dashboard.css">
+<link rel="stylesheet" href="css/trips.css">
+<link rel="stylesheet" href="css/history.css">
+<link rel="stylesheet" href="css/settings.css">
+
+<!-- Firebase (compat SDK) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
+    authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
+    databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
+    projectId: "iyon-adryanlf-trialerror",
+    storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
+    messagingSenderId: "519669963248",
+    appId: "1:519669963248:web:feab50008d27c2a7226535",
+    measurementId: "G-4MFLB4B68F"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  // Root data : /patungan
+  const PATUNGAN_PATH = "patungan";
+</script>
+</head>
+<body>
+
+<!-- Loading overlay saat menghubungkan ke Firebase -->
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="loading-coins">
+    <span>🧾</span>
+    <span>💸</span>
+    <span>🤝</span>
+  </div>
+  <p class="loading-text">Menghubungkan ke server…</p>
+</div>
+
+<div class="app-shell">
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-top">
+      <div class="brand">
+        <span class="brand-logo">🧾</span>
+        <h1>Patungan App</h1>
+      </div>
+      <button id="themeToggle" class="icon-btn" title="Ganti tema" aria-label="Ganti tema">🌙</button>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- ===================== DASHBOARD ===================== -->
+    <section id="dashboard" class="page active">
+
+      <div class="stat-hero">
+        <div class="stat-hero-top">
+          <span class="stat-hero-icon">🧾</span>
+          <p class="stat-hero-label">Catat & bagi biaya bareng-bareng</p>
+        </div>
+        <div class="stat-hero-row">
+          <div class="stat-hero-item">
+            <strong id="statTripCount">0</strong>
+            <span>Trip</span>
+          </div>
+          <div class="stat-hero-item">
+            <strong id="statExpenseCount">0</strong>
+            <span>Nota</span>
+          </div>
+          <div class="stat-hero-item">
+            <strong id="statTotalAmount">Rp 0</strong>
+            <span>Total Tercatat</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-heading">
+        <h3>Trip Terbaru</h3>
+        <a href="#" data-nav="trips">Lihat Semua</a>
+      </div>
+      <div id="recentTrips" class="trip-mini-list">
+        <p class="empty-state">Belum ada trip. Tambahkan trip pertamamu!</p>
+      </div>
+
+    </section>
+
+    <!-- ===================== TRIP ===================== -->
+    <section id="trips" class="page">
+      <div class="page-header">
+        <h2>Trip</h2>
+      </div>
+
+      <div id="tripList" class="trip-list">
+        <p class="empty-state">Belum ada trip. Tambahkan trip pertamamu!</p>
+      </div>
+    </section>
+
+    <!-- ===================== RIWAYAT ===================== -->
+    <section id="history" class="page">
+      <div class="page-header">
+        <h2>Riwayat</h2>
+      </div>
+
+      <div id="historyList" class="history-list">
+        <p class="empty-state">Belum ada pengeluaran tercatat.</p>
+      </div>
+    </section>
+
+    <!-- ===================== PENGATURAN ===================== -->
+    <section id="settings" class="page">
+      <div class="page-header">
+        <h2>Pengaturan</h2>
+      </div>
+
+      <div class="settings-list">
+        <div class="settings-item">
+          <div>
+            <p class="settings-title">Mode Tampilan</p>
+            <p class="settings-desc">Terang atau gelap</p>
+          </div>
+          <button id="settingsThemeToggle" class="btn-secondary">Ganti Tema</button>
+        </div>
+
+        <div class="settings-item">
+          <div>
+            <p class="settings-title">Semua Aplikasi</p>
+            <p class="settings-desc">Lihat daftar aplikasi lainnya</p>
+          </div>
+          <a class="btn-secondary" href="../app.html">Iyon App</a>
+        </div>
+
+        <div class="settings-item settings-info">
+          <div>
+            <p class="settings-title">Tentang</p>
+            <p class="settings-desc">Patungan App v0.1 &middot; Data tersinkronisasi otomatis ke cloud (Firebase) &mdash; trip, peserta, & nota tersimpan di server dan langsung update di semua perangkat. Preferensi tema disimpan di perangkat ini.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="bottom-nav">
+    <button data-nav="dashboard" class="nav-item active">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-text">Dashboard</span>
+    </button>
+    <button data-nav="trips" class="nav-item">
+      <span class="nav-icon">🧾</span>
+      <span class="nav-text">Trip</span>
+    </button>
+    <button id="navAdd" class="nav-add" aria-label="Tambah trip">+</button>
+    <button data-nav="history" class="nav-item">
+      <span class="nav-icon">📜</span>
+      <span class="nav-text">Riwayat</span>
+    </button>
+    <button data-nav="settings" class="nav-item">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-text">Pengaturan</span>
+    </button>
+  </nav>
+
+  <!-- ===================== MODAL: TAMBAH/UBAH TRIP ===================== -->
+  <div id="tripModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h3 id="tripModalTitle">Tambah Trip</h3>
+
+      <form id="tripForm">
+        <label class="field">
+          <span>Nama Trip</span>
+          <input type="text" id="tripNameInput" placeholder="mis. Liburan ke Bali" required autocomplete="off">
+        </label>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="cancelTripBtn">Batal</button>
+          <button type="submit" class="btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: DETAIL TRIP ===================== -->
+  <div id="tripDetailModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+
+      <div class="detail-header">
+        <div class="detail-header-text">
+          <h3 id="detailTripName">Nama Trip</h3>
+          <span id="detailTripMeta">0 peserta &middot; 0 nota</span>
+        </div>
+        <button type="button" class="icon-btn small" id="editTripBtn" aria-label="Ubah nama trip">✏️</button>
+        <button type="button" class="icon-btn small" id="deleteTripBtn" aria-label="Hapus trip">🗑️</button>
+      </div>
+
+      <p class="detail-section-label">Peserta</p>
+      <div id="participantList" class="participant-list"></div>
+      <div class="participant-add-row">
+        <input type="text" id="participantNameInput" placeholder="Nama peserta baru" autocomplete="off">
+        <button type="button" id="addParticipantBtn">+ Tambah</button>
+      </div>
+
+      <p class="detail-section-label">
+        <span>Pengeluaran (Nota)</span>
+        <button type="button" class="icon-btn accent small" id="addExpenseBtn" aria-label="Tambah nota">+</button>
+      </p>
+      <div id="expenseList" class="expense-list">
+        <p class="empty-state">Belum ada nota. Tambahkan pengeluaran pertama trip ini.</p>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-primary" id="viewSummaryBtn">Lihat Ringkasan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: TAMBAH/UBAH PENGELUARAN ===================== -->
+  <div id="expenseModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h3 id="expenseModalTitle">Tambah Pengeluaran</h3>
+
+      <form id="expenseForm">
+        <label class="field">
+          <span>Deskripsi</span>
+          <input type="text" id="expenseDescInput" placeholder="mis. Makan malam" required autocomplete="off">
+        </label>
+
+        <label class="field">
+          <span>Jumlah (Rp)</span>
+          <input type="text" id="expenseAmountInput" inputmode="numeric" placeholder="mis. 250.000" required autocomplete="off">
+        </label>
+
+        <label class="field">
+          <span>Dibayar oleh</span>
+          <select id="expensePaidByInput"></select>
+        </label>
+
+        <div class="field">
+          <span>Dibagi ke</span>
+          <div id="expenseSplitList" class="split-list"></div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-danger-solid" id="deleteExpenseBtn" hidden>Hapus</button>
+          <button type="button" class="btn-secondary" id="cancelExpenseBtn">Batal</button>
+          <button type="submit" class="btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: RINGKASAN ===================== -->
+  <div id="summaryModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h3>Ringkasan &mdash; <span id="summaryTripName"></span></h3>
+
+      <p class="detail-section-label">Saldo Peserta</p>
+      <div id="balanceList" class="balance-list"></div>
+
+      <p class="detail-section-label">Siapa Bayar ke Siapa</p>
+      <div id="settlementList" class="settlement-list"></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="closeSummaryBtn">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: DELETE CONFIRMATION ===================== -->
+  <div id="confirmModal" class="modal-overlay confirm-overlay">
+    <div class="confirm-dialog">
+      <div class="confirm-icon">🗑️</div>
+      <h3 id="confirmTitle">Hapus?</h3>
+      <p id="confirmText">Apakah Anda yakin? Tindakan ini tidak dapat dibatalkan.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="cancelDeleteBtn">Batal</button>
+        <button type="button" class="btn-danger-solid" id="confirmDeleteBtn">Ya, Hapus</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
