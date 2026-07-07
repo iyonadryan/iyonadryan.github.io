@@ -140,6 +140,7 @@ main {
 
 .app-icon.kitchen { background: linear-gradient(135deg, #fdba74, #ea580c); }
 .app-icon.finance { background: linear-gradient(135deg, #5eead4, #0d9488); }
+.app-icon.routine { background: linear-gradient(135deg, #8b9ee0, #614385); }
 
 .app-info { flex: 1; min-width: 0; }
 
