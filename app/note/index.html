@@ -255,8 +255,9 @@
 
   <!-- ===================== MODAL: DETAIL CATATAN ===================== -->
   <div id="noteDetailModal" class="modal-overlay">
-    <div class="modal-sheet">
+    <div class="modal-sheet detail-sheet">
       <div class="modal-handle"></div>
+      <button type="button" class="detail-close-btn" id="detailCloseIconBtn" aria-label="Tutup">✕</button>
 
       <div class="detail-header">
         <div class="detail-icon" id="detailIcon"></div>
@@ -286,7 +287,8 @@
 
       <div class="detail-actions-row">
         <button type="button" class="icon-btn" id="togglePinBtn" aria-label="Sematkan catatan">📌</button>
-        <button type="button" class="btn-secondary" id="editNoteBtn">Ubah</button>
+        <button type="button" class="btn-secondary" id="closeNoteDetailBtn">Tutup</button>
+        <button type="button" class="btn-secondary btn-invert" id="editNoteBtn">Ubah</button>
         <button type="button" class="btn-danger-solid" id="deleteNoteBtn">Hapus</button>
       </div>
     </div>

@@ -135,6 +135,30 @@
 
 /* ---------- Detail modal ---------- */
 
+.detail-sheet {
+  position: relative;
+}
+
+/* Tombol X di pojok kanan-atas card — pintasan tutup selain tombol
+   "Tutup" di detail-actions-row (dua-duanya panggil closeNoteDetail()). */
+.detail-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
 .detail-header {
   display: flex;
   align-items: center;

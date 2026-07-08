@@ -669,6 +669,9 @@
     if (e.target === noteDetailModal) closeNoteDetail();
   });
 
+  document.getElementById("detailCloseIconBtn").addEventListener("click", closeNoteDetail);
+  document.getElementById("closeNoteDetailBtn").addEventListener("click", closeNoteDetail);
+
   document.getElementById("togglePinBtn").addEventListener("click", () => {
     const note = notes.find((n) => n.id === currentDetailNoteId);
     if (!note) return;
