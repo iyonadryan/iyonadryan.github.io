@@ -279,10 +279,13 @@
   border-radius: 4px;
 }
 
-.detail-content a {
+.detail-content a,
+.detail-content a:visited,
+.detail-content a:hover,
+.detail-content a:active {
   color: var(--color-primary);
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  font-weight: 700;
+  text-decoration: none;
   word-break: break-all;
 }
 
