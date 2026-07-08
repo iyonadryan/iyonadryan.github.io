@@ -488,6 +488,39 @@
   const noteByToggle = document.getElementById("noteByToggle");
   let editingNoteId = null;
 
+  /* ---------------- Isi Catatan: editor layar penuh ----------------
+     Textarea isi catatan tidak lagi langsung di dalam form modal — biar
+     lega buat nulis panjang, ditaruh di editor terpisah yang menutupi
+     seluruh layar (mirip Notion). `noteContentDraft` menyimpan nilai
+     sementara sebelum form disubmit; textarea di form lama sudah dihapus
+     dari index.html. */
+  const contentEditorModal = document.getElementById("contentEditorModal");
+  const contentEditorTextarea = document.getElementById("contentEditorTextarea");
+  const noteContentPreviewEl = document.getElementById("noteContentPreview");
+  let noteContentDraft = "";
+
+  function renderContentPreview() {
+    const isEmpty = !noteContentDraft;
+    noteContentPreviewEl.textContent = isEmpty ? "Ketuk untuk menulis isi catatan…" : snippet(noteContentDraft);
+    noteContentPreviewEl.classList.toggle("placeholder", isEmpty);
+  }
+
+  document.getElementById("openContentEditorBtn").addEventListener("click", () => {
+    contentEditorTextarea.value = noteContentDraft;
+    contentEditorModal.classList.add("open");
+    contentEditorTextarea.focus();
+  });
+
+  document.getElementById("cancelContentEditorBtn").addEventListener("click", () => {
+    contentEditorModal.classList.remove("open"); // buang draft perubahan, noteContentDraft tidak disentuh
+  });
+
+  document.getElementById("saveContentEditorBtn").addEventListener("click", () => {
+    noteContentDraft = contentEditorTextarea.value.trim();
+    renderContentPreview();
+    contentEditorModal.classList.remove("open");
+  });
+
   function populateCategorySelect(selectEl, selectedId) {
     selectEl.innerHTML = categories.map((c) => '<option value="' + c.id + '">' + escapeHtml(c.icon) + " " + escapeHtml(c.label) + "</option>").join("");
     if (selectedId) selectEl.value = selectedId;
@@ -522,8 +555,10 @@
     editingNoteId = note ? note.id : null;
     document.getElementById("noteModalTitle").textContent = note ? "Ubah Catatan" : "Tambah Catatan";
     document.getElementById("noteTitleInput").value = note ? note.title : "";
-    document.getElementById("noteContentInput").value = note ? note.content : "";
     document.getElementById("notePinnedInput").checked = note ? note.pinned : false;
+
+    noteContentDraft = note ? note.content : "";
+    renderContentPreview();
 
     populateCategorySelect(document.getElementById("noteCategoryInput"), note ? note.category : categories[0] && categories[0].id);
 
@@ -535,6 +570,7 @@
   function closeNoteModal() {
     noteModal.classList.remove("open");
     editingNoteId = null;
+    noteContentDraft = "";
   }
 
   document.getElementById("cancelNoteBtn").addEventListener("click", closeNoteModal);
@@ -548,12 +584,16 @@
     e.preventDefault();
     const data = {
       title: document.getElementById("noteTitleInput").value.trim(),
-      content: document.getElementById("noteContentInput").value.trim(),
+      content: noteContentDraft,
       category: document.getElementById("noteCategoryInput").value,
       pinned: document.getElementById("notePinnedInput").checked,
       by: noteFormBy(),
     };
-    if (!data.title || !data.content) return;
+    if (!data.title) return;
+    if (!data.content) {
+      alert("Isi catatan tidak boleh kosong.");
+      return;
+    }
 
     const action = editingNoteId ? updateNote(editingNoteId, data) : addNote(data);
     action.catch((err) => {

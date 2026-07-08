@@ -207,7 +207,10 @@
 
         <label class="field">
           <span>Isi Catatan</span>
-          <textarea id="noteContentInput" placeholder="Tulis catatanmu di sini…" required></textarea>
+          <button type="button" class="content-field-btn" id="openContentEditorBtn">
+            <span class="content-field-preview placeholder" id="noteContentPreview">Ketuk untuk menulis isi catatan…</span>
+            <span class="content-field-arrow">›</span>
+          </button>
         </label>
 
         <label class="field-checkbox">
@@ -228,6 +231,20 @@
           <button type="submit" class="btn-primary">Simpan</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ===================== EDITOR LAYAR PENUH: ISI CATATAN ===================== -->
+  <div id="contentEditorModal" class="content-editor-overlay">
+    <div class="content-editor-sheet">
+      <div class="content-editor-header">
+        <h3>Isi Catatan</h3>
+      </div>
+      <textarea id="contentEditorTextarea" class="content-editor-textarea" placeholder="Tulis catatanmu di sini… Mendukung markdown (# Judul, **tebal**, - daftar, dst.)"></textarea>
+      <div class="content-editor-actions">
+        <button type="button" class="btn-secondary" id="cancelContentEditorBtn">Batal</button>
+        <button type="button" class="btn-primary" id="saveContentEditorBtn">Simpan</button>
+      </div>
     </div>
   </div>
 

@@ -349,6 +349,108 @@
   margin-top: 6px;
 }
 
+/* ---------- Content field button (buka editor layar penuh "Isi Catatan") ---------- */
+
+.content-field-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  cursor: pointer;
+  text-align: left;
+}
+
+.content-field-preview {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.content-field-preview.placeholder {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.content-field-arrow {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 18px;
+}
+
+/* ---------- Editor layar penuh: Isi Catatan (ala Notion) ----------
+   Beda dari .modal-overlay/.modal-sheet (bottom-sheet) — ini menutupi
+   seluruh layar spy nulis/edit isi catatan panjang lebih lega, tombol
+   Simpan/Batal selalu di paling bawah layar (bukan ikut scroll). */
+
+.content-editor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  background: var(--color-surface-alt);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.content-editor-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.content-editor-sheet {
+  width: 100%;
+  max-width: 480px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+}
+
+.content-editor-header {
+  flex-shrink: 0;
+  padding: calc(env(safe-area-inset-top) + 16px) 20px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.content-editor-header h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.content-editor-textarea {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 16px 20px;
+  resize: none;
+  outline: none;
+}
+
+.content-editor-actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 10px;
+  padding: 12px 20px calc(16px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--color-border);
+}
+
 /* ---------- Toggle 2-tombol (dipakai "Dibuat oleh") ---------- */
 
 .mode-toggle {
