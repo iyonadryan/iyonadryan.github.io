@@ -239,6 +239,118 @@
     return d.getDate() + " " + MONTH_NAMES[d.getMonth()] + " " + d.getFullYear();
   }
 
+  /* ================= Markdown ringan (isi catatan) =================
+     Isi catatan sering ditempel dari rangkuman ber-markdown (heading,
+     bold, list, blockquote, link). Render jadi HTML ala Notion di detail
+     modal — bukan parser markdown lengkap, cukup buat pola yang lazim
+     dipakai di catatan sehari-hari. Selalu escape HTML dulu (lewat
+     escapeHtml) sebelum menyisipkan tag, supaya tetap aman dari XSS. */
+
+  // Inline: link (markdown & bare URL) di-stash jadi placeholder duluan
+  // biar isi URL/label tidak ikut kena regex bold/italic/code setelahnya.
+  function inlineMarkdown(text) {
+    const stash = [];
+    function stash_(html) {
+      stash.push(html);
+      return "@@MD" + (stash.length - 1) + "@@";
+    }
+
+    let out = escapeHtml(text);
+
+    out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (m, label, url) =>
+      stash_('<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + label + "</a>")
+    );
+    out = out.replace(/(https?:\/\/[^\s<]+)/g, (m, url) =>
+      stash_('<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + url + "</a>")
+    );
+    out = out.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    out = out.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    out = out.replace(/`([^`]+)`/g, "<code>$1</code>");
+    out = out.replace(/@@MD(\d+)@@/g, (m, i) => stash[Number(i)]);
+
+    return out;
+  }
+
+  function renderMarkdownToHtml(content) {
+    const lines = String(content || "").replace(/\r\n/g, "\n").split("\n");
+    const parts = [];
+    let i = 0;
+
+    while (i < lines.length) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      if (trimmed === "") {
+        i++;
+        continue;
+      }
+
+      if (/^-{3,}$/.test(trimmed)) {
+        parts.push("<hr>");
+        i++;
+        continue;
+      }
+
+      const heading = trimmed.match(/^(#{1,6})\s+(.*)$/);
+      if (heading) {
+        const level = Math.min(heading[1].length, 6);
+        parts.push("<h" + level + ">" + inlineMarkdown(heading[2]) + "</h" + level + ">");
+        i++;
+        continue;
+      }
+
+      if (/^>\s?/.test(trimmed)) {
+        const quoted = [];
+        while (i < lines.length && /^>\s?/.test(lines[i].trim())) {
+          quoted.push("<p>" + inlineMarkdown(lines[i].trim().replace(/^>\s?/, "")) + "</p>");
+          i++;
+        }
+        parts.push("<blockquote>" + quoted.join("") + "</blockquote>");
+        continue;
+      }
+
+      if (/^\s*\d+\.\s+/.test(line)) {
+        const items = [];
+        while (i < lines.length) {
+          const m = lines[i].match(/^\s*\d+\.\s+(.*)$/);
+          if (!m) break;
+          items.push("<li>" + inlineMarkdown(m[1]) + "</li>");
+          i++;
+        }
+        parts.push("<ol>" + items.join("") + "</ol>");
+        continue;
+      }
+
+      if (/^\s*[-*]\s+/.test(line)) {
+        const topItems = [];
+        while (i < lines.length) {
+          const m = lines[i].match(/^(\s*)[-*]\s+(.*)$/);
+          if (!m) break;
+          const text = inlineMarkdown(m[2]);
+          if (m[1].length >= 2 && topItems.length) {
+            topItems[topItems.length - 1].nested.push(text);
+          } else {
+            topItems.push({ text, nested: [] });
+          }
+          i++;
+        }
+        const itemsHtml = topItems
+          .map((item) => {
+            const nestedHtml = item.nested.length ? "<ul>" + item.nested.map((n) => "<li>" + n + "</li>").join("") + "</ul>" : "";
+            return "<li>" + item.text + nestedHtml + "</li>";
+          })
+          .join("");
+        parts.push("<ul>" + itemsHtml + "</ul>");
+        continue;
+      }
+
+      parts.push("<p>" + inlineMarkdown(line) + "</p>");
+      i++;
+    }
+
+    return parts.join("");
+  }
+
   /* ================= Render: all ================= */
 
   function renderAll() {
@@ -470,7 +582,7 @@
     document.getElementById("detailUpdatedAt").textContent = note.updatedAt && note.updatedAt !== note.createdAt ? formatDateLong(note.updatedAt) : "—";
     document.getElementById("detailBy").textContent = USERS[note.by] ? USERS[note.by].label : "—";
 
-    document.getElementById("detailContent").textContent = note.content;
+    document.getElementById("detailContent").innerHTML = renderMarkdownToHtml(note.content);
 
     const pinBtn = document.getElementById("togglePinBtn");
     pinBtn.classList.toggle("pinned", note.pinned);
