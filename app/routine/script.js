@@ -37,9 +37,9 @@
   // valid, jadi tidak pernah muncul sbg data.by rutinitas. Pola identik dgn
   // Finance App (lihat finance/script.js & finance/.claude/CLAUDE.md).
   const USERS = {
-    iyon: { id: "iyon", label: "Iyon", icon: "img/iyon.png" },
-    ciwul: { id: "ciwul", label: "Ciwul", icon: "img/ciwul.png" },
-    both: { id: "both", label: "Both", icon: "img/couple.png" },
+    iyon: { id: "iyon", label: "Iyon", icon: "../img/iyon.png" },
+    ciwul: { id: "ciwul", label: "Ciwul", icon: "../img/ciwul.png" },
+    both: { id: "both", label: "Both", icon: "../img/couple.png" },
   };
 
   // Pilihan user aktif, diingat di localStorage (pola sama spt tema). null =

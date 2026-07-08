@@ -1,0 +1,96 @@
+/* =========================================================
+   Note App — dashboard.css
+   Hero card ringkasan (total catatan, kategori, tersemat),
+   daftar catatan terbaru, dan breakdown kategori.
+   ========================================================= */
+
+/* ---------- Hero stat card ---------- */
+
+.stat-hero {
+  position: relative;
+  background: var(--gradient-card);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: 22px 20px 20px;
+  box-shadow: var(--shadow-card);
+}
+
+.stat-hero-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stat-hero-icon {
+  font-size: 26px;
+}
+
+.stat-hero-label {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.stat-hero-row {
+  display: flex;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.stat-hero-item {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+
+.stat-hero-item strong {
+  display: block;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.stat-hero-item span {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+/* ---------- Note cards (recent, Dashboard) ---------- */
+
+.note-mini-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ---------- Category breakdown ---------- */
+
+.category-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.breakdown-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 7px 12px 7px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.breakdown-chip .chip-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.breakdown-chip .chip-count {
+  color: var(--color-text-muted);
+  font-weight: 700;
+}

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ea580c">
+<title>Kitchen App</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍳</text></svg>">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/dashboard.css">
+<link rel="stylesheet" href="css/recipes.css">
+<link rel="stylesheet" href="css/shopping.css">
+<link rel="stylesheet" href="css/settings.css">
+
+<!-- Firebase (compat SDK) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
+    authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
+    databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
+    projectId: "iyon-adryanlf-trialerror",
+    storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
+    messagingSenderId: "519669963248",
+    appId: "1:519669963248:web:feab50008d27c2a7226535",
+    measurementId: "G-4MFLB4B68F"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  // Root data : /kitchen
+  const KITCHEN_PATH = "kitchen";
+</script>
+</head>
+<body>
+
+<!-- Loading overlay saat menghubungkan ke Firebase -->
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="loading-coins">
+    <span>🍳</span>
+    <span>🥕</span>
+    <span>🍅</span>
+  </div>
+  <p class="loading-text">Menghubungkan ke server…</p>
+</div>
+
+<div class="app-shell">
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-top">
+      <div class="brand">
+        <span class="brand-logo">🍳</span>
+        <h1>Kitchen App</h1>
+      </div>
+      <button id="themeToggle" class="icon-btn" title="Ganti tema" aria-label="Ganti tema">🌙</button>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- ===================== DASHBOARD ===================== -->
+    <section id="dashboard" class="page active">
+
+      <div class="stat-hero">
+        <div class="stat-hero-top">
+          <span class="stat-hero-icon">📖</span>
+          <p class="stat-hero-label">Buku Catatan Masak Anda</p>
+        </div>
+        <div class="stat-hero-row">
+          <div class="stat-hero-item">
+            <strong id="statRecipeCount">0</strong>
+            <span>Resep</span>
+          </div>
+          <div class="stat-hero-item">
+            <strong id="statCategoryCount">0</strong>
+            <span>Kategori</span>
+          </div>
+          <div class="stat-hero-item">
+            <strong id="statShoppingCount">0</strong>
+            <span>Belanja</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-heading">
+        <h3>Resep Terbaru</h3>
+        <a href="#" data-nav="recipes">Lihat Semua</a>
+      </div>
+      <div id="recentRecipes" class="recipe-mini-list">
+        <p class="empty-state">Belum ada resep. Tambahkan resep pertamamu!</p>
+      </div>
+
+      <div class="section-heading">
+        <h3>Kategori</h3>
+      </div>
+      <div id="categoryBreakdown" class="category-breakdown"></div>
+
+    </section>
+
+    <!-- ===================== RESEP ===================== -->
+    <section id="recipes" class="page">
+      <div class="page-header">
+        <h2>Resep</h2>
+      </div>
+
+      <div class="search-box">
+        <input type="text" id="recipeSearchInput" placeholder="Cari resep…" autocomplete="off">
+      </div>
+
+      <div id="recipeFilterTabs" class="filter-tabs"></div>
+
+      <div id="recipeList" class="recipe-list">
+        <p class="empty-state">Belum ada resep pada kategori ini.</p>
+      </div>
+    </section>
+
+    <!-- ===================== BELANJA ===================== -->
+    <section id="shopping" class="page">
+      <div class="page-header">
+        <h2>Daftar Belanja</h2>
+        <button id="addShoppingBtn" class="icon-btn accent" aria-label="Tambah bahan">+</button>
+      </div>
+
+      <div id="shoppingList" class="shopping-list">
+        <p class="empty-state">Daftar belanja kosong. Tambahkan bahan yang perlu dibeli.</p>
+      </div>
+
+      <div class="shopping-footer">
+        <button id="clearDoneBtn" class="btn-small" hidden>Hapus yang sudah dicentang</button>
+      </div>
+    </section>
+
+    <!-- ===================== PENGATURAN ===================== -->
+    <section id="settings" class="page">
+      <div class="page-header">
+        <h2>Pengaturan</h2>
+      </div>
+
+      <div class="settings-list">
+        <div class="settings-item">
+          <div>
+            <p class="settings-title">Mode Tampilan</p>
+            <p class="settings-desc">Terang atau gelap</p>
+          </div>
+          <button id="settingsThemeToggle" class="btn-secondary">Ganti Tema</button>
+        </div>
+
+        <div class="settings-item">
+          <div>
+            <p class="settings-title">Kategori Resep</p>
+            <p class="settings-desc">Lihat, tambah, atau ubah kategori resep</p>
+          </div>
+          <button id="categoriesBtn" class="btn-secondary">Lihat</button>
+        </div>
+
+        <div class="settings-item">
+          <div>
+            <p class="settings-title">Semua Aplikasi</p>
+            <p class="settings-desc">Lihat daftar aplikasi lainnya</p>
+          </div>
+          <a class="btn-secondary" href="/app/index.html">Iyon App</a>
+        </div>
+
+        <div class="settings-item settings-info">
+          <div>
+            <p class="settings-title">Tentang</p>
+            <p class="settings-desc">Kitchen App v0.1 &middot; Data tersinkronisasi otomatis ke cloud (Firebase) &mdash; resep &amp; daftar belanja tersimpan di server dan langsung update di semua perangkat. Preferensi tema disimpan di perangkat ini.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="bottom-nav">
+    <button data-nav="dashboard" class="nav-item active">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-text">Dashboard</span>
+    </button>
+    <button data-nav="recipes" class="nav-item">
+      <span class="nav-icon">📖</span>
+      <span class="nav-text">Resep</span>
+    </button>
+    <button id="navAdd" class="nav-add" aria-label="Tambah resep">+</button>
+    <button data-nav="shopping" class="nav-item">
+      <span class="nav-icon">🛒</span>
+      <span class="nav-text">Belanja</span>
+    </button>
+    <button data-nav="settings" class="nav-item">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-text">Pengaturan</span>
+    </button>
+  </nav>
+
+  <!-- ===================== MODAL: ADD / EDIT RESEP ===================== -->
+  <div id="recipeModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h3 id="recipeModalTitle">Tambah Resep</h3>
+
+      <form id="recipeForm">
+        <label class="field">
+          <span>Nama Resep</span>
+          <input type="text" id="recipeNameInput" placeholder="mis. Nasi Goreng" required autocomplete="off">
+        </label>
+
+        <label class="field">
+          <span>Kategori</span>
+          <select id="recipeCategoryInput"></select>
+        </label>
+
+        <div class="field-row">
+          <label class="field">
+            <span>Porsi</span>
+            <input type="text" id="recipeServingsInput" placeholder="mis. 2 orang" inputmode="numeric" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>Waktu Masak</span>
+            <input type="text" id="recipeTimeInput" placeholder="mis. 30 menit" autocomplete="off">
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Bahan-bahan</span>
+        </label>
+        <div id="ingredientRows" class="repeat-list"></div>
+        <button type="button" id="addIngredientBtn" class="repeat-add">+ Tambah Bahan</button>
+
+        <label class="field">
+          <span>Langkah-langkah</span>
+        </label>
+        <div id="stepRows" class="repeat-list"></div>
+        <button type="button" id="addStepBtn" class="repeat-add">+ Tambah Langkah</button>
+
+        <label class="field">
+          <span>Catatan (opsional)</span>
+          <textarea id="recipeNoteInput" placeholder="mis. Bisa diganti kecap manis kalau suka lebih manis"></textarea>
+        </label>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="cancelRecipeBtn">Batal</button>
+          <button type="submit" class="btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: DETAIL RESEP ===================== -->
+  <div id="recipeDetailModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+
+      <div class="detail-header">
+        <div class="detail-icon" id="detailIcon"></div>
+        <div class="detail-header-text">
+          <h3 id="detailName">Nama Resep</h3>
+          <span class="recipe-category-badge" id="detailCategoryBadge">Kategori</span>
+        </div>
+      </div>
+
+      <div class="detail-meta-row">
+        <div class="detail-meta-item">
+          <strong id="detailServings">&mdash;</strong>
+          <span>Porsi</span>
+        </div>
+        <div class="detail-meta-item">
+          <strong id="detailTime">&mdash;</strong>
+          <span>Waktu Masak</span>
+        </div>
+      </div>
+
+      <p class="detail-section-label">Bahan-bahan</p>
+      <ul class="ingredient-list" id="detailIngredients"></ul>
+
+      <p class="detail-section-label">Langkah-langkah</p>
+      <ol class="step-list" id="detailSteps"></ol>
+
+      <div id="detailNoteWrap">
+        <p class="detail-section-label">Catatan</p>
+        <p class="detail-note" id="detailNote"></p>
+      </div>
+
+      <div class="detail-actions-row">
+        <button type="button" class="btn-secondary" id="editRecipeBtn">Ubah</button>
+        <button type="button" class="btn-danger-solid" id="deleteRecipeBtn">Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: DELETE CONFIRMATION ===================== -->
+  <div id="confirmModal" class="modal-overlay confirm-overlay">
+    <div class="confirm-dialog">
+      <div class="confirm-icon">🗑️</div>
+      <h3 id="confirmTitle">Hapus?</h3>
+      <p id="confirmText">Apakah Anda yakin? Tindakan ini tidak dapat dibatalkan.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="cancelDeleteBtn">Batal</button>
+        <button type="button" class="btn-danger-solid" id="confirmDeleteBtn">Ya, Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: TAMBAH ITEM BELANJA ===================== -->
+  <div id="shoppingModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h3>Tambah Bahan Belanja</h3>
+
+      <form id="shoppingForm">
+        <label class="field">
+          <span>Nama Bahan</span>
+          <input type="text" id="shoppingNameInput" placeholder="mis. Bawang Merah" required autocomplete="off">
+        </label>
+
+        <label class="field">
+          <span>Jumlah (opsional)</span>
+          <input type="text" id="shoppingQtyInput" placeholder="mis. 1/4 kg" autocomplete="off">
+        </label>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="cancelShoppingBtn">Batal</button>
+          <button type="submit" class="btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: DAFTAR KATEGORI ===================== -->
+  <div id="categoriesModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h3>Kategori Resep</h3>
+
+      <div id="categoriesListEl" class="category-list"></div>
+      <button type="button" class="category-add-btn btn-invert" id="addCategoryBtn">+ Buat Kategori Baru</button>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="cancelCategoriesBtn">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: TAMBAH/EDIT KATEGORI ===================== -->
+  <div id="categoryModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h3 id="categoryModalTitle">Tambah Kategori</h3>
+
+      <form id="categoryForm">
+        <label class="field">
+          <span>Label</span>
+          <input type="text" id="categoryLabelInput" placeholder="mis. Sarapan" required autocomplete="off">
+        </label>
+
+        <label class="field">
+          <span>Icon (1 karakter / emoji)</span>
+          <input type="text" id="categoryIconInput" placeholder="mis. 🍳" required autocomplete="off">
+        </label>
+
+        <div class="field">
+          <span>Warna</span>
+          <div id="categorySlotPicker" class="slot-picker"></div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="cancelCategoryBtn">Batal</button>
+          <button type="submit" class="btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

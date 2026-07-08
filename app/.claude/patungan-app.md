@@ -61,7 +61,7 @@ Split saat ini **selalu rata** antar peserta yang dicentang di `splitAmong` (`am
   - `css/history.css` — halaman Riwayat (gabungan nota lintas trip, tiap item ada `.history-trip-badge` penunjuk asal trip-nya).
   - `css/settings.css` — list Pengaturan (paling ringkas — cuma toggle tema, link Semua Aplikasi, Tentang; **tidak ada** row "Pengguna Aktif" krn app ini tidak pakai konsep Iyon/Ciwul, lihat "Status saat ini").
 - `script.js` — semua logic (state, render, event handler, layer data Firebase). Satu IIFE, vanilla JS, tanpa framework/build tool.
-- `.claude/CLAUDE.md` — file ini.
+- `app/.claude/patungan-app.md` — file ini.
 
 Belum ada build tool. Cukup buka `index.html` langsung di browser atau lewat live server.
 
@@ -83,9 +83,9 @@ Belum ada build tool. Cukup buka `index.html` langsung di browser atau lewat liv
    - **Saldo Peserta** (`.balance-row`): tiap peserta + saldo net (`calcBalances()`) — ijo `+Rp X` (harus menerima) / merah `-Rp X` (harus membayar) / tanpa warna kalau pas 0.
    - **Siapa Bayar ke Siapa** (`.settlement-row`): hasil `simplifyDebts()` — daftar "A → B: Rp X" yang sudah disederhanakan (bukan tiap orang ke tiap orang mentah-mentah). Kosong (tidak ada baris) → tampil empty-state "Semua sudah impas".
 6. **Riwayat** (`#history`) — gabungan **semua nota lintas semua trip**, diurut `createdAt` terbaru, tiap item ada badge nama trip asalnya (`.history-trip-badge`) + siapa yang bayar. Berguna buat lihat cepat pengeluaran tanpa buka satu-satu trip.
-7. **Pengaturan** (`#settings`) — toggle tema, link "Semua Aplikasi" → `../app.html`, info "Tentang". Paling ringkas dari semua app (tidak ada Pengguna Aktif, tidak ada kategori/export).
+7. **Pengaturan** (`#settings`) — toggle tema, link "Semua Aplikasi" → `../index.html`, info "Tentang". Paling ringkas dari semua app (tidak ada Pengguna Aktif, tidak ada kategori/export).
 8. **Navigasi**: bottom nav — Dashboard, Trip, **[+]** (tambah trip, selalu tampil), Riwayat, Pengaturan.
-9. **Tema light/dark**: `data-theme` di `<html>`, variabel di `css/base.css`. Primary **rose/merah muda** (`#e11d48` light / `#fb7185` dark) — beda dari oranye Kitchen, teal Finance, ungu-indigo Routine, ungu hub `app.html`. Warna saldo Ringkasan (`--color-positive`/`--color-negative`) pakai palet semantik sendiri (hijau/merah universal "untung/rugi"), independen dari primary brand — sama semangat dgn `--color-done` Kitchen/Routine App yang juga tidak ikut warna brand.
+9. **Tema light/dark**: `data-theme` di `<html>`, variabel di `css/base.css`. Primary **rose/merah muda** (`#e11d48` light / `#fb7185` dark) — beda dari oranye Kitchen, teal Finance, ungu-indigo Routine, ungu hub `app/index.html`. Warna saldo Ringkasan (`--color-positive`/`--color-negative`) pakai palet semantik sendiri (hijau/merah universal "untung/rugi"), independen dari primary brand — sama semangat dgn `--color-done` Kitchen/Routine App yang juga tidak ikut warna brand.
 10. **Confirm dialog generik** (`#confirmModal`, `openConfirm(title, text, onConfirm)`): satu callback, pola identik app lain. Dipakai utk hapus trip & hapus peserta (bukan hapus nota, yang punya tombol Hapus sendiri di dalam modal edit-nya — beda pola dgn app lain krn nota adanya di dalam modal lain, bukan popup detail sendiri).
 
 ## Model data internal (`script.js`, hasil rebuild dari Firebase)
@@ -123,4 +123,4 @@ Scope v1 ini sengaja minimal ("fitur detail menyusul" dari user) — kemungkinan
 
 - Semua teks UI berbahasa Indonesia, konsisten dgn app lain.
 - Saat menambahkan fitur baru, ikuti pola yang sudah ada: render function terpisah per bagian (`renderDashboard`, `renderTripList`, `renderTripDetail`, `renderHistory`, `renderSummary`), dipanggil ulang dari `renderAll()` tiap snapshot Firebase berubah — jangan panggil render manual setelah operasi tulis, biarkan listener realtime yang memicu re-render.
-- **Wajib**: setiap kali ada perubahan struktur/fitur di project ini, update dokumen ini (`.claude/CLAUDE.md`) di perubahan yang sama — berlaku di semua project dalam repo `iyonadryan.github.io`.
+- **Wajib**: setiap kali ada perubahan struktur/fitur di project ini, update dokumen ini (`app/.claude/patungan-app.md`) di perubahan yang sama — berlaku di semua project dalam repo `iyonadryan.github.io`.
