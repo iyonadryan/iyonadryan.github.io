@@ -93,6 +93,14 @@
       localStorage.setItem(STORAGE_KEY, next);
       applyTheme(next);
     });
+
+    // Animasi masuk kartu app (lihat @keyframes cardEnter di style-app.css)
+    // — tiap kartu (termasuk .empty-slot paling bawah) delay 0.25s berjenjang
+    // dari kartu sebelumnya, dihitung otomatis dari urutan DOM biar tidak
+    // perlu update manual tiap nambah app baru.
+    document.querySelectorAll(".app-list > *").forEach(function (el, i) {
+      el.style.animationDelay = (i * 0.25) + "s";
+    });
   })();
 </script>
 </body>
