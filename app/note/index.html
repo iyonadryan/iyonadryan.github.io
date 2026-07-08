@@ -236,11 +236,16 @@
 
   <!-- ===================== EDITOR LAYAR PENUH: ISI CATATAN ===================== -->
   <div id="contentEditorModal" class="content-editor-overlay">
-    <div class="content-editor-sheet">
+    <div class="content-editor-sheet" id="contentEditorSheet">
       <div class="content-editor-header">
         <h3>Isi Catatan</h3>
+        <div class="content-editor-tabs" id="contentEditorTabs">
+          <button type="button" class="content-editor-tab active" data-mode="write">Tulis</button>
+          <button type="button" class="content-editor-tab" data-mode="preview">Preview</button>
+        </div>
       </div>
       <textarea id="contentEditorTextarea" class="content-editor-textarea" placeholder="Tulis catatanmu di sini… Mendukung markdown (# Judul, **tebal**, - daftar, dst.)"></textarea>
+      <div class="detail-content content-editor-preview" id="contentEditorPreview"></div>
       <div class="content-editor-actions">
         <button type="button" class="btn-secondary" id="cancelContentEditorBtn">Batal</button>
         <button type="button" class="btn-primary" id="saveContentEditorBtn">Simpan</button>

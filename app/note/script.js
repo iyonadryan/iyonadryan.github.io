@@ -495,7 +495,10 @@
      sementara sebelum form disubmit; textarea di form lama sudah dihapus
      dari index.html. */
   const contentEditorModal = document.getElementById("contentEditorModal");
+  const contentEditorSheet = document.getElementById("contentEditorSheet");
+  const contentEditorTabs = document.getElementById("contentEditorTabs");
   const contentEditorTextarea = document.getElementById("contentEditorTextarea");
+  const contentEditorPreviewEl = document.getElementById("contentEditorPreview");
   const noteContentPreviewEl = document.getElementById("noteContentPreview");
   let noteContentDraft = "";
 
@@ -505,8 +508,30 @@
     noteContentPreviewEl.classList.toggle("placeholder", isEmpty);
   }
 
+  // Tab "Preview" di editor layar penuh: render ulang dari isi textarea
+  // saat ini (bukan dari noteContentDraft yang belum ter-commit) lewat
+  // renderMarkdownToHtml — sama fungsi yg dipakai popup detail, jadi hasil
+  // Preview di sini persis sama dgn tampilan akhir catatan tersimpan nanti.
+  function setContentEditorMode(mode) {
+    contentEditorSheet.classList.toggle("preview-mode", mode === "preview");
+    contentEditorTabs.querySelectorAll(".content-editor-tab").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.mode === mode);
+    });
+    if (mode === "preview") {
+      const html = renderMarkdownToHtml(contentEditorTextarea.value);
+      contentEditorPreviewEl.innerHTML = html || '<p class="empty-state">Belum ada isi. Beralih ke tab Tulis untuk mulai menulis.</p>';
+    }
+  }
+
+  contentEditorTabs.addEventListener("click", (e) => {
+    const btn = e.target.closest(".content-editor-tab");
+    if (!btn) return;
+    setContentEditorMode(btn.dataset.mode);
+  });
+
   document.getElementById("openContentEditorBtn").addEventListener("click", () => {
     contentEditorTextarea.value = noteContentDraft;
+    setContentEditorMode("write");
     contentEditorModal.classList.add("open");
     contentEditorTextarea.focus();
   });
