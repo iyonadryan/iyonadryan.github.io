@@ -34,13 +34,13 @@ iyonadryan.github.io/
 ```
 
 Karena semua app tetap **sejajar sebagai anak langsung `app/`** (cuma pindah satu level lebih dalam bareng-bareng), link antar mereka **tidak berubah** — `kitchen/index.html`, `finance/index.html`, dst di `app/index.html` tetap relatif apa adanya. Yang berubah:
-- Tiap app's tombol "Semua Aplikasi" di Pengaturan: `../app.html` → **`/app/index.html`** (path absolut, bukan relatif `../index.html` — lihat "Kenapa path absolut" di bawah).
-- Favicon hub: `webimg/iyon-favicon.ico` → **`/webimg/iyon-favicon.ico`** (path absolut).
+- Tiap app's tombol "Semua Aplikasi" di Pengaturan: `../app.html` → **`../index.html`** (nama file hub berubah, tetap relatif).
+- Favicon hub: `webimg/iyon-favicon.ico` → **`../webimg/iyon-favicon.ico`** (naik satu level ke root dulu sebelum ke `webimg/`, tetap relatif).
 - Firebase path (`kitchen`, `finance`, `routine`, `patungan`, `note` di root Realtime Database) **tidak berubah** — itu struktur data cloud, sama sekali independen dari struktur file lokal.
 
-### Kenapa path absolut (`/app/index.html`), bukan relatif (`../index.html`)
+### Kenapa link relatif (`../index.html`), BUKAN path absolut (`/app/index.html`)
 
-Awalnya link "Semua Aplikasi" dibuat relatif (`../index.html`). Pas diverifikasi (lewat dev server lokal `npx serve`), ketahuan link relatif itu rapuh: kalau user landing di URL **tanpa trailing slash** (mis. `/app/finance` alih-alih `/app/finance/`), `../index.html` resolve ke tempat yang salah (naik kelewat satu level). Karena repo ini `iyonadryan.github.io` (**user/personal GitHub Pages site, selalu di root domain**), path absolut spt `/app/index.html` dan `/webimg/iyon-favicon.ico` **aman & benar di semua kondisi** — jadi dipakai supaya tidak rapuh thd trailing-slash. (GitHub Pages sendiri tidak melakukan redirect aneh spt `npx serve`'s clean-URL feature yang sempat bikin bingung waktu testing — itu murni artefak dev server lokal, bukan perilaku production.)
+Sempat dicoba pakai path absolut (`/app/index.html`) krn waktu testing lewat dev server lokal `npx serve`, ketahuan link relatif "rapuh" thd trailing-slash (redirect chain `serve` bisa bikin `../index.html` resolve ke tempat salah). **Tapi ini salah langkah** — user buka app-nya langsung lewat `file://` (double-click file di Explorer/Finder, bukan lewat web server), dan di protokol `file://`, path absolut spt `/app/index.html` di-resolve ke **root drive** (mis. `C:/app/index.html`), BUKAN ke folder project — link jadi rusak total. Path relatif (`../index.html`) sebaliknya bekerja benar baik di `file://` (workflow utama user buat testing lokal) maupun di GitHub Pages produksi (asal diakses dgn URL yang wajar, ada `index.html`/trailing slash — kasus umum, bukan bare-path tanpa trailing slash yang cuma masalah kalau lewat `npx serve`). **Kesimpulan: selalu pakai link relatif utk apa pun di dalam repo ini** — path absolut cuma aman di web server sungguhan, bukan di `file://`.
 
 ### Sumber `img/` dikonsolidasi
 
@@ -63,8 +63,8 @@ Tiap app **tidak lagi punya folder `.claude/` sendiri** — semua dokumentasi pr
 
 ## Rencana / TODO ke depan
 
-- Tambah app baru: bikin folder baru **di dalam `app/`** (bukan di root repo lagi), tambah satu `.app-card` baru di `app/index.html` (ikon, nama, deskripsi, href ke `<folder>/index.html`), dan hapus/pindahkan `.empty-slot` placeholder kalau sudah tidak relevan. Jangan lupa tambah field "Semua Aplikasi" → `/app/index.html` (path absolut, bukan relatif) di app baru itu sendiri (lihat pola di app lain). Dokumentasi app baru langsung dibuat di `app/.claude/<nama>-app.md`, **jangan** bikin folder `.claude/` terpisah di dalam folder app itu sendiri.
-- Belum ada favicon khusus — reuse `/webimg/iyon-favicon.ico` punya portfolio utama.
+- Tambah app baru: bikin folder baru **di dalam `app/`** (bukan di root repo lagi), tambah satu `.app-card` baru di `app/index.html` (ikon, nama, deskripsi, href ke `<folder>/index.html`), dan hapus/pindahkan `.empty-slot` placeholder kalau sudah tidak relevan. Jangan lupa tambah field "Semua Aplikasi" → `../index.html` (**relatif**, bukan absolut — lihat "Kenapa link relatif") di app baru itu sendiri (lihat pola di app lain). Dokumentasi app baru langsung dibuat di `app/.claude/<nama>-app.md`, **jangan** bikin folder `.claude/` terpisah di dalam folder app itu sendiri.
+- Belum ada favicon khusus — reuse `../webimg/iyon-favicon.ico` punya portfolio utama.
 - Belum dipikirkan apakah `app/index.html` nanti di-link dari `index.html` utama (portfolio) — saat ini berdiri sendiri, diakses langsung via URL `/app/` atau `/app/index.html`.
 
 ## Catatan implementasi
