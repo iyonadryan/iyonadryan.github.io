@@ -93,6 +93,21 @@
   text-decoration: none;
 }
 
+/* Tombol "Iyon App" (Semua Aplikasi) — gradient ungu sama persis dgn header
+   hub app/index.html (--gradient-hero di app/style-app.css: light #6d5bd0→
+   #9b6bd6, dark #4f3fa6→#7a4fb0), supaya tombol ini kebaca sbg "pintu balik
+   ke hub" dan konsisten warnanya di semua app — bukan warna primary app
+   masing-masing. Pola sama ditambahkan di Kitchen/Finance/Routine/Patungan App. */
+.btn-hub {
+  background: linear-gradient(135deg, #6d5bd0 0%, #9b6bd6 100%);
+  border: none;
+  color: #fff;
+}
+
+[data-theme="dark"] .btn-hub {
+  background: linear-gradient(135deg, #4f3fa6 0%, #7a4fb0 100%);
+}
+
 .btn-invert {
   background: #1c1d26;
   color: #ffffff;
