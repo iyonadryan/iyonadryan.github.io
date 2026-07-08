@@ -62,8 +62,9 @@
         <h1>Routine App</h1>
         <!-- Ikon kecil penunjuk pengguna aktif (Iyon/Ciwul/Both) — di-set oleh
              updateActiveUserDesc() di script.js, disembunyikan sebelum user
-             pertama kali memilih. -->
-        <img id="headerUserIcon" class="header-user-icon" alt="" hidden>
+             pertama kali memilih. Bisa diklik → buka #userSwitchModal (sama
+             modal yg dipakai tombol "Ganti" di Pengaturan). -->
+        <img id="headerUserIcon" class="header-user-icon" alt="" hidden title="Ganti pengguna">
       </div>
       <button id="themeToggle" class="icon-btn" title="Ganti tema" aria-label="Ganti tema">🌙</button>
     </div>
@@ -320,9 +321,9 @@
   </div>
 
   <!-- ===================== MODAL: GANTI PENGGUNA ===================== -->
-  <div id="userSwitchModal" class="modal-overlay">
-    <div class="modal-sheet">
-      <div class="modal-handle"></div>
+  <div id="userSwitchModal" class="modal-overlay confirm-overlay">
+    <div class="confirm-dialog">
+      <div class="confirm-icon">👤</div>
       <h3>Ganti Pengguna</h3>
       <div class="user-select-options" id="userSwitchOptions"></div>
       <div class="modal-actions">

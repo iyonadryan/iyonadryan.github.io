@@ -429,3 +429,10 @@
   line-height: 1.5;
   color: var(--color-text-muted);
 }
+
+/* Modal Ganti Pengguna (#userSwitchModal) reuse .confirm-dialog centered
+   shell — .user-select-options-nya butuh sedikit jarak yg tidak disediakan
+   default .confirm-dialog (yg didesain sekitar <p>, bukan baris tombol). */
+#userSwitchOptions {
+  margin: 4px 0 20px;
+}

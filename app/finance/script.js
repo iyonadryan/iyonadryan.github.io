@@ -1720,6 +1720,12 @@
     renderUserButtons(document.getElementById("userSwitchOptions"), setCurrentUser);
     userSwitchModal.classList.add("open");
   });
+  // Ikon pengguna aktif di header — pintasan yg sama persis dgn switchUserBtn
+  // di Pengaturan, biar ganti pengguna gak perlu buka halaman Pengaturan dulu.
+  document.getElementById("headerUserIcon").addEventListener("click", () => {
+    renderUserButtons(document.getElementById("userSwitchOptions"), setCurrentUser);
+    userSwitchModal.classList.add("open");
+  });
   document.getElementById("cancelUserSwitchBtn").addEventListener("click", () => {
     userSwitchModal.classList.remove("open");
   });

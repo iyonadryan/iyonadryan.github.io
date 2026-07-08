@@ -319,6 +319,7 @@ button, input, select, textarea {
   border-radius: 50%;
   border: 2px solid var(--color-border);
   object-fit: cover;
+  cursor: pointer;
 }
 
 /* ---------- Main / pages ---------- */
