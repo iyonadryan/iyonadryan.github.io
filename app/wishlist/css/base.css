@@ -1,0 +1,309 @@
+/* =========================================================
+   Wishlist App — Mobile-first styles
+   base.css: variabel tema, reset global, loading overlay, user
+   select overlay, app shell, header, page shell. Dipakai di
+   semua halaman — dimuat pertama sebelum css/* lainnya.
+   ========================================================= */
+
+:root {
+  /* Surfaces */
+  --color-bg: #fdf5fa;
+  --color-surface: #fff7fb;
+  --color-surface-alt: #f9ecf4;
+  --color-border: #f0d9e8;
+
+  /* Text */
+  --color-text: #2b1a29;
+  --color-text-muted: #8a7086;
+
+  /* Brand / primary accent (solid — used for text, icons, links, borders) */
+  --color-primary: #c026d3;
+  --color-primary-dark: #86198f;
+
+  /* Brand gradient (dipakai .btn-primary, .icon-btn.accent, .nav-add) */
+  --gradient-start: var(--color-primary-dark);
+  --gradient-mid: var(--color-primary);
+  --gradient-end: var(--color-primary-dark);
+  --gradient-primary: linear-gradient(to right, var(--gradient-start) 0%, var(--gradient-mid) 51%, var(--gradient-end) 100%);
+  --shadow-btn-grad: 0 4px 16px rgba(192, 38, 211, 0.35);
+
+  --gradient-fab: var(--gradient-primary);
+  --fab-bg-size: 200% auto;
+
+  /* Card gradient (dashboard hero card) */
+  --gradient-card: linear-gradient(145deg, var(--color-primary), var(--color-primary-dark));
+
+  /* Prioritas (enum tetap: rendah/sedang/tinggi) — BUKAN palet kategorikal
+     bebas, tidak perlu divalidasi lewat skill dataviz, sama alasan dgn
+     --period-* Routine App. Klasik traffic-light: hijau=santai, amber=cukup
+     penting, merah=urgent. */
+  --priority-tinggi: #dc2626;
+  --priority-sedang: #d97706;
+  --priority-rendah: #16a34a;
+
+  /* Kategorikal (warna kategori wishlist) — tervalidasi lewat dataviz skill
+     (validate_palette.js) thd surface #fff7fb. 8 slot, urutan tetap; nilai
+     sama persis dgn default reference palette skill (sama nilai dgn
+     Note/Kitchen App, TETAP divalidasi ulang scr eksplisit thd surface app
+     ini sendiri, bukan asal-comot). */
+  --series-1: #2a78d6;
+  --series-2: #1baf7a;
+  --series-3: #eda100;
+  --series-4: #008300;
+  --series-5: #4a3aa7;
+  --series-6: #e34948;
+  --series-7: #e87ba4;
+  --series-8: #eb6834;
+
+  /* Shadows */
+  --shadow-card: 0 8px 24px rgba(43, 26, 41, 0.08);
+  --shadow-fab: 0 10px 20px rgba(192, 38, 211, 0.35);
+
+  /* Layout */
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --nav-height: 64px;
+  --header-height: 60px;
+}
+
+[data-theme="dark"] {
+  /* Surfaces */
+  --color-bg: #1a1220;
+  --color-surface: #291a2b;
+  --color-surface-alt: #331f36;
+  --color-border: #4a2e4d;
+
+  /* Text */
+  --color-text: #f5e9f3;
+  --color-text-muted: #b89bb5;
+
+  /* Brand / primary accent */
+  --color-primary: #e879f9;
+  --color-primary-dark: #c026d3;
+
+  --gradient-start: #c026d3;
+  --gradient-mid: #e879f9;
+  --gradient-end: #c026d3;
+  --gradient-primary: linear-gradient(to right, var(--gradient-start) 0%, var(--gradient-mid) 51%, var(--gradient-end) 100%);
+  --shadow-btn-grad: 0 4px 16px rgba(192, 38, 211, 0.5);
+
+  --gradient-fab: var(--gradient-primary);
+  --fab-bg-size: 200% auto;
+
+  --gradient-card: linear-gradient(145deg, var(--color-primary), var(--color-primary-dark));
+
+  --priority-tinggi: #f87171;
+  --priority-sedang: #fbbf24;
+  --priority-rendah: #4ade80;
+
+  /* Kategorikal — sama 8 hue, langkah untuk surface gelap (#291a2b). */
+  --series-1: #3987e5;
+  --series-2: #199e70;
+  --series-3: #c98500;
+  --series-4: #008300;
+  --series-5: #9085e9;
+  --series-6: #e66767;
+  --series-7: #d55181;
+  --series-8: #d95926;
+
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-fab: 0 10px 24px rgba(232, 121, 249, 0.4);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  color: inherit;
+}
+
+/* ---------- Loading overlay (koneksi Firebase) ---------- */
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: var(--color-bg);
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+.loading-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.loading-coins {
+  display: flex;
+  gap: 14px;
+  font-size: 36px;
+  line-height: 1;
+}
+
+.loading-coins span {
+  display: inline-block;
+  animation: coinBounce 0.9s ease-in-out infinite;
+}
+
+.loading-coins span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.loading-coins span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes coinBounce {
+  0%, 100% {
+    transform: translateY(6px);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(-14px);
+    opacity: 1;
+  }
+}
+
+.loading-text {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-coins span {
+    animation-duration: 1.6s;
+  }
+}
+
+/* ---------- App shell (mobile screen simulation) ---------- */
+
+.app-shell {
+  position: relative;
+  max-width: 480px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background: var(--color-bg);
+  overflow-x: hidden;
+}
+
+@media (min-width: 481px) {
+  body {
+    background: var(--color-surface-alt);
+  }
+  .app-shell {
+    min-height: 100vh;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* ---------- Header ---------- */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--color-bg);
+  padding: env(safe-area-inset-top) 20px 8px;
+  border-bottom: 1px solid transparent;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-height);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-logo {
+  font-size: 22px;
+}
+
+.brand h1 {
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* ---------- Main / pages ---------- */
+
+.app-main {
+  padding: 4px 20px calc(var(--nav-height) + 28px);
+}
+
+.page {
+  display: none;
+  animation: fadeIn 0.2s ease;
+}
+
+.page.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 0 16px;
+}
+
+.page-header h2 {
+  font-size: 22px;
+  margin: 0;
+}
+
+/* ---------- Section heading (dipakai lintas halaman) ---------- */
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 20px 0 10px;
+}
+
+.section-heading h3 {
+  font-size: 15px;
+  margin: 0;
+}
+
+.section-heading a {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+}
