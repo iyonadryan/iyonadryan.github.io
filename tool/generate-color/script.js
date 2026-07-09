@@ -151,7 +151,7 @@ async function copyText(text){
 // previous visit instead of this tool's actual default. The base color is
 // deliberately NOT persisted (see tool/.claude/generate-color.md), so the
 // canonical default is forced explicitly in the INIT section below too.
-const DEFAULT_BASE_HEX = '#0F6E63';
+const DEFAULT_BASE_HEX = '#B5F82F';
 let currentBaseHex = DEFAULT_BASE_HEX;
 let activeScheme = 'complementary';
 
@@ -480,3 +480,15 @@ function renderCatalog(){
 setBaseColor(DEFAULT_BASE_HEX);
 renderCatalog();
 renderSavedColors();
+
+// The reset above isn't always enough on its own: Chromium restores an
+// <input>'s last-typed value as part of session-history state for that
+// navigation entry, and that restoration can land AFTER this script has
+// already run (not just before it) — which is exactly why the color kept
+// coming back on reload even with the fix above in place. `pageshow` fires
+// once the browser has fully finished showing the page, including any such
+// restoration (both for a normal load and for a back/forward bfcache
+// restore), so re-asserting the default there is what actually wins.
+window.addEventListener('pageshow', () => {
+  setBaseColor(DEFAULT_BASE_HEX);
+});
