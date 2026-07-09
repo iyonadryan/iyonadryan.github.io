@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Color Picker — Iyon Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back-link" href="../index.html" aria-label="Kembali ke Iyon Tool">←</a>
+  <h1>Color Picker</h1>
+  <span class="tagline">warna dominan &amp; inspeksi piksel</span>
+  <button class="theme-toggle" id="themeToggle" aria-label="Ganti tema">🌙</button>
+</div>
+
+<div class="layout">
+
+  <div class="panel">
+    <h2>Unggah Gambar / PDF</h2>
+    <div class="dropzone" id="dropzone">
+      Klik atau seret gambar (PNG/JPG/dst) atau PDF ke sini
+    </div>
+    <input type="file" id="fileInput" accept="image/*,application/pdf">
+    <div class="page-nav" id="pageNav" hidden>
+      <button class="iconbtn" id="prevPageBtn" title="Halaman sebelumnya">‹</button>
+      <span id="pageNavLabel">Halaman 1/1</span>
+      <button class="iconbtn" id="nextPageBtn" title="Halaman berikutnya">›</button>
+    </div>
+  </div>
+
+  <div class="panel" id="canvasPanel" hidden>
+    <h2>Klik Gambar untuk Cek Warna</h2>
+    <div class="canvas-wrap" id="canvasWrap"></div>
+    <div class="pixel-info" id="pixelInfo">
+      <p class="empty-hint">Klik di mana saja pada gambar untuk melihat warnanya.</p>
+    </div>
+  </div>
+
+  <div class="panel" id="dominantPanel" hidden>
+    <h2>9 Warna Dominan</h2>
+    <div class="swatch-grid" id="dominantGrid"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="script.js"></script>
+</body>
+</html>

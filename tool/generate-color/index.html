@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generate Color — Iyon Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back-link" href="../index.html" aria-label="Kembali ke Iyon Tool">←</a>
+  <h1>Generate Color</h1>
+  <span class="tagline">skema warna &amp; katalog</span>
+  <button class="theme-toggle" id="themeToggle" aria-label="Ganti tema">🌙</button>
+</div>
+
+<div class="layout">
+
+  <div class="panel">
+    <h2>Warna Dasar</h2>
+    <div class="base-color-row">
+      <input type="color" id="baseColorPicker" value="#0F6E63">
+      <input type="text" id="baseColorHex" class="hex-input" value="#0F6E63" maxlength="7" spellcheck="false">
+      <button type="button" class="btn-ghost" id="randomColorBtn">Acak</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Skema Warna</h2>
+    <div class="scheme-tabs" id="schemeTabs">
+      <button type="button" class="scheme-tab active" data-scheme="complementary">Komplementer</button>
+      <button type="button" class="scheme-tab" data-scheme="analogous">Analogus</button>
+      <button type="button" class="scheme-tab" data-scheme="triadic">Triadik</button>
+      <button type="button" class="scheme-tab" data-scheme="tetradic">Tetradik</button>
+      <button type="button" class="scheme-tab" data-scheme="splitComplementary">Split-Komplementer</button>
+      <button type="button" class="scheme-tab" data-scheme="monochromatic">Monokromatik</button>
+    </div>
+    <p class="scheme-desc" id="schemeDesc"></p>
+    <div class="scheme-grid" id="schemeGrid"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Katalog Warna</h2>
+    <p class="catalog-hint">Klik salah satu warna untuk menyalin kode HEX-nya dan menjadikannya warna dasar di atas.</p>
+    <div class="catalog" id="catalog"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="script.js"></script>
+</body>
+</html>

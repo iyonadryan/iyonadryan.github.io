@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iyon Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style-tool.css">
+</head>
+<body>
+
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-logo">🧰</span>
+      <div>
+        <h1>Iyon Tool</h1>
+        <span class="tagline">kumpulan alat bantu, langsung di browser</span>
+      </div>
+    </div>
+    <button class="theme-toggle" id="themeToggle" aria-label="Ganti tema">🌙</button>
+  </header>
+
+  <main>
+    <p class="section-label">Alat</p>
+    <div class="tool-list" id="toolList">
+      <a class="tool-card" href="pdf-editor/index.html">
+        <div class="tool-icon">📄</div>
+        <div class="tool-info">
+          <p class="tool-name">Bengkel PDF</p>
+          <p class="tool-desc">Edit PDF: gabung, atur halaman, teks, tanda tangan, isi formulir</p>
+        </div>
+        <div class="tool-arrow">›</div>
+      </a>
+
+      <a class="tool-card" href="color-picker/index.html">
+        <div class="tool-icon">🎯</div>
+        <div class="tool-info">
+          <p class="tool-name">Color Picker</p>
+          <p class="tool-desc">Ambil 9 warna dominan dari gambar/PDF, atau cek warna tiap piksel</p>
+        </div>
+        <div class="tool-arrow">›</div>
+      </a>
+
+      <a class="tool-card" href="generate-color/index.html">
+        <div class="tool-icon">🎨</div>
+        <div class="tool-info">
+          <p class="tool-name">Generate Color</p>
+          <p class="tool-desc">Buat kombinasi warna (komplementer, triadik, dst) & katalog warna</p>
+        </div>
+        <div class="tool-arrow">›</div>
+      </a>
+
+      <div class="empty-slot">+ Alat berikutnya nanti muncul di sini</div>
+    </div>
+
+    <footer class="hint">Iyon Tool &middot; iyonadryan.github.io</footer>
+  </main>
+</div>
+
+<script>
+  (function () {
+    var STORAGE_KEY = "iyontool_theme";
+    var root = document.documentElement;
+    var toggleBtn = document.getElementById("themeToggle");
+
+    function applyTheme(theme) {
+      root.setAttribute("data-theme", theme);
+      toggleBtn.textContent = theme === "dark" ? "☀️" : "🌙";
+    }
+
+    var saved = localStorage.getItem(STORAGE_KEY);
+    var initial = saved || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    applyTheme(initial);
+
+    toggleBtn.addEventListener("click", function () {
+      var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      localStorage.setItem(STORAGE_KEY, next);
+      applyTheme(next);
+    });
+
+    // Animasi masuk kartu alat — delay 0.15s berjenjang antar kartu, dihitung
+    // otomatis dari urutan DOM (pola sama dgn app/index.html).
+    document.querySelectorAll("#toolList > *").forEach(function (el, i) {
+      el.style.animationDelay = (i * 0.15) + "s";
+    });
+  })();
+</script>
+</body>
+</html>

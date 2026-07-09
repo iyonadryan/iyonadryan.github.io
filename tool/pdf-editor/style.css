@@ -28,6 +28,17 @@ body{
   border-bottom:1px solid var(--border);
   background: var(--surface);
 }
+.back-link{
+  width:34px; height:34px; border-radius:50%;
+  border:1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text);
+  display:flex; align-items:center; justify-content:center;
+  text-decoration:none;
+  font-size:16px;
+  flex-shrink:0;
+}
+.back-link:hover{ background: var(--border); }
 .topbar h1{
   font-family:'Inter', sans-serif;
   font-weight:800;

@@ -15,7 +15,7 @@ Prototype pertama, mulai dibangun di percakapan lain (di luar riwayat sesi ini) 
 
 ## Struktur file
 
-- `index.html` — markup halaman (layout 3 kolom: sidebar halaman kiri, stage tengah, panel properti kanan) + modal tanda tangan.
+- `index.html` — markup halaman (layout 3 kolom: sidebar halaman kiri, stage tengah, panel properti kanan) + modal tanda tangan. Topbar py `.back-link` (← ke `../index.html`, hub Iyon Tool) — sempat kelewatan saat file ini pertama dibuat (beda dari `color-picker`/`generate-color` yang sudah py itu sejak awal), ditambah menyusul.
 - `style.css` — semua styling (dipisah dari index.html atas permintaan eksplisit user).
 - `script.js` — semua logic (state, render, event handler, operasi pdf-lib/pdf.js). **Bukan IIFE** (variabel top-level ada di scope global, beda dari pola `app/*/script.js` yang selalu dibungkus `(function(){...})()`), tanpa framework/build tool.
 
