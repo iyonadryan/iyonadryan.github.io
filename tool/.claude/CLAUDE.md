@@ -51,6 +51,11 @@ Semua halaman di `tool/` (hub + tiap tool) pakai token warna & tipografi yang sa
 - Tiap tool & hub punya toggle tema + localStorage key **sendiri-sendiri** (`iyontool_theme`, `colorpicker_theme`, `generatecolor_theme`) — pola sama persis dgn tiap app di `app/` yang juga tidak berbagi key tema walau satu keluarga (lihat `app/.claude/CLAUDE.md` bagian tema).
 - **Pengecualian**: `pdf-editor/` (tool pertama, dibuat sebelum identitas visual ini "dibakukan") belum punya `[data-theme="dark"]` sama sekali — light-only. Belum diretrofit krn tidak diminta; kalau nanti diminta, tinggal salin blok `[data-theme="dark"]` dari tool lain ke `pdf-editor/style.css` + tambah tombol toggle di `index.html`-nya.
 
+### Favicon
+
+- **Hub** (`tool/index.html`) pakai favicon Iyon yang sama dgn portfolio utama & hub `app/index.html`: `<link rel="icon" href="../webimg/iyon-favicon.ico" type="image/x-icon">` — **bukan** favicon khusus `tool/`, sengaja dipakai favicon situs biar hub ini kebaca sbg "pintu masuk" resmi, sama peran dgn `app/index.html`.
+- **Tiap tool** pakai favicon emoji data-URI SVG (`<link rel="icon" href="data:image/svg+xml,...">`), **sama persis emoji-nya dgn ikon `.tool-icon` tool itu di kartu hub** — pola identik dgn favicon emoji tiap app di `app/*/index.html`: `pdf-editor` 📄, `color-picker` 🎯, `generate-color` 🎨. Kalau ikon kartu hub sebuah tool diganti, favicon-nya ikut diganti biar tetap sinkron.
+
 ## Status saat ini
 
 - **`pdf-editor/`** — Bengkel PDF, editor PDF client-side (upload/gabung PDF, reorder/rotate/hapus/ekstrak halaman, tambah teks & tanda tangan overlay lalu "terapkan"/bake ke PDF, isi form AcroForm, unduh hasil). Lihat `tool/.claude/pdf-editor.md`.
@@ -62,7 +67,7 @@ Semua halaman di `tool/` (hub + tiap tool) pakai token warna & tipografi yang sa
 
 ## Rencana / TODO ke depan
 
-- Tambah tool baru: bikin folder baru di dalam `tool/` (mis. `tool/<nama-tool>/`), dokumentasi langsung dibuat di `tool/.claude/<nama-tool>.md` — **jangan** bikin folder `.claude/` terpisah di dalam folder tool itu sendiri (lihat "Dokumentasi per-tool dikonsolidasi"). Tambah juga satu `.tool-card` baru di `tool/index.html` (ikon, nama, deskripsi, href relatif ke `<folder>/index.html`) **di atas** `.empty-slot`.
+- Tambah tool baru: bikin folder baru di dalam `tool/` (mis. `tool/<nama-tool>/`), dokumentasi langsung dibuat di `tool/.claude/<nama-tool>.md` — **jangan** bikin folder `.claude/` terpisah di dalam folder tool itu sendiri (lihat "Dokumentasi per-tool dikonsolidasi"). Tambah juga satu `.tool-card` baru di `tool/index.html` (ikon, nama, deskripsi, href relatif ke `<folder>/index.html`) **di atas** `.empty-slot`, dan favicon emoji di `<head>` tool baru itu pakai **emoji yang sama** dgn ikon kartunya (lihat "Favicon").
 - Belum dipikirkan apakah `tool/index.html` nanti di-link dari portfolio utama atau dari `app/index.html` — saat ini berdiri sendiri.
 - `pdf-editor/` belum punya mode gelap (lihat "Identitas visual bersama" di atas) — bisa diretrofit kalau diminta.
 

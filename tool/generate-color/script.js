@@ -23,9 +23,12 @@
 const baseColorPicker = document.getElementById('baseColorPicker');
 const baseColorHex = document.getElementById('baseColorHex');
 const randomColorBtn = document.getElementById('randomColorBtn');
+const saveColorBtn = document.getElementById('saveColorBtn');
+const savedColorsEl = document.getElementById('savedColors');
 const schemeTabsEl = document.getElementById('schemeTabs');
 const schemeDescEl = document.getElementById('schemeDesc');
 const schemeGridEl = document.getElementById('schemeGrid');
+const contrastNoteEl = document.getElementById('contrastNote');
 const catalogEl = document.getElementById('catalog');
 const toastEl = document.getElementById('toast');
 
@@ -82,6 +85,20 @@ function hslToRgb(h, s, l){
 }
 function hexToHsl(hex){ const {r,g,b} = hexToRgb(hex); return rgbToHsl(r,g,b); }
 function hslToHex(h, s, l){ const {r,g,b} = hslToRgb(h,s,l); return rgbToHex(r,g,b); }
+
+// WCAG 2.0 relative luminance / contrast ratio — used by the "Palet UI"
+// scheme to check its background/text neutral pair actually reads as text,
+// not just "looks fine" on the swatch preview.
+function relLuminance(hex){
+  const {r,g,b} = hexToRgb(hex);
+  const chan = v => { v/=255; return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); };
+  return 0.2126*chan(r) + 0.7152*chan(g) + 0.0722*chan(b);
+}
+function contrastRatio(hexA, hexB){
+  const l1 = relLuminance(hexA), l2 = relLuminance(hexB);
+  const hi = Math.max(l1,l2), lo = Math.min(l1,l2);
+  return (hi+0.05)/(lo+0.05);
+}
 
 function normalizeHex(input){
   let v = String(input||'').trim();
@@ -168,6 +185,68 @@ randomColorBtn.addEventListener('click', () => {
   setBaseColor(rgbToHex(Math.random()*256, Math.random()*256, Math.random()*256));
 });
 
+// ---------- WARNA TERSIMPAN ----------
+// Persisted to localStorage (not just in-memory) — the whole point is
+// letting the user come back later and flip between colors they saved
+// earlier to compare them, so losing the list on reload would defeat it.
+const SAVED_STORAGE_KEY = 'generatecolor_saved';
+
+function loadSavedColors(){
+  try{
+    const raw = localStorage.getItem(SAVED_STORAGE_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter(hex => normalizeHex(hex)) : [];
+  }catch(err){
+    return [];
+  }
+}
+function persistSavedColors(){
+  try{ localStorage.setItem(SAVED_STORAGE_KEY, JSON.stringify(savedColors)); }
+  catch(err){
+    // localStorage bisa penuh atau dimatikan (mode privat) — biarkan gagal
+    // diam-diam, jangan sampai merusak sesi yang sedang berjalan cuma krn
+    // gagal menyimpan.
+  }
+}
+
+let savedColors = loadSavedColors();
+
+function renderSavedColors(){
+  savedColorsEl.innerHTML = savedColors.map(hex =>
+    '<div class="saved-chip" data-hex="' + hex + '">' +
+      '<span class="saved-chip-color" style="background:' + hex + '"></span>' +
+      '<span class="saved-chip-hex">' + hex + '</span>' +
+      '<button type="button" class="saved-chip-del" data-del="' + hex + '" aria-label="Hapus ' + hex + '">✕</button>' +
+    '</div>'
+  ).join('');
+
+  savedColorsEl.querySelectorAll('.saved-chip').forEach(chip => {
+    chip.addEventListener('click', e => {
+      if(e.target.closest('.saved-chip-del')) return;
+      setBaseColor(chip.dataset.hex);
+    });
+  });
+  savedColorsEl.querySelectorAll('.saved-chip-del').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      savedColors = savedColors.filter(hex => hex !== btn.dataset.del);
+      persistSavedColors();
+      renderSavedColors();
+    });
+  });
+}
+
+saveColorBtn.addEventListener('click', () => {
+  if(savedColors.includes(currentBaseHex)){
+    showToast(currentBaseHex + ' sudah tersimpan');
+    return;
+  }
+  savedColors.unshift(currentBaseHex); // warna yg baru disimpan muncul paling depan
+  persistSavedColors();
+  renderSavedColors();
+  showToast('Disimpan: ' + currentBaseHex);
+});
+
 // ---------- SKEMA WARNA ----------
 const SCHEME_META = {
   complementary: {
@@ -214,6 +293,24 @@ const SCHEME_META = {
     desc: 'Hue yang sama, cuma beda terang-gelap — palet paling aman & selalu serasi, cocok utk gradasi/tumpukan elemen.',
     build: (h,s) => [85,70,55,40,25].map(l => ({ hex: hslToHex(h,s,l), role: l+'% terang' })),
   },
+  // Bukan skema roda-warna spt yg di atas — ini palet 5 warna berbasis PERAN,
+  // pola yg umum dipakai buat kebutuhan UI/UX (dipakai luas oleh design
+  // system spt Material Design & dibahas di banyak panduan UI color, mis.
+  // Figma/IxDF/NN·g — lihat tool/.claude/generate-color.md utk detail &
+  // sumbernya): Primer, Sekunder, Aksen, dan sepasang Netral (latar & teks).
+  // Rasio 60/30/10 di label mengikuti aturan "60-30-10" yg lazim dipakai utk
+  // menentukan PORSI pemakaian tiap warna di layar, bukan rumus hue-nya.
+  uiPalette: {
+    desc: 'Palet 5 warna berbasis peran utk UI/UX — Primer/Sekunder/Aksen + sepasang Netral (latar & teks) yang di-tint mengikuti hue warna dasar, bukan abu-abu polos. Mengikuti pola umum "60-30-10" & peran warna (Primer/Sekunder/Aksen/Netral) yang dipakai kebanyakan design system.',
+    isUiPalette: true,
+    build: (h,s,l) => [
+      { hex: hslToHex(h, s, l), role:'Primer (60%)', tip:'Elemen branding utama: tombol utama, link, header.' },
+      { hex: hslToHex(h-40, clamp(s*0.85,0,100), clamp(l+8,15,88)), role:'Sekunder (30%)', tip:'Kartu, sidebar, elemen pendukung yang tidak perlu menonjol.' },
+      { hex: hslToHex(h+165, clamp(Math.max(s,75),0,95), 52), role:'Aksen (10%)', tip:'CTA, notifikasi, elemen yang perlu paling menonjol — pakai secukupnya.' },
+      { hex: hslToHex(h, 10, 97), role:'Netral Terang', tip:'Latar halaman/kartu.' },
+      { hex: hslToHex(h, 16, 15), role:'Netral Gelap', tip:'Teks body & judul.' },
+    ],
+  },
 };
 
 function renderScheme(scheme){
@@ -221,12 +318,15 @@ function renderScheme(scheme){
   const { h, s, l } = hexToHsl(currentBaseHex);
   schemeDescEl.textContent = meta.desc;
   const colors = meta.build(h, s, l);
+  const isRoleBased = !!meta.isUiPalette;
 
   schemeGridEl.innerHTML = colors.map(c =>
-    '<div class="scheme-swatch">' +
+    '<div class="scheme-swatch' + (isRoleBased ? ' scheme-swatch-role' : '') + '">' +
       '<div class="scheme-swatch-color" style="background:' + c.hex + '" data-hex="' + c.hex + '" title="' + c.role + '"></div>' +
       '<div class="scheme-swatch-meta">' +
+        (isRoleBased ? '<p class="scheme-swatch-role-label">' + c.role + '</p>' : '') +
         '<p class="scheme-swatch-hex">' + c.hex + '</p>' +
+        (c.tip ? '<p class="scheme-swatch-tip">' + c.tip + '</p>' : '') +
         '<div class="scheme-swatch-actions">' +
           '<button type="button" class="mini-btn" data-copy="' + c.hex + '">Salin</button>' +
           '<button type="button" class="mini-btn" data-use="' + c.hex + '">Pakai</button>' +
@@ -238,6 +338,22 @@ function renderScheme(scheme){
   schemeGridEl.querySelectorAll('[data-copy]').forEach(btn => btn.addEventListener('click', () => copyText(btn.dataset.copy)));
   schemeGridEl.querySelectorAll('[data-use]').forEach(btn => btn.addEventListener('click', () => setBaseColor(btn.dataset.use)));
   schemeGridEl.querySelectorAll('.scheme-swatch-color').forEach(el => el.addEventListener('click', () => copyText(el.dataset.hex)));
+
+  // "Palet UI" is the only scheme with a defined background/text pair, so
+  // it's the only one where a WCAG contrast check actually means something.
+  if(isRoleBased){
+    const bg = colors.find(c => c.role === 'Netral Terang');
+    const fg = colors.find(c => c.role === 'Netral Gelap');
+    const ratio = contrastRatio(bg.hex, fg.hex);
+    const passAA = ratio >= 4.5;
+    contrastNoteEl.hidden = false;
+    contrastNoteEl.className = 'contrast-note ' + (passAA ? 'pass' : 'warn');
+    contrastNoteEl.textContent = (passAA ? '✓ ' : '⚠ ') +
+      'Kontras Netral Terang ↔ Netral Gelap: ' + ratio.toFixed(2) + ':1 — ' +
+      (passAA ? 'lolos WCAG AA (≥4.5:1) utk teks body.' : 'di bawah WCAG AA (4.5:1) — pertimbangkan teks lebih gelap.');
+  } else {
+    contrastNoteEl.hidden = true;
+  }
 }
 
 schemeTabsEl.querySelectorAll('.scheme-tab').forEach(btn => {
@@ -323,3 +439,4 @@ function renderCatalog(){
 // ---------- INIT ----------
 renderCatalog();
 renderScheme(activeScheme);
+renderSavedColors();

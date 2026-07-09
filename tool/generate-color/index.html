@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Generate Color — Iyon Tool</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎨</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -25,7 +26,9 @@
       <input type="color" id="baseColorPicker" value="#0F6E63">
       <input type="text" id="baseColorHex" class="hex-input" value="#0F6E63" maxlength="7" spellcheck="false">
       <button type="button" class="btn-ghost" id="randomColorBtn">Acak</button>
+      <button type="button" class="btn-ghost" id="saveColorBtn">Simpan</button>
     </div>
+    <div class="saved-colors" id="savedColors"></div>
   </div>
 
   <div class="panel">
@@ -37,9 +40,11 @@
       <button type="button" class="scheme-tab" data-scheme="tetradic">Tetradik</button>
       <button type="button" class="scheme-tab" data-scheme="splitComplementary">Split-Komplementer</button>
       <button type="button" class="scheme-tab" data-scheme="monochromatic">Monokromatik</button>
+      <button type="button" class="scheme-tab" data-scheme="uiPalette">Palet UI (5 Warna)</button>
     </div>
     <p class="scheme-desc" id="schemeDesc"></p>
     <div class="scheme-grid" id="schemeGrid"></div>
+    <p class="contrast-note" id="contrastNote" hidden></p>
   </div>
 
   <div class="panel">
