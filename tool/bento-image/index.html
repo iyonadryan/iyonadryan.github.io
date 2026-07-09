@@ -22,8 +22,25 @@
 
   <!-- LEFT: grid settings -->
   <div class="panel sidebar">
-    <h2>Gaya Grid</h2>
-    <div class="template-grid" id="templateGrid"></div>
+    <h2>Grid Style</h2>
+    <div class="style-list" id="styleList"></div>
+    <button type="button" class="tool-btn tool-btn-block" id="regeneratePatternBtn">🔀 Acak Pola</button>
+
+    <h2 style="margin-top:18px;">Grid Layout</h2>
+    <div class="layout-row">
+      <span class="layout-label">Kolom</span>
+      <input type="range" id="colsRange" min="2" max="8" step="1" value="4">
+      <input type="number" id="colsInput" min="2" max="8" value="4">
+    </div>
+    <div class="layout-row">
+      <span class="layout-label">Baris</span>
+      <input type="range" id="rowsRange" min="2" max="8" step="1" value="3">
+      <input type="number" id="rowsInput" min="2" max="8" value="3">
+    </div>
+    <div class="layout-actions">
+      <button type="button" class="link-toggle" id="linkToggleBtn" title="Kunci Kolom = Baris" aria-pressed="false">🔗</button>
+      <button type="button" class="tool-btn" id="randomLayoutBtn">🔀 Acak Tata Letak</button>
+    </div>
 
     <h2 style="margin-top:18px;">Dimensi</h2>
     <div class="dim-presets" id="dimPresets"></div>
@@ -60,7 +77,7 @@
   <!-- CENTER: stage -->
   <div class="panel stage">
     <div class="stage-top">
-      <button type="button" class="tool-btn" id="shuffleTemplateBtn">🔀 Acak Gaya</button>
+      <button type="button" class="tool-btn" id="surpriseBtn">🎲 Surprise</button>
     </div>
     <div class="stage-frame" id="stageFrame">
       <canvas id="bentoCanvas" width="1080" height="1080"></canvas>

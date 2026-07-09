@@ -19,67 +19,100 @@
   });
 })();
 
-// ---------- GRID TEMPLATES ----------
-// Tiap template mempartisi grid dasar (cols x rows) jadi beberapa sel bento
-// tanpa celah/tumpang tindih (setiap unit base grid tercakup persis sekali).
-// colStart/rowStart 1-indexed, colSpan/rowSpan = jumlah unit yang dicakup.
-const TEMPLATES = [
-  { id:'fokus-kiri', label:'Fokus Kiri', cols:3, rows:2, cells:[
-    { colStart:1, colSpan:2, rowStart:1, rowSpan:2 },
-    { colStart:3, colSpan:1, rowStart:1, rowSpan:1 },
-    { colStart:3, colSpan:1, rowStart:2, rowSpan:1 },
-  ]},
-  { id:'fokus-kanan', label:'Fokus Kanan', cols:3, rows:2, cells:[
-    { colStart:1, colSpan:1, rowStart:1, rowSpan:1 },
-    { colStart:1, colSpan:1, rowStart:2, rowSpan:1 },
-    { colStart:2, colSpan:2, rowStart:1, rowSpan:2 },
-  ]},
-  { id:'fokus-atas', label:'Fokus Atas', cols:2, rows:3, cells:[
-    { colStart:1, colSpan:2, rowStart:1, rowSpan:1 },
-    { colStart:1, colSpan:1, rowStart:2, rowSpan:2 },
-    { colStart:2, colSpan:1, rowStart:2, rowSpan:1 },
-    { colStart:2, colSpan:1, rowStart:3, rowSpan:1 },
-  ]},
-  { id:'kuadran', label:'Kuadran', cols:2, rows:2, cells:[
-    { colStart:1, colSpan:1, rowStart:1, rowSpan:1 },
-    { colStart:2, colSpan:1, rowStart:1, rowSpan:1 },
-    { colStart:1, colSpan:1, rowStart:2, rowSpan:1 },
-    { colStart:2, colSpan:1, rowStart:2, rowSpan:1 },
-  ]},
-  { id:'mozaik', label:'Mozaik', cols:4, rows:3, cells:[
-    { colStart:1, colSpan:2, rowStart:1, rowSpan:2 },
-    { colStart:3, colSpan:1, rowStart:1, rowSpan:1 },
-    { colStart:4, colSpan:1, rowStart:1, rowSpan:1 },
-    { colStart:3, colSpan:1, rowStart:2, rowSpan:1 },
-    { colStart:4, colSpan:1, rowStart:2, rowSpan:1 },
-    { colStart:1, colSpan:4, rowStart:3, rowSpan:1 },
-  ]},
-  { id:'piramida', label:'Piramida', cols:3, rows:3, cells:[
-    { colStart:1, colSpan:3, rowStart:1, rowSpan:1 },
-    { colStart:1, colSpan:2, rowStart:2, rowSpan:2 },
-    { colStart:3, colSpan:1, rowStart:2, rowSpan:1 },
-    { colStart:3, colSpan:1, rowStart:3, rowSpan:1 },
-  ]},
-  { id:'sudut', label:'Sudut', cols:4, rows:3, cells:[
-    { colStart:1, colSpan:1, rowStart:1, rowSpan:1 },
-    { colStart:2, colSpan:3, rowStart:1, rowSpan:2 },
-    { colStart:1, colSpan:1, rowStart:2, rowSpan:2 },
-    { colStart:2, colSpan:1, rowStart:3, rowSpan:1 },
-    { colStart:3, colSpan:1, rowStart:3, rowSpan:1 },
-    { colStart:4, colSpan:1, rowStart:3, rowSpan:1 },
-  ]},
-  { id:'kolom-rata', label:'Kolom Rata', cols:4, rows:1, cells:[
-    { colStart:1, colSpan:1, rowStart:1, rowSpan:1 },
-    { colStart:2, colSpan:1, rowStart:1, rowSpan:1 },
-    { colStart:3, colSpan:1, rowStart:1, rowSpan:1 },
-    { colStart:4, colSpan:1, rowStart:1, rowSpan:1 },
-  ]},
-  { id:'baris-rata', label:'Baris Rata', cols:1, rows:4, cells:[
-    { colStart:1, colSpan:1, rowStart:1, rowSpan:1 },
-    { colStart:1, colSpan:1, rowStart:2, rowSpan:1 },
-    { colStart:1, colSpan:1, rowStart:3, rowSpan:1 },
-    { colStart:1, colSpan:1, rowStart:4, rowSpan:1 },
-  ]},
+// ---------- GRID STYLE (algoritma pembangkit pola) + GRID LAYOUT (kolom x baris) ----------
+// Beda dari daftar template tetap (sebelumnya): "Grid Layout" (jumlah kolom &
+// baris grid dasar) sekarang bebas diatur user, dan "Grid Style" adalah satu
+// dari beberapa ALGORITMA yang mempartisi grid dasar itu jadi sel-sel bento —
+// polanya dihitung ulang tiap kali kolom/baris/gaya berubah, bukan dipilih
+// dari daftar bentuk yang sudah jadi. Pola ini diambil dari amatan struktur
+// panel "Grid Style" + "Grid Layout" terpisah di bento.samolevsky.com (situs
+// generator bento grid), lalu diimplementasikan ulang dari nol di sini —
+// bukan menyalin kode/aset situs itu, cuma konsepnya (lihat penjelasan
+// lengkap tiap algoritma di `tool/.claude/bento-image.md`).
+//
+// Tiap fungsi generate(cols, rows) WAJIB mengembalikan array sel yg mempartisi
+// grid `cols x rows` scr LENGKAP (tiap unit tercakup persis sekali, tanpa
+// celah/tumpang-tindih) — sel berbentuk {colStart, colSpan, rowStart, rowSpan}
+// (1-indexed), sama persis skema yg dipakai `computeCellRects()`.
+
+function toCellShape(region){
+  return { colStart: region.c0 + 1, colSpan: region.c1 - region.c0, rowStart: region.r0 + 1, rowSpan: region.r1 - region.r0 };
+}
+
+// Partisi guillotine rekursif: potong satu region jadi dua terus-menerus
+// (garis potong selalu tembus dari sisi ke sisi, spt memotong roti), berhenti
+// makin sering seiring makin dalam rekursi (`stopBase/stopGrowth/stopMax`)
+// supaya hasilnya campuran blok besar & kecil, bukan selalu petak seragam.
+// `longSplitBias` condong memotong di sisi yg lebih panjang dulu (mencegah
+// blok jadi terlalu kurus memanjang).
+function splitRegion(region, style, depth){
+  const w = region.c1 - region.c0, h = region.r1 - region.r0;
+  if (w === 1 && h === 1) return [region];
+
+  let stop = false;
+  if (depth > 0) {
+    const p = Math.min(style.stopBase + depth * style.stopGrowth, style.stopMax);
+    stop = Math.random() < p;
+  }
+  if (stop) return [region];
+
+  let vertical; // true = potongan garis vertikal (membagi kolom jadi kiri/kanan)
+  if (w === 1) vertical = false;
+  else if (h === 1) vertical = true;
+  else vertical = Math.random() < (w >= h ? style.longSplitBias : 1 - style.longSplitBias);
+
+  if (vertical) {
+    const cut = region.c0 + 1 + Math.floor(Math.random() * (w - 1));
+    return [...splitRegion({ ...region, c1: cut }, style, depth + 1),
+            ...splitRegion({ ...region, c0: cut }, style, depth + 1)];
+  }
+  const cut = region.r0 + 1 + Math.floor(Math.random() * (h - 1));
+  return [...splitRegion({ ...region, r1: cut }, style, depth + 1),
+          ...splitRegion({ ...region, r0: cut }, style, depth + 1)];
+}
+
+function generateSplitStyle(cols, rows, styleParams){
+  return splitRegion({ c0: 0, r0: 0, c1: cols, r1: rows }, styleParams, 0).map(toCellShape);
+}
+
+// Reguler: grid seragam, tiap sel 1x1 — tidak ada elemen acak.
+function generateReguler(cols, rows){
+  const cells = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      cells.push({ colStart: c + 1, colSpan: 1, rowStart: r + 1, rowSpan: 1 });
+    }
+  }
+  return cells;
+}
+
+// Pola: motif ubin 2x2 berulang (sisa baris/kolom ganjil di tepi otomatis
+// jadi strip 1-lebar/1-tinggi) — deterministik, tidak ada elemen acak.
+function generatePola(cols, rows){
+  const cells = [];
+  for (let r = 0; r < rows; r += 2) {
+    const rSpan = Math.min(2, rows - r);
+    for (let c = 0; c < cols; c += 2) {
+      const cSpan = Math.min(2, cols - c);
+      cells.push({ colStart: c + 1, colSpan: cSpan, rowStart: r + 1, rowSpan: rSpan });
+    }
+  }
+  return cells;
+}
+
+// Parameter `splitRegion()` per gaya acak — nilai ini dipilih lewat uji coba
+// manual (skrip Node terpisah, lihat tool/.claude/bento-image.md) yg
+// memvalidasi partisi selalu lengkap & menghitung rata-rata jumlah blok yg
+// dihasilkan utk berbagai ukuran grid, supaya "Bento" terasa bervariasi
+// (rata-rata ~3-5 blok) & "Mondrian" terasa lebih sedikit-tapi-besar
+// (rata-rata ~3 blok, potongan lebih acak arahnya) drpd cuma tebak-tebakan.
+const STYLES = [
+  { id: 'reguler', label: 'Reguler', deterministic: true, generate: generateReguler },
+  { id: 'bento', label: 'Bento', deterministic: false,
+    generate: (c, r) => generateSplitStyle(c, r, { stopBase: 0.35, stopGrowth: 0.15, stopMax: 0.85, longSplitBias: 0.75 }) },
+  { id: 'mondrian', label: 'Mondrian', deterministic: false,
+    generate: (c, r) => generateSplitStyle(c, r, { stopBase: 0.5, stopGrowth: 0.2, stopMax: 0.9, longSplitBias: 0.5 }) },
+  { id: 'pola', label: 'Pola', deterministic: true, generate: generatePola },
 ];
 
 const DIM_PRESETS = [
@@ -92,7 +125,11 @@ const DIM_PRESETS = [
 
 // ---------- STATE ----------
 const state = {
-  templateId: TEMPLATES[0].id,
+  styleId: 'bento',
+  layoutCols: 4,
+  layoutRows: 3,
+  linkColsRows: false,
+  pattern: [],  // partisi sel aktif — hasil generate() gaya saat ini utk layoutCols x layoutRows
   canvasW: 1080,
   canvasH: 1080,
   gap: 12,
@@ -105,17 +142,22 @@ const state = {
 let imgIdCounter = 0;
 
 function clamp(v, min, max){ return Math.min(max, Math.max(min, v)); }
-function getActiveTemplate(){ return TEMPLATES.find(t => t.id === state.templateId) || TEMPLATES[0]; }
+function getActiveStyle(){ return STYLES.find(s => s.id === state.styleId) || STYLES[0]; }
+
+// Bangkitkan ulang state.pattern dari gaya + kolom/baris aktif.
+function regeneratePattern(){
+  state.pattern = getActiveStyle().generate(state.layoutCols, state.layoutRows);
+}
 
 // ---------- GEOMETRY ----------
 function computeCellRects(){
-  const t = getActiveTemplate();
+  const cols = state.layoutCols, rows = state.layoutRows;
   const W = state.canvasW, H = state.canvasH;
   const pad = state.padding, gap = state.gap;
   const innerW = W - pad * 2, innerH = H - pad * 2;
-  const colW = (innerW - gap * (t.cols - 1)) / t.cols;
-  const rowH = (innerH - gap * (t.rows - 1)) / t.rows;
-  return t.cells.map(cell => {
+  const colW = (innerW - gap * (cols - 1)) / cols;
+  const rowH = (innerH - gap * (rows - 1)) / rows;
+  return state.pattern.map(cell => {
     const x = pad + (cell.colStart - 1) * (colW + gap);
     const y = pad + (cell.rowStart - 1) * (rowH + gap);
     const w = cell.colSpan * colW + (cell.colSpan - 1) * gap;
@@ -229,7 +271,7 @@ function renderOverlay(){
 function renderAll(){
   renderCanvas();
   renderOverlay();
-  refreshTemplateActive();
+  refreshStyleActive();
   refreshDimActive();
 }
 
@@ -387,11 +429,10 @@ function collectAssignedImageIds(){
 }
 
 function autoFillCells(imageIds){
-  const t = getActiveTemplate();
   const usedIds = new Set(collectAssignedImageIds());
   const ids = imageIds || state.images.map(im => im.id).filter(id => !usedIds.has(id));
   let idx = 0;
-  t.cells.forEach((_, i) => {
+  state.pattern.forEach((_, i) => {
     if (idx >= ids.length) return;
     if (!state.cells[i] || !state.cells[i].imageId) {
       state.cells[i] = { imageId: ids[idx], panX: 0, panY: 0, zoom: 1 };
@@ -424,58 +465,144 @@ document.getElementById('clearAllBtn').addEventListener('click', () => {
   renderAll();
 });
 
-// ---------- Gaya grid ----------
-function switchTemplate(id){
+// ---------- Grid Style ----------
+// Ganti gaya TANPA mengubah kolom/baris yg lagi diatur user — cuma partisi
+// selnya yg berubah, foto yg sudah dipasang dipindah otomatis ke sel-sel baru
+// (urutan dipertahankan lewat collectAssignedImageIds()/autoFillCells(), pola
+// yg sama dgn `switchTemplate()` versi lama).
+function switchStyle(id){
   const assignedIds = collectAssignedImageIds();
-  state.templateId = id;
+  state.styleId = id;
   state.cells = {};
+  regeneratePattern();
   autoFillCells(assignedIds);
   renderAll();
 }
 
-function buildTemplatePicker(){
-  const wrap = document.getElementById('templateGrid');
+// Preview mini tiap tombol gaya dibangun dari HASIL NYATA generate() gaya itu
+// pakai ukuran contoh 4x3 (bukan gambar/ikon statis terpisah) — supaya
+// preview selalu jujur mewakili bentuk yg dihasilkan algoritmanya, bukan
+// desain manual yg bisa meleset dari kode aslinya.
+const STYLE_PREVIEW_COLS = 4, STYLE_PREVIEW_ROWS = 3;
+function buildStylePicker(){
+  const wrap = document.getElementById('styleList');
   wrap.innerHTML = '';
-  TEMPLATES.forEach(t => {
+  STYLES.forEach(s => {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'template-btn';
-    btn.dataset.id = t.id;
+    btn.className = 'style-btn';
+    btn.dataset.id = s.id;
 
     const thumb = document.createElement('div');
-    thumb.className = 'template-thumb';
-    thumb.style.gridTemplateColumns = `repeat(${t.cols},1fr)`;
-    thumb.style.gridTemplateRows = `repeat(${t.rows},1fr)`;
-    t.cells.forEach(cell => {
+    thumb.className = 'style-thumb';
+    thumb.style.gridTemplateColumns = `repeat(${STYLE_PREVIEW_COLS},1fr)`;
+    thumb.style.gridTemplateRows = `repeat(${STYLE_PREVIEW_ROWS},1fr)`;
+    s.generate(STYLE_PREVIEW_COLS, STYLE_PREVIEW_ROWS).forEach(cell => {
       const c = document.createElement('div');
-      c.className = 'template-thumb-cell';
+      c.className = 'style-thumb-cell';
       c.style.gridColumn = `${cell.colStart} / span ${cell.colSpan}`;
       c.style.gridRow = `${cell.rowStart} / span ${cell.rowSpan}`;
       thumb.appendChild(c);
     });
 
     const name = document.createElement('div');
-    name.className = 'template-name';
-    name.textContent = t.label;
+    name.className = 'style-name';
+    name.textContent = s.label;
 
     btn.appendChild(thumb);
     btn.appendChild(name);
-    btn.addEventListener('click', () => switchTemplate(t.id));
+    btn.addEventListener('click', () => switchStyle(s.id));
     wrap.appendChild(btn);
   });
-  refreshTemplateActive();
+  refreshStyleActive();
 }
 
-function refreshTemplateActive(){
-  document.querySelectorAll('.template-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.id === state.templateId);
+function refreshStyleActive(){
+  document.querySelectorAll('.style-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.id === state.styleId);
   });
 }
 
-document.getElementById('shuffleTemplateBtn').addEventListener('click', () => {
-  const others = TEMPLATES.filter(t => t.id !== state.templateId);
-  const pick = others[Math.floor(Math.random() * others.length)];
-  switchTemplate(pick.id);
+document.getElementById('regeneratePatternBtn').addEventListener('click', () => {
+  const assignedIds = collectAssignedImageIds();
+  state.cells = {};
+  regeneratePattern();
+  autoFillCells(assignedIds);
+  renderAll();
+  if (getActiveStyle().deterministic) {
+    showToast('Gaya ini tetap sama tiap "Acak" (bukan acak) — coba ganti Grid Style utk variasi lain');
+  }
+});
+
+// ---------- Grid Layout (kolom x baris) ----------
+const colsRange = document.getElementById('colsRange'), colsInput = document.getElementById('colsInput');
+const rowsRange = document.getElementById('rowsRange'), rowsInput = document.getElementById('rowsInput');
+const linkToggleBtn = document.getElementById('linkToggleBtn');
+
+function syncLayoutInputs(){
+  colsRange.value = state.layoutCols; colsInput.value = state.layoutCols;
+  rowsRange.value = state.layoutRows; rowsInput.value = state.layoutRows;
+}
+
+function setLayout(cols, rows){
+  state.layoutCols = clamp(cols, 2, 8);
+  state.layoutRows = clamp(rows, 2, 8);
+  syncLayoutInputs();
+  const assignedIds = collectAssignedImageIds();
+  state.cells = {};
+  regeneratePattern();
+  autoFillCells(assignedIds);
+  renderAll();
+}
+
+colsRange.addEventListener('input', () => {
+  const c = parseInt(colsRange.value, 10);
+  setLayout(c, state.linkColsRows ? c : state.layoutRows);
+});
+rowsRange.addEventListener('input', () => {
+  const r = parseInt(rowsRange.value, 10);
+  setLayout(state.linkColsRows ? r : state.layoutCols, r);
+});
+colsInput.addEventListener('change', () => {
+  const c = parseInt(colsInput.value, 10) || state.layoutCols;
+  setLayout(c, state.linkColsRows ? c : state.layoutRows);
+});
+rowsInput.addEventListener('change', () => {
+  const r = parseInt(rowsInput.value, 10) || state.layoutRows;
+  setLayout(state.linkColsRows ? r : state.layoutCols, r);
+});
+
+linkToggleBtn.addEventListener('click', () => {
+  state.linkColsRows = !state.linkColsRows;
+  linkToggleBtn.classList.toggle('active', state.linkColsRows);
+  linkToggleBtn.setAttribute('aria-pressed', String(state.linkColsRows));
+  if (state.linkColsRows && state.layoutCols !== state.layoutRows) {
+    setLayout(state.layoutCols, state.layoutCols);
+  }
+});
+
+document.getElementById('randomLayoutBtn').addEventListener('click', () => {
+  const c = 2 + Math.floor(Math.random() * 7);
+  const r = state.linkColsRows ? c : 2 + Math.floor(Math.random() * 7);
+  setLayout(c, r);
+});
+
+// "Kejutkan Aku": acak gaya + tata letak sekaligus dlm satu klik — beda dari
+// "Acak Pola" (regeneratePatternBtn, gaya tetap) & "Acak Tata Letak"
+// (randomLayoutBtn, gaya tetap) yg masing-masing cuma acak satu aspek.
+document.getElementById('surpriseBtn').addEventListener('click', () => {
+  const pick = STYLES[Math.floor(Math.random() * STYLES.length)];
+  const c = 2 + Math.floor(Math.random() * 7);
+  const r = state.linkColsRows ? c : 2 + Math.floor(Math.random() * 7);
+  const assignedIds = collectAssignedImageIds();
+  state.styleId = pick.id;
+  state.layoutCols = clamp(c, 2, 8);
+  state.layoutRows = clamp(r, 2, 8);
+  syncLayoutInputs();
+  state.cells = {};
+  regeneratePattern();
+  autoFillCells(assignedIds);
+  renderAll();
 });
 
 // ---------- Dimensi ----------
@@ -615,6 +742,8 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
 });
 
 // ---------- INIT ----------
-buildTemplatePicker();
+syncLayoutInputs();
+regeneratePattern();
+buildStylePicker();
 buildDimPresets();
 renderAll();

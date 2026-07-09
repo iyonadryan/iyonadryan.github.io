@@ -114,13 +114,14 @@ button, input, select, textarea{ font-family:inherit; color:inherit; }
   margin:0 0 12px 0;
 }
 
-/* ---- Gaya grid (template picker) ---- */
-.template-grid{
+/* ---- Grid Style (pemilih algoritma pola) ---- */
+.style-list{
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:8px;
+  margin-bottom:8px;
 }
-.template-btn{
+.style-btn{
   background: var(--surface-alt);
   border:1.5px solid var(--border);
   border-radius:9px;
@@ -129,29 +130,61 @@ button, input, select, textarea{ font-family:inherit; color:inherit; }
   display:flex; flex-direction:column; align-items:center; gap:5px;
   transition: border-color .12s, background .12s;
 }
-.template-btn:hover{ border-color: var(--accent-mid); }
-.template-btn.active{
+.style-btn:hover{ border-color: var(--accent-mid); }
+.style-btn.active{
   border-color: var(--accent);
   background-image: linear-gradient(to right, var(--accent-strong) 0%, var(--accent-mid) 51%, var(--accent-strong) 100%);
   background-size:200% auto;
   transition: background-position .5s, border-color .12s;
 }
-.template-btn.active:hover{ background-position: right center; }
-.template-thumb{
+.style-btn.active:hover{ background-position: right center; }
+.style-thumb{
   width:100%; aspect-ratio:1/1;
   display:grid; gap:2px;
 }
-.template-thumb-cell{
+.style-thumb-cell{
   background: var(--muted);
   border-radius:2px;
   opacity:0.55;
 }
-.template-btn.active .template-thumb-cell{ background:#fff; opacity:0.9; }
-.template-name{
+.style-btn.active .style-thumb-cell{ background:#fff; opacity:0.9; }
+.style-name{
   font-size:10.5px; font-weight:600; color: var(--text);
   text-align:center; line-height:1.2;
 }
-.template-btn.active .template-name{ color:#fff; }
+.style-btn.active .style-name{ color:#fff; }
+
+.tool-btn-block{ width:100%; margin-top:2px; }
+
+/* ---- Grid Layout (kolom x baris) ---- */
+.layout-row{
+  display:flex; align-items:center; gap:8px;
+  margin-bottom:8px;
+}
+.layout-label{
+  font-size:11.5px; color: var(--muted); font-weight:500;
+  width:34px; flex-shrink:0;
+}
+.layout-row input[type=range]{ flex:1; min-width:0; }
+.layout-row input[type=number]{
+  width:46px; flex-shrink:0;
+  padding:6px 6px; border-radius:7px; border:1px solid var(--border);
+  background: var(--surface-alt); color: var(--text); font-size:12.5px; text-align:center;
+  -moz-appearance:textfield;
+}
+.layout-row input[type=number]::-webkit-outer-spin-button,
+.layout-row input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+.layout-actions{ display:flex; align-items:center; gap:8px; margin-top:4px; }
+.link-toggle{
+  width:34px; height:34px; flex-shrink:0;
+  border-radius:8px; border:1px solid var(--border);
+  background: var(--surface-alt); color: var(--muted);
+  font-size:14px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.link-toggle:hover{ color: var(--text); }
+.link-toggle.active{ background: var(--accent); border-color: var(--accent); color:#fff; }
+.layout-actions .tool-btn{ flex:1; }
 
 /* ---- Dimensi ---- */
 .dim-presets{
