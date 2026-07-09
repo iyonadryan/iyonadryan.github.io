@@ -15,6 +15,7 @@ tool/
     pdf-editor.md       # dokumentasi Bengkel PDF
     color-picker.md      # dokumentasi Color Picker
     generate-color.md    # dokumentasi Generate Color
+    bento-image.md        # dokumentasi Bento Image
   index.html          # hub — daftar link ke semua tool (lihat "Halaman hub" di bawah)
   style-tool.css       # CSS khusus hub, TIDAK dipakai/di-share ke tool manapun
   pdf-editor/
@@ -26,6 +27,10 @@ tool/
     style.css
     script.js
   generate-color/
+    index.html
+    style.css
+    script.js
+  bento-image/
     index.html
     style.css
     script.js
@@ -50,19 +55,21 @@ Semua halaman di `tool/` (hub + tiap tool) pakai token warna & tipografi yang sa
 - Warna gelap (`[data-theme="dark"]`): `--accent:#35B3A0`, `--bg:#14171A`, `--surface:#1B1F23`, dst.
 - Tiap tool & hub punya toggle tema + localStorage key **sendiri-sendiri** (`iyontool_theme`, `colorpicker_theme`, `generatecolor_theme`) — pola sama persis dgn tiap app di `app/` yang juga tidak berbagi key tema walau satu keluarga (lihat `app/.claude/CLAUDE.md` bagian tema).
 - **Pengecualian**: `pdf-editor/` (tool pertama, dibuat sebelum identitas visual ini "dibakukan") belum punya `[data-theme="dark"]` sama sekali — light-only. Belum diretrofit krn tidak diminta; kalau nanti diminta, tinggal salin blok `[data-theme="dark"]` dari tool lain ke `pdf-editor/style.css` + tambah tombol toggle di `index.html`-nya.
-- **Reset form control**: keempat file (`tool/style-tool.css` + `style.css` tiap tool) py `button, input, select, textarea{ font-family:inherit; color:inherit; }` tepat setelah blok `body{...}` — pola yang sudah lama ada di `app/*/css/base.css` tapi kelewatan tidak ikut disalin pas `tool/` dibuat pertama kali, ketauan pas `.swatch-hex` (`color-picker`) tetap gelap di mode gelap krn `<button>` py warna teks bawaan browser sendiri yg memutus pewarisan `color` dari `body` (lihat `tool/.claude/color-picker.md` bagian "Bug: teks HEX..." utk kronologinya). **Tambahkan rule yang sama** kalau bikin file CSS tool baru — jangan asumsikan elemen form otomatis ikut warna tema cuma krn ditaruh di dalam elemen lain yang sudah benar warnanya.
+- **Reset form control**: setiap file (`tool/style-tool.css` + `style.css` tiap tool) py `button, input, select, textarea{ font-family:inherit; color:inherit; }` tepat setelah blok `body{...}` — pola yang sudah lama ada di `app/*/css/base.css` tapi kelewatan tidak ikut disalin pas `tool/` dibuat pertama kali, ketauan pas `.swatch-hex` (`color-picker`) tetap gelap di mode gelap krn `<button>` py warna teks bawaan browser sendiri yg memutus pewarisan `color` dari `body` (lihat `tool/.claude/color-picker.md` bagian "Bug: teks HEX..." utk kronologinya). **Tambahkan rule yang sama** kalau bikin file CSS tool baru — jangan asumsikan elemen form otomatis ikut warna tema cuma krn ditaruh di dalam elemen lain yang sudah benar warnanya.
+- **Tombol aksi gradient**: pola tombol CTA "mengalir" (`background-image: linear-gradient(...)` + `background-size:200% auto` + `background-position` bergeser saat hover) pertama dipakai di `pdf-editor/` (lihat `tool/.claude/pdf-editor.md` bagian "Tombol aksi utama") lalu ikut dipakai `bento-image/` sejak awal dibuat — token warnanya (`--accent-mid`, `--border-mid`, `--danger-mid`) ditambahkan ke `:root` (+ padanan `[data-theme="dark"]`-nya) di tiap file yang makai. Kalau bikin tool baru & mau tombol serupa, salin 3 variable ini + pola gradient-nya drpd bikin ulang dari nol.
 
 ### Favicon
 
 - **Hub** (`tool/index.html`) pakai favicon Iyon yang sama dgn portfolio utama & hub `app/index.html`: `<link rel="icon" href="../webimg/iyon-favicon.ico" type="image/x-icon">` — **bukan** favicon khusus `tool/`, sengaja dipakai favicon situs biar hub ini kebaca sbg "pintu masuk" resmi, sama peran dgn `app/index.html`.
-- **Tiap tool** pakai favicon emoji data-URI SVG (`<link rel="icon" href="data:image/svg+xml,...">`), **sama persis emoji-nya dgn ikon `.tool-icon` tool itu di kartu hub** — pola identik dgn favicon emoji tiap app di `app/*/index.html`: `pdf-editor` 📄, `color-picker` 🎯, `generate-color` 🎨. Kalau ikon kartu hub sebuah tool diganti, favicon-nya ikut diganti biar tetap sinkron.
+- **Tiap tool** pakai favicon emoji data-URI SVG (`<link rel="icon" href="data:image/svg+xml,...">`), **sama persis emoji-nya dgn ikon `.tool-icon` tool itu di kartu hub** — pola identik dgn favicon emoji tiap app di `app/*/index.html`: `pdf-editor` 📄, `color-picker` 🎯, `generate-color` 🎨, `bento-image` 🍱. Kalau ikon kartu hub sebuah tool diganti, favicon-nya ikut diganti biar tetap sinkron.
 
 ## Status saat ini
 
 - **`pdf-editor/`** — Bengkel PDF, editor PDF client-side (upload/gabung PDF, reorder/rotate/hapus/ekstrak halaman, tambah teks & tanda tangan overlay lalu "terapkan"/bake ke PDF, isi form AcroForm, unduh hasil). Lihat `tool/.claude/pdf-editor.md`.
 - **`color-picker/`** — upload gambar/PDF, sistem otomatis membaca 9 warna dominan, dan klik piksel mana pun utk lihat warnanya (HEX & RGB, bisa disalin). Lihat `tool/.claude/color-picker.md`.
 - **`generate-color/`** — generate skema warna dari satu warna dasar (komplementer/analogus/triadik/tetradik/split-komplementer/monokromatik) + katalog warna besar (16 keluarga hue × 10 tingkat terang-gelap, ala kartu contoh cat tembok). Lihat `tool/.claude/generate-color.md`.
-- **Ada halaman hub** (`tool/index.html`) yang mengumpulkan link ke ketiga tool di atas — lihat "Halaman hub" di atas.
+- **`bento-image/`** — susun beberapa foto jadi satu galeri bento grid (9 gaya preset, dimensi/jarak/kelengkungan sudut/warna latar bisa diatur, tiap sel bisa digeser & di-zoom), unduh sbg PNG/JPG. Lihat `tool/.claude/bento-image.md`.
+- **Ada halaman hub** (`tool/index.html`) yang mengumpulkan link ke semua tool di atas — lihat "Halaman hub" di atas.
 - **Belum terhubung** dari portfolio utama (`index.html` di root) maupun dari hub `app/index.html` — `tool/index.html` berdiri sendiri, diakses langsung via URL.
 - Tidak ada dependency Firebase/backend sama sekali di `tool/` — semua tool di sini murni client-side (beda dari semua app di `app/` yang selalu terhubung Firebase Realtime Database sejak awal).
 

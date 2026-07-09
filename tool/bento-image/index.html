@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bento Image — Iyon Tool</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍱</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back-link" href="../index.html" aria-label="Kembali ke Iyon Tool">←</a>
+  <h1>Bento Image</h1>
+  <span class="tagline">susun galeri foto ala bento grid</span>
+  <button class="theme-toggle" id="themeToggle" aria-label="Ganti tema">🌙</button>
+</div>
+
+<div class="layout">
+
+  <!-- LEFT: grid settings -->
+  <div class="panel sidebar">
+    <h2>Gaya Grid</h2>
+    <div class="template-grid" id="templateGrid"></div>
+
+    <h2 style="margin-top:18px;">Dimensi</h2>
+    <div class="dim-presets" id="dimPresets"></div>
+    <div class="dim-custom">
+      <input type="number" id="canvasW" min="200" max="4000" step="10">
+      <span class="dim-x">×</span>
+      <input type="number" id="canvasH" min="200" max="4000" step="10">
+      <span class="dim-unit">px</span>
+    </div>
+
+    <h2 style="margin-top:18px;">Tampilan</h2>
+    <div class="field-row">
+      <label for="gapRange">Jarak Antar Foto <span class="field-val" id="gapValue">12px</span></label>
+      <input type="range" id="gapRange" min="0" max="60" step="1" value="12">
+    </div>
+    <div class="field-row">
+      <label for="radiusRange">Kelengkungan Sudut <span class="field-val" id="radiusValue">16px</span></label>
+      <input type="range" id="radiusRange" min="0" max="100" step="1" value="16">
+      <p class="field-hint">0 = siku 90°, makin besar makin bulat</p>
+    </div>
+    <div class="field-row">
+      <label for="paddingRange">Padding Luar <span class="field-val" id="paddingValue">0px</span></label>
+      <input type="range" id="paddingRange" min="0" max="80" step="1" value="0">
+    </div>
+    <div class="field-row">
+      <label>Warna Latar / Celah</label>
+      <div class="color-row">
+        <input type="color" id="gapColorPicker" value="#FFFFFF">
+        <input type="text" id="gapColorHex" class="hex-input" value="#FFFFFF" maxlength="7" spellcheck="false" autocomplete="off">
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: stage -->
+  <div class="panel stage">
+    <div class="stage-top">
+      <button type="button" class="tool-btn" id="shuffleTemplateBtn">🔀 Acak Gaya</button>
+    </div>
+    <div class="stage-frame" id="stageFrame">
+      <canvas id="bentoCanvas" width="1080" height="1080"></canvas>
+      <div class="cell-layer" id="cellLayer"></div>
+    </div>
+    <p class="note">Sel kosong akan tetap terekspor sebagai balok warna latar. Klik sel untuk mengisi/mengganti foto, seret untuk menggeser posisi foto di dalam sel, dan gunakan scroll mouse di atas sel untuk zoom.</p>
+  </div>
+
+  <!-- RIGHT: photos & export -->
+  <div class="panel toolpanel">
+    <h2>Foto</h2>
+    <div class="dropzone" id="photoDropzone">
+      Klik atau seret foto ke sini<br>untuk ditambahkan ke galeri
+    </div>
+    <input type="file" id="poolFileInput" accept="image/*" multiple>
+    <div class="photo-pool" id="photoPool"></div>
+    <div class="pool-actions">
+      <button type="button" class="btn btn-ghost" id="autoFillBtn">Isi Otomatis ke Sel Kosong</button>
+      <button type="button" class="btn btn-ghost" id="shuffleImagesBtn">Acak Susunan Foto</button>
+      <button type="button" class="btn btn-wax" id="clearAllBtn">Kosongkan Semua Sel</button>
+    </div>
+
+    <h2 style="margin-top:20px;">Unduh</h2>
+    <div class="format-tabs" id="formatTabs">
+      <button type="button" class="format-tab active" data-format="png">PNG</button>
+      <button type="button" class="format-tab" data-format="jpeg">JPG</button>
+    </div>
+    <div class="field-row" id="qualityRow" hidden>
+      <label for="qualityRange">Kualitas JPG <span class="field-val" id="qualityValue">90%</span></label>
+      <input type="range" id="qualityRange" min="10" max="100" step="5" value="90">
+    </div>
+    <button type="button" class="btn btn-brass" id="downloadBtn" style="margin-top:10px;">Unduh Gambar</button>
+  </div>
+
+</div>
+
+<input type="file" id="cellFileInput" accept="image/*">
+
+<div class="toast" id="toast"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
