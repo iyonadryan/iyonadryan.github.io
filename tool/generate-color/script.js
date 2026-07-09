@@ -22,6 +22,9 @@
 // ---------- DOM ----------
 const baseColorPicker = document.getElementById('baseColorPicker');
 const baseColorHex = document.getElementById('baseColorHex');
+const baseColorR = document.getElementById('baseColorR');
+const baseColorG = document.getElementById('baseColorG');
+const baseColorB = document.getElementById('baseColorB');
 const randomColorBtn = document.getElementById('randomColorBtn');
 const saveColorBtn = document.getElementById('saveColorBtn');
 const savedColorsEl = document.getElementById('savedColors');
@@ -141,16 +144,36 @@ async function copyText(text){
 }
 
 // ---------- BASE COLOR STATE ----------
-let currentBaseHex = normalizeHex(baseColorPicker.value) || '#0F6E63';
+// Hardcoded rather than read from baseColorPicker.value/baseColorHex.value at
+// load time — Chromium-based browsers restore an <input>'s last-typed value
+// on a plain page reload even outside a <form>, so reading "whatever's
+// currently in the DOM" here could silently pick up a stale color from a
+// previous visit instead of this tool's actual default. The base color is
+// deliberately NOT persisted (see tool/.claude/generate-color.md), so the
+// canonical default is forced explicitly in the INIT section below too.
+const DEFAULT_BASE_HEX = '#0F6E63';
+let currentBaseHex = DEFAULT_BASE_HEX;
 let activeScheme = 'complementary';
 
-function setBaseColor(hex){
+// `opts.skipHexSync`/`opts.skipRgbSync` let a field-specific handler update
+// every OTHER input without rewriting the field the user is actively typing
+// into — rewriting a focused text/number input mid-keystroke (even to the
+// "same" value) can disrupt the cursor position or fight the user's edit,
+// so each input's own live handler opts itself out of its own sync.
+function setBaseColor(hex, opts){
+  const options = opts || {};
   const normalized = normalizeHex(hex);
   if(!normalized) return;
   currentBaseHex = normalized;
   baseColorPicker.value = normalized;
-  baseColorHex.value = normalized;
+  if(!options.skipHexSync) baseColorHex.value = normalized;
   baseColorHex.classList.remove('invalid');
+  if(!options.skipRgbSync){
+    const { r, g, b } = hexToRgb(normalized);
+    baseColorR.value = r;
+    baseColorG.value = g;
+    baseColorB.value = b;
+  }
   renderScheme(activeScheme);
 }
 
@@ -165,10 +188,7 @@ baseColorHex.addEventListener('input', e => {
   const digits = raw.replace('#','');
   const normalized = normalizeHex(raw);
   if(normalized && digits.length === 6){
-    currentBaseHex = normalized;
-    baseColorPicker.value = normalized;
-    baseColorHex.classList.remove('invalid');
-    renderScheme(activeScheme);
+    setBaseColor(normalized, { skipHexSync: true });
   } else if(normalized && digits.length === 3){
     baseColorHex.classList.remove('invalid');
   } else {
@@ -179,6 +199,23 @@ baseColorHex.addEventListener('blur', () => {
   const normalized = normalizeHex(baseColorHex.value);
   if(normalized) setBaseColor(normalized);
   else{ baseColorHex.value = currentBaseHex; baseColorHex.classList.remove('invalid'); }
+});
+
+// RGB fields mirror the hex field's live-vs-commit pattern: update on every
+// keystroke (each channel is independent, so there's no 3-vs-6-digit
+// ambiguity like the hex field has), but leave the field being typed into
+// alone until blur, where it gets clamped/normalized for display.
+function applyRgbFromInputs(){
+  const r = clamp(parseInt(baseColorR.value, 10) || 0, 0, 255);
+  const g = clamp(parseInt(baseColorG.value, 10) || 0, 0, 255);
+  const b = clamp(parseInt(baseColorB.value, 10) || 0, 0, 255);
+  setBaseColor(rgbToHex(r, g, b), { skipRgbSync: true });
+}
+[baseColorR, baseColorG, baseColorB].forEach(input => {
+  input.addEventListener('input', applyRgbFromInputs);
+  input.addEventListener('blur', () => {
+    input.value = clamp(parseInt(input.value, 10) || 0, 0, 255);
+  });
 });
 
 randomColorBtn.addEventListener('click', () => {
@@ -437,6 +474,9 @@ function renderCatalog(){
 }
 
 // ---------- INIT ----------
+// Force every input back to the canonical default, overriding whatever the
+// browser may have already restored into them before this script ran (see
+// the comment on DEFAULT_BASE_HEX above).
+setBaseColor(DEFAULT_BASE_HEX);
 renderCatalog();
-renderScheme(activeScheme);
 renderSavedColors();

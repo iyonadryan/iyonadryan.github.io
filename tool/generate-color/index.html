@@ -23,10 +23,15 @@
   <div class="panel">
     <h2>Warna Dasar</h2>
     <div class="base-color-row">
-      <input type="color" id="baseColorPicker" value="#0F6E63">
-      <input type="text" id="baseColorHex" class="hex-input" value="#0F6E63" maxlength="7" spellcheck="false">
+      <input type="color" id="baseColorPicker" value="#0F6E63" autocomplete="off">
+      <input type="text" id="baseColorHex" class="hex-input" value="#0F6E63" maxlength="7" spellcheck="false" autocomplete="off">
       <button type="button" class="btn-ghost" id="randomColorBtn">Acak</button>
       <button type="button" class="btn-ghost" id="saveColorBtn">Simpan</button>
+    </div>
+    <div class="rgb-row">
+      <label class="rgb-field"><span class="rgb-label">R</span><input type="number" id="baseColorR" min="0" max="255" step="1" inputmode="numeric" value="15" autocomplete="off"></label>
+      <label class="rgb-field"><span class="rgb-label">G</span><input type="number" id="baseColorG" min="0" max="255" step="1" inputmode="numeric" value="110" autocomplete="off"></label>
+      <label class="rgb-field"><span class="rgb-label">B</span><input type="number" id="baseColorB" min="0" max="255" step="1" inputmode="numeric" value="99" autocomplete="off"></label>
     </div>
     <div class="saved-colors" id="savedColors"></div>
   </div>

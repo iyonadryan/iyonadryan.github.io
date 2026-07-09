@@ -125,6 +125,48 @@ input[type=color]{
 }
 .hex-input:focus{ outline:2px solid var(--accent); outline-offset:1px; }
 .hex-input.invalid{ border-color:#D6552E; }
+
+.rgb-row{
+  display:flex; gap:8px;
+  margin-top:10px;
+}
+.rgb-field{
+  flex:1;
+  min-width:0;
+  display:flex; align-items:center; gap:6px;
+  background: var(--surface-alt);
+  border:1px solid var(--border);
+  border-radius:9px;
+  padding:0 12px;
+}
+.rgb-field:focus-within{ outline:2px solid var(--accent); outline-offset:1px; }
+.rgb-label{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  font-weight:700;
+  color: var(--muted);
+  flex-shrink:0;
+}
+.rgb-field input[type=number]{
+  flex:1;
+  min-width:0;
+  width:100%;
+  border:none;
+  background:none;
+  outline:none;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:14px;
+  font-weight:600;
+  color: var(--text);
+  padding:10px 0;
+  -moz-appearance:textfield;
+}
+.rgb-field input[type=number]::-webkit-outer-spin-button,
+.rgb-field input[type=number]::-webkit-inner-spin-button{
+  -webkit-appearance:none;
+  margin:0;
+}
+
 .btn-ghost{
   font-family:'Inter', sans-serif;
   font-weight:600; font-size:13px;
