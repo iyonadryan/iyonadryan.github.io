@@ -8,6 +8,7 @@
   --accent: #0F6E63;
   --accent-light: #E4F1EE;
   --accent-strong: #0B554D;
+  --accent-mid: #35B3A0;
   --danger: #D6552E;
   --danger-light: #FBEAE2;
   --shadow-sm: 0 1px 2px rgba(16,20,24,0.04);
@@ -182,7 +183,13 @@ input[type=file]{ display:none; }
   transition: background .12s, color .12s;
 }
 .tool-btn:hover{ background: var(--border); color: var(--text); }
-.tool-btn.active{ background: var(--accent); color: #fff; font-weight:600; }
+.tool-btn.active{
+  background-image: linear-gradient(to right, var(--accent-strong) 0%, var(--accent-mid) 51%, var(--accent-strong) 100%);
+  background-size: 200% auto;
+  color: #fff; font-weight:600;
+  transition: background-position .5s, background .12s, color .12s;
+}
+.tool-btn.active:hover{ background-position: right center; color:#fff; }
 
 .page-wrap{
   position:relative;
@@ -261,8 +268,15 @@ input[type=file]{ display:none; }
   width:100%;
   transition: background .12s, border-color .12s, opacity .12s;
 }
-.btn-brass{ background: var(--accent); color:#fff; }
-.btn-brass:hover{ background: var(--accent-strong); }
+.btn-brass{
+  background-image: linear-gradient(to right, var(--accent-strong) 0%, var(--accent-mid) 51%, var(--accent-strong) 100%);
+  background-size: 200% auto;
+  color:#fff;
+  box-shadow: 0 4px 14px rgba(15,110,99,0.35);
+  border-radius:10px;
+  transition: background-position .5s, box-shadow .2s;
+}
+.btn-brass:hover{ background-position: right center; box-shadow: 0 6px 18px rgba(15,110,99,0.45); }
 .btn-wax{ background: var(--danger-light); color: var(--danger); border-color: var(--danger-light); }
 .btn-wax:hover{ background: #F6DACB; }
 .btn-ghost{ background: var(--surface-alt); color: var(--text); border-color: var(--border); }
@@ -270,16 +284,18 @@ input[type=file]{ display:none; }
 .btn+.btn{ margin-top:8px; }
 
 .stamp-btn{
-  background: var(--accent);
+  background-image: linear-gradient(to right, var(--accent-strong) 0%, var(--accent-mid) 51%, var(--accent-strong) 100%);
+  background-size: 200% auto;
   color:#fff;
-  border-radius:9px;
+  border-radius:10px;
   font-family:'Inter', sans-serif; font-weight:700; font-size:13.5px;
   padding:12px 14px;
   display:flex; align-items:center; justify-content:center; gap:8px;
   cursor:pointer;
-  transition: background .12s;
+  box-shadow: 0 4px 14px rgba(15,110,99,0.35);
+  transition: background-position .5s, box-shadow .2s;
 }
-.stamp-btn:hover{ background: var(--accent-strong); }
+.stamp-btn:hover{ background-position: right center; box-shadow: 0 6px 18px rgba(15,110,99,0.45); }
 .stamp-wrap{ margin-top:8px; }
 .stamp-caption{ font-size:11px; color: var(--muted); margin-top:6px; text-align:center; }
 

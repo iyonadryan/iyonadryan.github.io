@@ -82,6 +82,12 @@ Sebelumnya, alat "+ Teks" tetap aktif terus-menerus setelah satu kotak teks dita
 
 `xPct`/`yPct` overlay tidak ikut dirotasi otomatis saat halaman diputar (transformasi koordinat lintas-rotasi belum diimplementasi). Drpd overlay diam-diam mendarat di posisi/orientasi yang salah tanpa user sadar, `rotatePage()` sengaja menghapus overlay yang ada di halaman itu saat diputar. TODO kalau mau ditingkatkan: hitung ulang `xPct`/`yPct` (dan tukar `wPct`/`hPct` utk overlay gambar) sesuai sudut rotasi baru, drpd dihapus.
 
+### Tombol aksi utama (`.btn-brass`, `.stamp-btn`) pakai gradient teal, bukan solid
+
+Tombol CTA utama — "Terapkan ke PDF" (form), "Terapkan teks/ttd ke halaman", "Gunakan Tanda Tangan" (modal), "Unduh PDF" — pakai `background-image: linear-gradient(to right, var(--accent-strong) 0%, var(--accent-mid) 51%, var(--accent-strong) 100%)` + `background-size:200% auto`, digeser ke `background-position: right center` saat hover (transisi `.5s`) utk efek "mengalir". `--accent-mid: #35B3A0` ditambahkan ke `:root` khusus utk gradient ini — nilainya sama persis dgn `--accent` versi `[data-theme="dark"]` di tool lain (lihat `tool/.claude/CLAUDE.md` bagian "Identitas visual bersama"), dipakai ulang di sini sbg titik tengah gradient karena warnanya sudah bagian dari "keluarga" teal tool ini, bukan warna baru yang lepas. Tombol sekunder (`.btn-ghost`, `.btn-wax`) sengaja **tidak** ikut digradient — tetap solid biar hierarki visual (CTA utama vs aksi sekunder/destruktif) tetap jelas.
+
+Gradient yang sama juga dipakai di `.tool-btn.active` (toggle alat aktif di toolbar tengah — "Pilih"/"+ Teks"/dst yang lagi terpilih), krn itu jg elemen yang menonjolkan state "aktif/utama" spt tombol CTA. `.tool-btn` non-aktif & `:hover`-nya tetap solid (`var(--border)`), cuma state `.active` yang digradient.
+
 ## Fitur yang sudah ada
 
 1. **Upload & gabung** — drag-drop atau klik dropzone, multi-file (`multiple`), tiap file PDF valid digabung berurutan ke `workingPdfDoc` yang sama (`copyPages`). Filter tipe PDF diterapkan di kedua jalur (input file & drop) + fallback cek ekstensi `.pdf` (browser kadang tidak mengisi `file.type` dgn benar), dgn pesan `alert()` kalau semua berkas yang dipilih/di-drop ternyata bukan PDF.
