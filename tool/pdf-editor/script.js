@@ -575,7 +575,18 @@ async function bakeOverlays(){
     }
   }
   overlaysByPage = {};
-  await pushHistory();
+  const bytes = await pushHistory();
+  // pdf-lib quirk (confirmed with an isolated pdf-lib+pdfjs test outside the
+  // browser, see tool/.claude/pdf-editor.md): once a PDFDocument has been
+  // through .save(), further drawText()/drawImage() calls on pages fetched
+  // from that SAME instance silently stop making it into the NEXT .save() —
+  // the first bake works, but a second "Terapkan" after adding more text
+  // draws onto a page whose content stream pdf-lib no longer reopens. Undo
+  // and page reorder/delete already dodge this by building a fresh
+  // PDFDocument each time; bake needs the same treatment, or the 2nd+ round
+  // of text/signatures silently disappears from the output.
+  workingPdfDoc = await PDFDocument.load(bytes);
+  embeddedFontCache = {}; // font refs are tied to the PDFDocument instance that just got replaced
   await refreshAll();
 }
 document.getElementById('bakeBtn').addEventListener('click', async ()=>{

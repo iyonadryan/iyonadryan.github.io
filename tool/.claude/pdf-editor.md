@@ -4,7 +4,7 @@ Editor PDF yang jalan sepenuhnya di browser (client-side, tidak ada berkas yang 
 
 ## Status saat ini
 
-Prototype pertama, mulai dibangun di percakapan lain (di luar riwayat sesi ini) sebagai satu file `index.html` dgn CSS & JS inline, lalu dilanjutkan di sini: dipisah jadi 3 file (`index.html`/`style.css`/`script.js`) + serangkaian perbaikan bug atas laporan user (posisi teks berubah saat diterapkan, dan alat "+ Teks" yang nge-bug saat dipakai berulang).
+Prototype pertama, mulai dibangun di percakapan lain (di luar riwayat sesi ini) sebagai satu file `index.html` dgn CSS & JS inline, lalu dilanjutkan di sini: dipisah jadi 3 file (`index.html`/`style.css`/`script.js`) + serangkaian perbaikan bug atas laporan user — posisi teks berubah saat diterapkan, alat "+ Teks" yang nge-bug saat dipakai berulang, dan teks kedua yg hilang saat "Terapkan" dipakai lebih dari sekali (lihat "Bug pdf-lib" di bawah, diagnosis-nya butuh riset terpisah pakai pdf-lib di Node krn bug-nya di level library bukan di kode app).
 
 ## Dependensi eksternal
 
@@ -26,6 +26,27 @@ Prototype pertama, mulai dibangun di percakapan lain (di luar riwayat sesi ini) 
 - `overlaysByPage` — `{ [pageIndex]: [{id, type, xPct, yPct, wPct?, hPct?, text?, fontSize?, color?, fontFamily?, dataUrl?}] }` — teks/tanda tangan yang **belum** diterapkan ke PDF, hidup cuma di state JS sampai di-"bake" (lihat poin "Terapkan (bake)" di bawah).
 - `history` — stack byte snapshot (`workingPdfDoc.save()`), maks 12 entri, dipakai tombol Undo.
 - **Tidak ada penyimpanan lintas-sesi** — bahkan tidak ada `localStorage` sekalipun utk hal sepele spt preferensi tema (beda dari semua app di `app/`). Reload halaman = mulai dari kosong lagi. Ini konsisten dgn sifat tool: sesi kerja sekali pakai (buka → olah → unduh → selesai), bukan aplikasi dgn data yang perlu diingat.
+
+### Bug pdf-lib: `workingPdfDoc` WAJIB di-reload dari bytes setelah tiap `bakeOverlays()` — jangan digambar berulang di instance yang sama
+
+**Gejala yang dilaporkan user:** teks pertama diterapkan ("Terapkan teks/ttd ke halaman") dgn benar, tapi teks KEDUA yg ditambahkan setelahnya — walau kelihatan normal di editor sebelum diterapkan — hilang begitu diterapkan lagi (tidak nongol di PDF, tidak ada error apa pun di konsol).
+
+**Cara didiagnosis** (murni via `pdf-lib`+`pdfjs-dist` di Node, di luar browser, spy bisa dites cepat & deterministik tanpa perlu klak-klik manual berulang): dibuat skrip yg mereplikasi persis pola `bakeOverlays()` — `doc.getPages()` → `page.drawText()` → `doc.save()` → (nanti) `doc.getPages()` lagi → `page.drawText()` lagi → `doc.save()` lagi, pada **instance `PDFDocument` yang sama** — lalu hasil akhirnya dibaca ulang pakai `pdfjsLib`'s `getTextContent()` (bukan cuma cek panjang byte atau nyari string mentah di buffer, yg gak reliable krn PDF sering encode teks bukan sbg ASCII polos). Hasilnya: **teks kedua tidak pernah muncul**, konsisten 100% direproduksi.
+
+Lalu diuji beberapa variasi utk mempersempit akar masalahnya (lihat tabel — kolom "cache font" & "save() di antara" dikombinasikan):
+
+| Skenario | Cache font? | `save()` di antara 2 gambar? | Hasil |
+|---|---|---|---|
+| A (pola asli app) | ya | ya | ❌ cuma teks pertama |
+| B | tidak | ya | ❌ cuma teks pertama |
+| C | ya | tidak | ✅ dua-duanya muncul |
+| D | tidak | tidak | ✅ dua-duanya muncul |
+
+→ **Cache font sama sekali bukan penyebabnya** (B gagal walau tanpa cache) — pemicunya murni **`doc.save()` yang dipanggil di antara dua sesi `drawText()` pada `PDFDocument` yang sama**. Diuji lebih lanjut: menyimpan referensi `page` yang SAMA (tidak fetch ulang `getPages()`) sebelum & sesudah `save()` tetap gagal juga — jadi bukan soal "objek `page`-nya jadi basi", tapi pdf-lib sendiri yang (kemungkinan) tidak lagi mau "membuka lagi" content-stream sebuah halaman utk operasi gambar (`drawText`/`drawImage`) setelah dokumennya pernah di-`save()` — walau referensi `Contents` di halaman itu (`[6 0 R]`) terlihat konsisten sebelum & sesudah.
+
+Diuji juga apakah bug ini berlaku umum utk SEMUA jenis mutasi berulang+save, atau spesifik ke operasi gambar: **rotasi halaman berulang** (`setRotation()`) dan **isi form berulang** (`form.getTextField().setText()`) ke instance yang sama, dgn `save()` di antaranya, **keduanya TETAP tersimpan dgn benar** — jadi bug ini **spesifik ke `drawText()`/`drawImage()`** (operasi yang menulis ke content-stream halaman), bukan bug umum pdf-lib di semua jenis mutasi. Makanya `rotatePage()` dan handler `applyFormBtn` **tidak** perlu ikut diubah — cuma `bakeOverlays()`.
+
+**Fix yang terbukti bekerja** (diverifikasi lewat skrip yang sama, 3× bake berturut-turut, ketiga teks semuanya muncul): setelah `bakeOverlays()` selesai menggambar & memanggil `pushHistory()` (yang di dalamnya ada `.save()`), **jangan lanjut pakai `workingPdfDoc` yang sama** — muat ulang jadi instance BARU dari bytes hasil save itu (`workingPdfDoc = await PDFDocument.load(bytes)`), sekalian reset `embeddedFontCache = {}` (referensi font terikat ke instance dokumen yg lama, ikut jadi tidak valid). Pola ini **sudah dipakai** di `undoBtn` (`workingPdfDoc = await PDFDocument.load(prev)`) dan `rebuildInOrder()` (`PDFDocument.create()` dari awal) — makanya kedua alur itu tidak pernah kena bug ini; `bakeOverlays()` dulu satu-satunya tempat yang MEMPERTAHANKAN instance lama setelah save, sampai diperbaiki.
 
 ### Koordinat overlay: `xPct`/`yPct` = pojok kiri-atas, relatif ukuran halaman
 
