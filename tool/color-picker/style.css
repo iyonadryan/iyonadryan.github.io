@@ -33,6 +33,14 @@ body{
   min-height:100vh;
   -webkit-font-smoothing:antialiased;
 }
+/* Form controls (button/input/select/textarea) don't inherit color/font from
+   the page by default in browsers — each has its own UA-stylesheet color
+   (e.g. buttons default to a fixed near-black), which silently breaks theme
+   switching for any text inside them that doesn't set its own color. This is
+   what caused .swatch-hex to stay dark in dark mode even though --text was
+   correctly theme-aware. Reset here once instead of remembering to set
+   `color` explicitly on every single button/label text going forward. */
+button, input, select, textarea{ font-family:inherit; color:inherit; }
 
 .topbar{
   display:flex; align-items:center; gap:12px;
@@ -219,6 +227,7 @@ input[type=file]{ display:none; }
 .swatch-hex{
   font-family:'IBM Plex Mono', monospace;
   font-size:12px; font-weight:600;
+  color: var(--text);
   margin:0 0 2px;
 }
 .swatch-rgb{

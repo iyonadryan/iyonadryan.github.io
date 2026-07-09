@@ -22,6 +22,14 @@ body{
   min-height:100vh;
   -webkit-font-smoothing:antialiased;
 }
+/* Form controls (button/input/select/textarea) don't inherit color/font from
+   the page by default — each has its own UA-stylesheet color, which silently
+   breaks any text inside them that doesn't set its own color explicitly
+   (this is what broke .swatch-hex in dark mode over in
+   tool/color-picker/style.css, a page that shares this same base). This
+   tool is currently light-only so there's no theme to desync from yet, but
+   reset it once so it's not a trap waiting for whoever adds dark mode here. */
+button, input, select, textarea{ font-family:inherit; color:inherit; }
 .topbar{
   display:flex; align-items:center; gap:12px;
   padding:20px 32px;

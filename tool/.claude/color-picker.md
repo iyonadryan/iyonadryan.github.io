@@ -42,6 +42,12 @@ Klik di canvas → koordinat klik (`clientX/Y`) dikonversi ke koordinat piksel k
 
 `copyText()` — coba `navigator.clipboard.writeText()` dulu; kalau gagal/tidak tersedia (origin tidak aman, browser lama, izin ditolak), fallback ke `textarea` tersembunyi + `document.execCommand('copy')`. Feedback lewat toast kecil di bawah layar (`#toast`, auto-hilang ~1.6 detik), bukan `alert()` blocking — konsisten dgn "copy" yang sering dipakai berulang-ulang, tidak boleh mengganggu alur kerja.
 
+### Bug: teks HEX di kartu "9 Warna Dominan" tetap gelap di mode gelap
+
+`.swatch` (kartu tiap warna dominan) adalah elemen `<button>`, bukan `<div>`. Browser **tidak** otomatis mewariskan `color`/`font-family` dari halaman ke elemen form (`button`/`input`/`select`/`textarea`) spt elemen lain — tiap browser py warna teks bawaannya sendiri utk `<button>` di stylesheet internalnya, yang memutus rantai pewarisan `color` dari `body`. `.swatch-hex` (teks HEX-nya) tidak pernah nyetel `color` sendiri, jadi diam-diam jatuh ke warna bawaan tombol itu — kebetulan mirip gelap yg dipakai di mode terang (jadi kelihatan "benar" scr tidak sengaja), tapi tetap gelap juga di mode gelap krn tidak pernah benar2 mengikuti `var(--text)`. `.swatch-rgb` di sebelahnya tidak kena krn dia MEMANG nyetel `color: var(--muted)` scr eksplisit.
+
+Diperbaiki 2 lapis: (1) `.swatch-hex` dikasih `color: var(--text)` eksplisit; (2) ditambah reset `button, input, select, textarea{ font-family:inherit; color:inherit; }` di awal `style.css` — pola yang **sudah lama** dipakai di semua app `app/*/css/base.css`, tapi kelewatan tidak ikut disalin pas keempat file CSS di `tool/` ini dibuat. Reset yang sama juga ditambahkan skalian ke `tool/generate-color/style.css`, `tool/pdf-editor/style.css`, `tool/style-tool.css` — biar bug sejenis tidak muncul lagi di tombol mana pun yang lupa nyetel `color` sendiri, bukan cuma nambal `.swatch-hex` doang.
+
 ## Fitur yang sudah ada
 
 1. Unggah gambar (PNG/JPG/dst) atau PDF, drag-drop atau klik dropzone.

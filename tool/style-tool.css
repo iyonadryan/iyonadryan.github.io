@@ -34,6 +34,13 @@ body{
   -webkit-font-smoothing:antialiased;
   transition: background .2s ease, color .2s ease;
 }
+/* Form controls (button/input/select/textarea) don't inherit color/font from
+   the page by default — each has its own UA-stylesheet color, which silently
+   breaks any text inside them that doesn't set its own color explicitly
+   (this is what broke .swatch-hex in dark mode over in
+   tool/color-picker/style.css). Reset once here too so it's not a trap for
+   whatever button gets added to the hub next. */
+button, input, select, textarea{ font-family:inherit; color:inherit; }
 
 .shell{
   max-width:640px;

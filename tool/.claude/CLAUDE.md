@@ -50,6 +50,7 @@ Semua halaman di `tool/` (hub + tiap tool) pakai token warna & tipografi yang sa
 - Warna gelap (`[data-theme="dark"]`): `--accent:#35B3A0`, `--bg:#14171A`, `--surface:#1B1F23`, dst.
 - Tiap tool & hub punya toggle tema + localStorage key **sendiri-sendiri** (`iyontool_theme`, `colorpicker_theme`, `generatecolor_theme`) — pola sama persis dgn tiap app di `app/` yang juga tidak berbagi key tema walau satu keluarga (lihat `app/.claude/CLAUDE.md` bagian tema).
 - **Pengecualian**: `pdf-editor/` (tool pertama, dibuat sebelum identitas visual ini "dibakukan") belum punya `[data-theme="dark"]` sama sekali — light-only. Belum diretrofit krn tidak diminta; kalau nanti diminta, tinggal salin blok `[data-theme="dark"]` dari tool lain ke `pdf-editor/style.css` + tambah tombol toggle di `index.html`-nya.
+- **Reset form control**: keempat file (`tool/style-tool.css` + `style.css` tiap tool) py `button, input, select, textarea{ font-family:inherit; color:inherit; }` tepat setelah blok `body{...}` — pola yang sudah lama ada di `app/*/css/base.css` tapi kelewatan tidak ikut disalin pas `tool/` dibuat pertama kali, ketauan pas `.swatch-hex` (`color-picker`) tetap gelap di mode gelap krn `<button>` py warna teks bawaan browser sendiri yg memutus pewarisan `color` dari `body` (lihat `tool/.claude/color-picker.md` bagian "Bug: teks HEX..." utk kronologinya). **Tambahkan rule yang sama** kalau bikin file CSS tool baru — jangan asumsikan elemen form otomatis ikut warna tema cuma krn ditaruh di dalam elemen lain yang sudah benar warnanya.
 
 ### Favicon
 

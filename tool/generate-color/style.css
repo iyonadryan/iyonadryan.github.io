@@ -33,6 +33,14 @@ body{
   min-height:100vh;
   -webkit-font-smoothing:antialiased;
 }
+/* Form controls (button/input/select/textarea) don't inherit color/font from
+   the page by default in browsers — each has its own UA-stylesheet color,
+   which silently breaks theme switching for any text inside them that
+   doesn't set its own color explicitly (this is what broke .swatch-hex in
+   dark mode over in tool/color-picker/style.css). Nothing here currently
+   relies on the browser default, but reset it once so it can't happen by
+   accident on a future button/label added here either. */
+button, input, select, textarea{ font-family:inherit; color:inherit; }
 
 .topbar{
   display:flex; align-items:center; gap:12px;
