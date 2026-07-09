@@ -84,9 +84,13 @@ Sebelumnya, alat "+ Teks" tetap aktif terus-menerus setelah satu kotak teks dita
 
 ### Tombol aksi utama (`.btn-brass`, `.stamp-btn`) pakai gradient teal, bukan solid
 
-Tombol CTA utama — "Terapkan ke PDF" (form), "Terapkan teks/ttd ke halaman", "Gunakan Tanda Tangan" (modal), "Unduh PDF" — pakai `background-image: linear-gradient(to right, var(--accent-strong) 0%, var(--accent-mid) 51%, var(--accent-strong) 100%)` + `background-size:200% auto`, digeser ke `background-position: right center` saat hover (transisi `.5s`) utk efek "mengalir". `--accent-mid: #35B3A0` ditambahkan ke `:root` khusus utk gradient ini — nilainya sama persis dgn `--accent` versi `[data-theme="dark"]` di tool lain (lihat `tool/.claude/CLAUDE.md` bagian "Identitas visual bersama"), dipakai ulang di sini sbg titik tengah gradient karena warnanya sudah bagian dari "keluarga" teal tool ini, bukan warna baru yang lepas. Tombol sekunder (`.btn-ghost`, `.btn-wax`) sengaja **tidak** ikut digradient — tetap solid biar hierarki visual (CTA utama vs aksi sekunder/destruktif) tetap jelas.
+Tombol CTA utama — "Terapkan ke PDF" (form), "Terapkan teks/ttd ke halaman", "Gunakan Tanda Tangan" (modal), "Unduh PDF" — pakai `background-image: linear-gradient(to right, var(--accent-strong) 0%, var(--accent-mid) 51%, var(--accent-strong) 100%)` + `background-size:200% auto`, digeser ke `background-position: right center` saat hover (transisi `.5s`) utk efek "mengalir". `--accent-mid: #35B3A0` ditambahkan ke `:root` khusus utk gradient ini — nilainya sama persis dgn `--accent` versi `[data-theme="dark"]` di tool lain (lihat `tool/.claude/CLAUDE.md` bagian "Identitas visual bersama"), dipakai ulang di sini sbg titik tengah gradient karena warnanya sudah bagian dari "keluarga" teal tool ini, bukan warna baru yang lepas.
 
 Gradient yang sama juga dipakai di `.tool-btn.active` (toggle alat aktif di toolbar tengah — "Pilih"/"+ Teks"/dst yang lagi terpilih), krn itu jg elemen yang menonjolkan state "aktif/utama" spt tombol CTA. `.tool-btn` non-aktif & `:hover`-nya tetap solid (`var(--border)`), cuma state `.active` yang digradient.
+
+Tombol sekunder (`.btn-ghost` — "Ekstrak halaman terpilih") & destruktif (`.btn-wax` — "Hapus halaman terpilih") jg ikut digradient, tapi pakai palet warnanya sendiri drpd ikut teal, biar makna warnanya (netral vs destruktif) tetap kebaca:
+- `.btn-ghost`: `var(--surface-alt) → var(--border-mid) → var(--surface-alt)` (sheen abu-abu netral, teks tetap `var(--text)`). `--border-mid: #EDEDEA` ditambahkan sbg titik tengah — di antara `--border` & `--surface-alt` yang udah ada.
+- `.btn-wax`: `var(--danger-light) → var(--danger-mid) → var(--danger-light)` (sheen peach, teks tetap `var(--danger)`). `--danger-mid: #F6DACB` ditambahkan sbg variable formal — sebelumnya nilai ini cuma hex literal di aturan `:hover` lama, sekarang dipakai ulang sbg titik tengah gradient.
 
 ## Fitur yang sudah ada
 

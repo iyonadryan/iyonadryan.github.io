@@ -9,6 +9,8 @@
   --accent-light: #E4F1EE;
   --accent-strong: #0B554D;
   --accent-mid: #35B3A0;
+  --border-mid: #EDEDEA;
+  --danger-mid: #F6DACB;
   --danger: #D6552E;
   --danger-light: #FBEAE2;
   --shadow-sm: 0 1px 2px rgba(16,20,24,0.04);
@@ -277,10 +279,20 @@ input[type=file]{ display:none; }
   transition: background-position .5s, box-shadow .2s;
 }
 .btn-brass:hover{ background-position: right center; box-shadow: 0 6px 18px rgba(15,110,99,0.45); }
-.btn-wax{ background: var(--danger-light); color: var(--danger); border-color: var(--danger-light); }
-.btn-wax:hover{ background: #F6DACB; }
-.btn-ghost{ background: var(--surface-alt); color: var(--text); border-color: var(--border); }
-.btn-ghost:hover{ background: var(--border); }
+.btn-wax{
+  background-image: linear-gradient(to right, var(--danger-light) 0%, var(--danger-mid) 51%, var(--danger-light) 100%);
+  background-size: 200% auto;
+  color: var(--danger); border-color: var(--danger-light);
+  transition: background-position .5s, border-color .12s;
+}
+.btn-wax:hover{ background-position: right center; }
+.btn-ghost{
+  background-image: linear-gradient(to right, var(--surface-alt) 0%, var(--border-mid) 51%, var(--surface-alt) 100%);
+  background-size: 200% auto;
+  color: var(--text); border-color: var(--border);
+  transition: background-position .5s, border-color .12s;
+}
+.btn-ghost:hover{ background-position: right center; }
 .btn+.btn{ margin-top:8px; }
 
 .stamp-btn{
