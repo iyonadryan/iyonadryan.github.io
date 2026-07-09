@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bengkel PDF — Editor PDF di Browser</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Bengkel PDF</h1>
+  <span class="tagline">olah dokumen langsung di browser</span>
+  <div class="rule"></div>
+</div>
+
+<div class="layout">
+
+  <!-- LEFT: pages -->
+  <div class="panel sidebar">
+    <h2>Berkas &amp; Halaman</h2>
+    <div class="dropzone" id="dropzone">
+      Klik atau seret PDF ke sini<br>untuk membuka / menggabungkan
+    </div>
+    <input type="file" id="fileInput" accept="application/pdf" multiple>
+    <div class="thumbs" id="thumbs"></div>
+    <button class="btn btn-ghost" id="extractBtn" style="margin-top:12px;">Ekstrak halaman terpilih</button>
+    <button class="btn btn-wax" id="deleteBtn" style="margin-top:8px;">Hapus halaman terpilih</button>
+  </div>
+
+  <!-- CENTER: stage -->
+  <div class="panel stage">
+    <div class="stage-top">
+      <div class="stage-toolbar">
+        <button class="tool-btn active" data-tool="select">Pilih</button>
+        <button class="tool-btn" data-tool="text">+ Teks</button>
+        <button class="tool-btn" id="sigToolBtn">✒ Tanda Tangan</button>
+        <button class="tool-btn" id="undoBtn">↺ Undo</button>
+      </div>
+    </div>
+    <div id="stageArea">
+      <div class="empty-state">Belum ada PDF dimuat.<br>Unggah berkas di panel kiri untuk mulai.</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: tools / export / form -->
+  <div class="panel toolpanel">
+    <h2>Properti</h2>
+    <div id="propPanel">
+      <div class="note">Pilih alat "+ Teks" lalu klik di halaman untuk menambah teks. Gunakan "✒ Tanda Tangan" untuk membuat coretan tanda tangan dan menempatkannya.</div>
+    </div>
+
+    <div id="formPanel" style="display:none; margin-top:16px;">
+      <h2>Isi Formulir</h2>
+      <div id="formFields"></div>
+      <button class="btn btn-brass" id="applyFormBtn">Terapkan ke PDF</button>
+    </div>
+
+    <div style="margin-top:18px;">
+      <h2>Terapkan &amp; Unduh</h2>
+      <button class="btn btn-brass" id="bakeBtn">Terapkan teks/ttd ke halaman</button>
+      <div class="stamp-wrap">
+        <div class="stamp-btn" id="downloadBtn">Unduh PDF</div>
+        <div class="stamp-caption">simpan hasil akhir</div>
+      </div>
+    </div>
+    <div class="note">Catatan: menghapus/mengurutkan ulang halaman dapat menghapus data formulir interaktif pada PDF asli — isi formulir sebelum melakukan operasi tersebut. Memutar halaman akan menghapus teks/tanda tangan yang belum diterapkan pada halaman itu (posisinya tidak ikut berputar otomatis).</div>
+  </div>
+
+</div>
+
+<!-- Signature Modal -->
+<div class="modal-bg" id="sigModal" style="display:none;">
+  <div class="modal">
+    <h3>Gambar Tanda Tangan</h3>
+    <div class="sig-canvas-wrap">
+      <canvas id="sigCanvas" width="380" height="180"></canvas>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="sigClear">Hapus</button>
+      <button class="btn btn-ghost" id="sigCancel">Batal</button>
+      <button class="btn btn-brass" id="sigSave">Gunakan Tanda Tangan</button>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
