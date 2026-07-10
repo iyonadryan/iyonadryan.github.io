@@ -163,6 +163,32 @@ function escapeHTML(str){
   });
 }
 
+// ---------- SQL SYNTAX HIGHLIGHT ----------
+// Tokenizes the RAW (pre-escape) SQL text so quote/backtick matching stays simple,
+// then escapes each token's own content inside the callback. The unmatched
+// "glue" between tokens (spaces, commas, parens, newlines) is always plain
+// structural syntax from our own generator, so leaving it un-escaped is safe.
+var SQL_KEYWORDS = ['CREATE','TABLE','INSERT','INTO','VALUES','PRIMARY','KEY','AUTO_INCREMENT',
+  'SERIAL','CHECK','IN','DEFAULT','NULL','TRUE','FALSE','NOT','VARCHAR','INT','INTEGER','TEXT',
+  'BOOLEAN','DATE','DATETIME','TIMESTAMP','CHAR','UUID','ENUM','DECIMAL','NUMERIC',
+  'CURRENT_TIMESTAMP','CURRENT_DATE','CURRENT_TIME','NOW'];
+var SQL_TOKEN_RE = new RegExp(
+  "('(?:[^']|'')*')" +               // 1: string literal
+  "|(`[^`]*`|\"[^\"]*\")" +          // 2: quoted identifier
+  "|(\\b\\d+(?:\\.\\d+)?\\b)" +      // 3: number
+  "|(\\b(?:" + SQL_KEYWORDS.join('|') + ")\\b)",  // 4: keyword
+  'gi'
+);
+
+function highlightSQL(sql){
+  return String(sql).replace(SQL_TOKEN_RE, function(match, str, ident, num, kw){
+    if (str !== undefined) return '<span class="sql-value">' + escapeHTML(match) + '</span>';
+    if (ident !== undefined) return '<span class="sql-ident">' + escapeHTML(match) + '</span>';
+    if (num !== undefined) return '<span class="sql-value">' + escapeHTML(match) + '</span>';
+    return '<span class="sql-keyword">' + escapeHTML(match) + '</span>';
+  });
+}
+
 // ---------- VALUE GENERATION ----------
 function parsedDefaultValue(col){
   var raw = String(col.defaultValue || '').trim();
@@ -484,7 +510,7 @@ document.getElementById('generateBtn').addEventListener('click', function(){
   parts.push(buildInsert(currentMode, tableName, columns, rows));
   var sql = parts.join('\n\n');
 
-  sqlOutputEl.textContent = sql;
+  sqlOutputEl.innerHTML = highlightSQL(sql);
   renderPreview(rows, columns, rowCount);
 
   emptyPanel.hidden = true;

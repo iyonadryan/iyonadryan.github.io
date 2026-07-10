@@ -69,6 +69,17 @@ Utk PostgreSQL, klausa `DEFAULT` sengaja ditaruh **sebelum** constraint `CHECK` 
 - Nilai string/enum/email/fullname/text di-escape (petik satu digandakan `''`) lewat `escapeSQLString()`. Boolean jadi `TRUE`/`FALSE` (bukan `1`/`0`) di kedua mode — MySQL menerima keduanya sbg alias.
 - Baris `NULL` (dari opsi "Kadang NULL") jadi keyword `NULL` tanpa kutip.
 
+## Syntax highlight query SQL (`highlightSQL()`)
+
+Blok `#sqlOutput` dirender lewat `innerHTML` (bukan `textContent`) supaya bisa dikasih warna per token, mirip editor kode:
+
+- **Tokenizer**: 1 regex gabungan (`SQL_TOKEN_RE`) dgn 4 grup tangkap — string literal (`'...'`, termasuk escape `''` di dalamnya), identifier terquote (`` `...` `` / `"..."`), angka, dan keyword (daftar di `SQL_KEYWORDS`: `CREATE`, `TABLE`, `INSERT`, `INTO`, `VALUES`, tipe data spt `VARCHAR`/`INT`/`BOOLEAN`, dst). Regex jalan di teks SQL **mentah** (sebelum di-escape), lalu tiap token yg match baru di-`escapeHTML()` scr individual di dalam callback `String.replace()` — bagian yg TIDAK match (spasi, koma, kurung, baris baru) dibiarkan apa adanya krn itu selalu sintaks struktural dari generator sendiri, bukan input bebas.
+- **Kelas & warna** (var CSS baru: `--sql-keyword`, `--sql-value`, `--sql-ident`, ada versi terang & gelap):
+  - `.sql-keyword` → merah-pink (`CREATE`, `INSERT INTO`, `VALUES`, `PRIMARY KEY`, tipe data, dll).
+  - `.sql-value` → hijau (string literal & angka — mencakup data dummy yg digenerate maupun angka di deklarasi tipe kayak `VARCHAR(150)`).
+  - `.sql-ident` → biru (nama tabel/kolom yg terquote backtick/`"`).
+- **Copy tetap aman**: `copyText()` dipanggil dgn variable `sql` (string SQL mentah), bukan `sqlOutputEl.innerHTML` — jadi hasil salin ke clipboard tetap teks SQL polos tanpa tag `<span>`, sudah divalidasi.
+
 ## Preview hasil (`renderPreview()`)
 
 Menampilkan **maks 10 baris pertama** dari hasil generate di `<table>`, kalau jumlah baris yg digenerate lebih besar dari itu, baris ke-11 diganti 1 baris ringkasan lintas-kolom (`colspan`) berbunyi **"… N data lainnya"** (N = sisa baris yg tidak ditampilkan). Ini murni simulasi tampilan JS di browser — **tidak benar-benar menjalankan query** ke database manapun (`tool/` tidak ada backend/DB).

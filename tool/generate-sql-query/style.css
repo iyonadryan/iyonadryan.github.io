@@ -13,6 +13,9 @@
   --danger: #D6552E;
   --danger-light: #FBEAE2;
   --danger-mid: #F6DACB;
+  --sql-keyword: #D6335E;
+  --sql-value: #1F7A4D;
+  --sql-ident: #3A5BA0;
   --shadow-sm: 0 1px 2px rgba(16,20,24,0.04);
   --shadow-md: 0 8px 24px rgba(16,20,24,0.08);
 }
@@ -31,6 +34,9 @@
   --danger: #E17A54;
   --danger-light: rgba(214,85,46,0.16);
   --danger-mid: rgba(214,85,46,0.32);
+  --sql-keyword: #FF6FA5;
+  --sql-value: #6FD99A;
+  --sql-ident: #7FADFF;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.25);
   --shadow-md: 0 8px 24px rgba(0,0,0,0.4);
 }
@@ -314,6 +320,9 @@ button, input, select, textarea{ font-family:inherit; color:inherit; }
   overflow-y:auto;
   max-height:360px;
 }
+.sql-box .sql-keyword{ color: var(--sql-keyword); font-weight:600; }
+.sql-box .sql-value{ color: var(--sql-value); }
+.sql-box .sql-ident{ color: var(--sql-ident); }
 
 .table-scroll{
   border:1px solid var(--border);
