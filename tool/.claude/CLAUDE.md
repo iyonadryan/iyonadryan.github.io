@@ -13,12 +13,17 @@ tool/
   .claude/
     CLAUDE.md          # file ini
     pdf-editor.md       # dokumentasi Bengkel PDF
+    generate-sql-query.md # dokumentasi Generate SQL Query
     color-picker.md      # dokumentasi Color Picker
     generate-color.md    # dokumentasi Generate Color
     bento-image.md        # dokumentasi Bento Image
   index.html          # hub — daftar link ke semua tool (lihat "Halaman hub" di bawah)
   style-tool.css       # CSS khusus hub, TIDAK dipakai/di-share ke tool manapun
   pdf-editor/
+    index.html
+    style.css
+    script.js
+  generate-sql-query/
     index.html
     style.css
     script.js
@@ -61,11 +66,12 @@ Semua halaman di `tool/` (hub + tiap tool) pakai token warna & tipografi yang sa
 ### Favicon
 
 - **Hub** (`tool/index.html`) pakai favicon Iyon yang sama dgn portfolio utama & hub `app/index.html`: `<link rel="icon" href="../webimg/iyon-favicon.ico" type="image/x-icon">` — **bukan** favicon khusus `tool/`, sengaja dipakai favicon situs biar hub ini kebaca sbg "pintu masuk" resmi, sama peran dgn `app/index.html`.
-- **Tiap tool** pakai favicon emoji data-URI SVG (`<link rel="icon" href="data:image/svg+xml,...">`), **sama persis emoji-nya dgn ikon `.tool-icon` tool itu di kartu hub** — pola identik dgn favicon emoji tiap app di `app/*/index.html`: `pdf-editor` 📄, `color-picker` 🎯, `generate-color` 🎨, `bento-image` 🍱. Kalau ikon kartu hub sebuah tool diganti, favicon-nya ikut diganti biar tetap sinkron.
+- **Tiap tool** pakai favicon emoji data-URI SVG (`<link rel="icon" href="data:image/svg+xml,...">`), **sama persis emoji-nya dgn ikon `.tool-icon` tool itu di kartu hub** — pola identik dgn favicon emoji tiap app di `app/*/index.html`: `pdf-editor` 📄, `generate-sql-query` 💾, `color-picker` 🎯, `generate-color` 🎨, `bento-image` 🍱. Kalau ikon kartu hub sebuah tool diganti, favicon-nya ikut diganti biar tetap sinkron.
 
 ## Status saat ini
 
 - **`pdf-editor/`** — Bengkel PDF, editor PDF client-side (upload/gabung PDF, reorder/rotate/hapus/ekstrak halaman, tambah teks & tanda tangan overlay lalu "terapkan"/bake ke PDF, isi form AcroForm, unduh hasil). Lihat `tool/.claude/pdf-editor.md`.
+- **`generate-sql-query/`** — susun kolom (nama, tipe data, opsi per tipe), pilih mode MySQL/PostgreSQL, generate data dummy sejumlah N baris, hasilkan query `CREATE TABLE` (opsional) + `INSERT INTO` siap eksekusi, plus preview tabel hasil (maks 10 baris ditampilkan, sisanya diringkas "… N data lainnya"). Lihat `tool/.claude/generate-sql-query.md`.
 - **`color-picker/`** — upload gambar/PDF, sistem otomatis membaca 9 warna dominan, dan klik piksel mana pun utk lihat warnanya (HEX & RGB, bisa disalin). Lihat `tool/.claude/color-picker.md`.
 - **`generate-color/`** — generate skema warna dari satu warna dasar (komplementer/analogus/triadik/tetradik/split-komplementer/monokromatik) + katalog warna besar (16 keluarga hue × 10 tingkat terang-gelap, ala kartu contoh cat tembok). Lihat `tool/.claude/generate-color.md`.
 - **`bento-image/`** — susun beberapa foto jadi satu galeri bento grid (9 gaya preset, dimensi/jarak/kelengkungan sudut/warna latar bisa diatur, tiap sel bisa digeser & di-zoom), unduh sbg PNG/JPG. Lihat `tool/.claude/bento-image.md`.
