@@ -6,10 +6,10 @@
   --border-mid: #EDEDEA;
   --text: #16181B;
   --muted: #797F87;
-  --accent: #0F6E63;
-  --accent-light: #E4F1EE;
-  --accent-strong: #0B554D;
-  --accent-mid: #35B3A0;
+  --accent: #FF8008;
+  --accent-light: #FFEDD5;
+  --accent-strong: #C2650A;
+  --accent-mid: #FFC837;
   --danger: #D6552E;
   --danger-light: #FBEAE2;
   --danger-mid: #F6DACB;
@@ -24,10 +24,10 @@
   --border-mid: #363D43;
   --text: #EDEFF1;
   --muted: #8B939B;
-  --accent: #35B3A0;
-  --accent-light: rgba(53,179,160,0.16);
-  --accent-strong: #57CBB8;
-  --accent-mid: #0F6E63;
+  --accent: #FFB020;
+  --accent-light: rgba(255,176,32,0.18);
+  --accent-strong: #FFC837;
+  --accent-mid: #FF8008;
   --danger: #E17A54;
   --danger-light: rgba(214,85,46,0.16);
   --danger-mid: rgba(214,85,46,0.32);
@@ -242,7 +242,7 @@ button, input, select, textarea{ font-family:inherit; color:inherit; }
 
 /* ---- Main CTA button ---- */
 .btn-grad{
-  background-image: linear-gradient(to right, var(--accent-strong) 0%, var(--accent-mid) 51%, var(--accent-strong) 100%);
+  background-image: linear-gradient(to right, #FF8008 0%, #FFC837 51%, #FF8008 100%);
   background-size:200% auto;
   margin-top:16px;
   padding:14px 32px;
@@ -252,7 +252,7 @@ button, input, select, textarea{ font-family:inherit; color:inherit; }
   letter-spacing:0.04em;
   transition:0.5s;
   color:#fff;
-  box-shadow:0 0 20px rgba(15,110,99,0.25);
+  box-shadow:0 0 20px rgba(255,128,8,0.3);
   border-radius:10px;
   display:flex; align-items:center; justify-content:center; gap:8px;
   outline:none;
@@ -262,7 +262,7 @@ button, input, select, textarea{ font-family:inherit; color:inherit; }
   cursor:pointer;
 }
 .btn-grad:hover{ background-position: right center; color:#fff; }
-[data-theme="dark"] .btn-grad{ box-shadow:0 0 20px rgba(53,179,160,0.3); }
+[data-theme="dark"] .btn-grad{ box-shadow:0 0 20px rgba(255,200,55,0.35); }
 
 /* ---- Output panel ---- */
 .output-empty{

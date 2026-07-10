@@ -85,7 +85,13 @@ Input `#rowCount` dibatasi maks **5000** baris (`Math.min(5000, ...)` di handler
 
 ## Identitas visual
 
-Pakai token warna & pola CSS yang sama dgn tool lain (lihat "Identitas visual bersama" di `tool/.claude/CLAUDE.md`) — termasuk `--accent-mid`/`--border-mid`/`--danger-mid` + pola tombol gradient. Tombol utama pakai class `.btn-grad` (bukan `.btn-brass` seperti `bento-image/`) — union style yg diminta scr eksplisit: gradient horizontal bergerak, uppercase, radius 10px, box-shadow lembut, dibedakan namanya dari `.btn-brass` krn properti CSS-nya sedikit beda (padding lebih besar, uppercase, letter-spacing) meski warna & mekanisme gradiennya senada.
+Struktur token & pola CSS-nya ikut konvensi "Identitas visual bersama" di `tool/.claude/CLAUDE.md` (nama variable `--accent`/`--accent-light`/`--accent-strong`/`--accent-mid`, dst, + pola tombol gradient `background-size:200% auto` + shift `background-position` saat hover) — **tapi nilai warna `--accent*`-nya sengaja DIUBAH dari teal (standar semua tool lain) jadi oranye-kuning**, atas permintaan eksplisit user yg kasih contoh gradient sendiri. Jadi tool ini satu-satunya yg palet warnanya beda dari "keluarga" `tool/` lainnya:
+
+- Terang: `--accent:#FF8008`, `--accent-light:#FFEDD5`, `--accent-strong:#C2650A`, `--accent-mid:#FFC837`.
+- Gelap (`[data-theme="dark"]`): `--accent:#FFB020`, `--accent-light:rgba(255,176,32,0.18)`, `--accent-strong:#FFC837`, `--accent-mid:#FF8008`.
+- Semua elemen yg pakai `var(--accent)` ikut kena efeknya scr otomatis: tab mode aktif (`.mode-tab.active`), checkbox (`accent-color` di `.checkbox-row input[type=checkbox]`), tombol toggle "Isi Semua" aktif (`.default-all-btn.active`), outline fokus input, dan hover row tabel preview (`--accent-light`).
+- Tombol utama pakai class `.btn-grad` (bukan `.btn-brass` seperti `bento-image/`) dgn gradient **hardcoded** `#FF8008 → #FFC837 → #FF8008` (bukan lewat `var(--accent-strong)`/`var(--accent-mid)` seperti pola awal) — krn user kasih kode CSS `.btn-grad` literal sbg acuan warna, bukan cuma bentuk. `box-shadow` glow-nya jg diselaraskan ke rgba oranye (bukan rgba teal spt tool lain).
+- **Kalau nanti mau nyamain lagi ke identitas teal standar** (atau ganti warna lagi), tinggal ubah 4 variable `--accent*` di `:root`/`[data-theme="dark"]` + gradient hardcoded di `.btn-grad` — gak ada tempat lain yg pakai warna hardcoded selain situ.
 
 Tema gelap/terang punya toggle + localStorage key sendiri: `generatesqlquery_theme` (independen dari tool lain, sesuai konvensi tiap tool punya key sendiri-sendiri).
 
