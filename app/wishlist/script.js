@@ -139,6 +139,7 @@
       return {
         id,
         title: it.title || "",
+        price: Number(it.price) || 0,
         description: it.description || "",
         link: it.link || "",
         category: it.category || "",
@@ -252,6 +253,22 @@
     return flat.length > 70 ? flat.slice(0, 70) + "…" : flat;
   }
 
+  function formatCurrency(value) {
+    return "Rp " + Math.round(value || 0).toLocaleString("id-ID");
+  }
+
+  // Format input nominal live saat diketik: buang non-digit, kasih titik
+  // ribuan (id-ID) — pola identik dgn formatAmountInput() Finance App.
+  function formatAmountInput(input) {
+    const digits = input.value.replace(/[^\d]/g, "");
+    if (digits) {
+      const formatted = parseInt(digits, 10).toLocaleString("id-ID");
+      if (formatted !== input.value) input.value = formatted;
+    } else {
+      input.value = "";
+    }
+  }
+
   function formatDateLong(ms) {
     if (!ms) return "—";
     const d = new Date(ms);
@@ -291,12 +308,17 @@
     const creatorBadge = USERS[item.by]
       ? '<img class="creator-badge" src="' + USERS[item.by].icon + '" data-by="' + item.by + '" alt="' + USERS[item.by].label + '">'
       : "";
+    // Baris ke-2 kartu: harga (tebal, warna primary tema) selalu tampil,
+    // disambung deskripsi (dipotong snippet()) kalau ada — biar kartu tetap
+    // ringkas 2 baris (judul + baris ini).
+    const priceHTML = '<span class="wishlist-price">' + escapeHtml(formatCurrency(item.price)) + "</span>";
+    const subline = priceHTML + (item.description ? " - " + escapeHtml(snippet(item.description)) : "");
     return (
       '<div class="wishlist-item" data-id="' + item.id + '">' +
       '<div class="wishlist-icon" style="' + chipStyle(cat.colorSlot) + '">' + escapeHtml(cat.icon) + creatorBadge + "</div>" +
       '<div class="wishlist-info">' +
       '<p class="wishlist-title">' + escapeHtml(item.title) + "</p>" +
-      (item.description ? '<p class="wishlist-snippet">' + escapeHtml(snippet(item.description)) + "</p>" : "") +
+      '<p class="wishlist-subline">' + subline + "</p>" +
       "</div>" +
       '<div class="wishlist-badges">' +
       '<span class="wishlist-category-badge" style="' + chipStyle(cat.colorSlot) + '">' + escapeHtml(cat.label) + "</span>" +
@@ -496,6 +518,7 @@
     editingItemId = item ? item.id : null;
     document.getElementById("wishlistModalTitle").textContent = item ? "Ubah Wishlist" : "Tambah Wishlist";
     document.getElementById("wishlistTitleInput").value = item ? item.title : "";
+    document.getElementById("wishlistPriceInput").value = item ? Math.round(item.price || 0).toLocaleString("id-ID") : "0";
     document.getElementById("wishlistDescInput").value = item ? item.description : "";
     document.getElementById("wishlistLinkInput").value = item ? item.link : "";
 
@@ -519,10 +542,15 @@
 
   document.getElementById("navAdd").addEventListener("click", () => openWishlistModal(null));
 
+  document.getElementById("wishlistPriceInput").addEventListener("input", function () {
+    formatAmountInput(this);
+  });
+
   wishlistForm.addEventListener("submit", (e) => {
     e.preventDefault();
     const data = {
       title: document.getElementById("wishlistTitleInput").value.trim(),
+      price: parseFloat(document.getElementById("wishlistPriceInput").value.replace(/\./g, "")) || 0,
       description: document.getElementById("wishlistDescInput").value.trim(),
       link: normalizeLink(document.getElementById("wishlistLinkInput").value),
       category: document.getElementById("wishlistCategoryInput").value,
@@ -551,6 +579,7 @@
     document.getElementById("detailIcon").style.cssText = chipStyle(cat.colorSlot);
     document.getElementById("detailIcon").textContent = cat.icon;
     document.getElementById("detailTitle").textContent = item.title;
+    document.getElementById("detailPrice").textContent = formatCurrency(item.price);
 
     const catBadge = document.getElementById("detailCategoryBadge");
     catBadge.textContent = cat.label;

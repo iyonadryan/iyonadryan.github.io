@@ -69,13 +69,20 @@
   text-overflow: ellipsis;
 }
 
-.wishlist-snippet {
+/* Baris ke-2 kartu: "<harga> - <cuplikan deskripsi>" (atau cuma harga kalau
+   deskripsi kosong) — satu baris, terpotong "…" via ellipsis kalau kepanjangan. */
+.wishlist-subline {
   margin: 2px 0 0;
   font-size: 12px;
   color: var(--color-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.wishlist-price {
+  font-weight: 700;
+  color: var(--color-primary);
 }
 
 /* Dua badge (kategori + prioritas) ditumpuk vertikal di pojok kanan kartu —
@@ -182,7 +189,14 @@
 }
 
 .detail-header-text h3 {
+  margin: 0 0 2px;
+}
+
+.detail-price {
   margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary);
 }
 
 .detail-badge-row {
