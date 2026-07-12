@@ -1,16 +1,18 @@
 :root{
-  --ivory:#F8FBF6;
-  --cream:#EEF4EA;
+  --ivory:#FDF6F1;
+  --cream:#F8E9E1;
   --card:#FFFFFF;
-  --ink:#33402F;
-  --muted:#74847E;
-  --sage:#7C9473;
-  --forest:#35492E;
-  --olive:#7E8C3F;
+  --ink:#4A342E;
+  --muted:#8A7A72;
+  --sage:#8CA184;
+  --forest:#5C2A35;
+  --olive:#BB8A3D;
   --blush:#D98A96;
-  --line:#D9CFC0;
-  --shadow-sm:0 2px 10px rgba(51,64,47,0.07);
-  --shadow-md:0 12px 32px rgba(51,64,47,0.14);
+  --line:#E3CBB8;
+  --gold-thread:#BB8A3D;
+  --maroon:#7A3030;
+  --shadow-sm:0 2px 10px rgba(74,52,46,0.08);
+  --shadow-md:0 12px 32px rgba(74,52,46,0.16);
   --serif:'Playfair Display', serif;
   --script:'Alex Brush', cursive;
   --sans:'Jost', sans-serif;
@@ -51,6 +53,53 @@ a{ color:inherit; }
   justify-content:center;
   padding:32px 28px;
   text-align:center;
+  background: linear-gradient(160deg, #FBE4D8 0%, #FDF6F1 45%, #FBE4D8 100%);
+}
+
+/* Ilustrasi bunga (asset/*.webp) mengapit konten cover di 2 sudut berlawanan,
+   ala referensi tema adat — di belakang teks (z-index di bawah .cover-inner). */
+.cover-floral{
+  position:absolute;
+  width:190px;
+  height:auto;
+  pointer-events:none;
+  z-index:0;
+}
+.cover-floral-tl{ top:-18px; left:-46px; }
+.cover-floral-br{ bottom:-14px; right:-40px; transform:scaleX(-1); }
+@media (min-width:400px){
+  .cover-floral{ width:210px; }
+}
+/* Bingkai songket: strip motif belah ketupat emas di tepi atas/bawah cover —
+   dipakai bersama masyarakat Jawa & Minang sbg kain tenun berbenang emas,
+   jadi elemen "adat" yg netral utk kedua budaya sekaligus. */
+.cover::before, .cover::after{
+  content:"";
+  position:absolute;
+  left:0; right:0;
+  height:10px;
+  background-image:
+    repeating-linear-gradient(45deg, var(--gold-thread) 0 2px, transparent 2px 10px),
+    repeating-linear-gradient(-45deg, var(--gold-thread) 0 2px, transparent 2px 10px);
+  opacity:0.6;
+  z-index:2;
+}
+.cover::before{ top:0; }
+.cover::after{ bottom:0; }
+
+/* Siluet gonjong (atap rumah gadang, Minang) — mahkota dekoratif di puncak
+   cover, di atas "The Wedding Of". */
+.gonjong-ornament{
+  width:150px;
+  height:auto;
+  display:block;
+  margin:0 auto 16px;
+  fill:none;
+  stroke: var(--maroon);
+  stroke-width:2.5;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  opacity:0.85;
 }
 .cover-petals{
   position:absolute; inset:0;
@@ -74,12 +123,19 @@ a{ color:inherit; }
 .cover-inner{ position:relative; z-index:1; }
 
 .cover-eyebrow{
+  display:flex; align-items:center; justify-content:center; gap:10px;
   margin:0 0 18px;
   font-size:12px;
   letter-spacing:0.35em;
   text-transform:uppercase;
-  color: var(--muted);
-  font-weight:500;
+  color: var(--gold-thread);
+  font-weight:600;
+}
+.cover-eyebrow::before, .cover-eyebrow::after{
+  content:"";
+  width:26px; height:1px;
+  background: var(--gold-thread);
+  opacity:0.6;
 }
 
 .cover-monogram{
@@ -124,9 +180,17 @@ a{ color:inherit; }
   width:36px; height:1px;
   background: var(--line);
 }
-.ornament-divider .leaf{
+.ornament-divider .divider-icon{
   width:16px; height:16px;
-  fill: var(--sage);
+  opacity:0.9;
+}
+.ornament-divider .divider-icon-outline{
+  fill:none;
+  stroke: var(--gold-thread);
+  stroke-width:1.4;
+}
+.ornament-divider .divider-icon-dot{
+  fill: var(--gold-thread);
 }
 
 .cover-date{
@@ -202,6 +266,11 @@ a{ color:inherit; }
   padding:64px 28px;
   text-align:center;
   position:relative;
+  overflow:hidden;
+  isolation:isolate;
+  background-image: url('asset/java-heritage-PATTERN.webp');
+  background-repeat: repeat;
+  background-size: 260px 260px;
 }
 .section-eyebrow{
   margin:0 0 8px;
@@ -212,11 +281,24 @@ a{ color:inherit; }
   font-weight:500;
 }
 .section-title{
-  margin:0 0 32px;
+  margin:0 0 12px;
   font-family: var(--serif);
   font-size:28px;
   font-weight:500;
   color: var(--forest);
+}
+/* Aksen "songket" tipis di bawah tiap judul section — pola jalin serong
+   khas kain tenun benang emas Jawa maupun Minang. */
+.section-title::after{
+  content:"";
+  display:block;
+  width:52px;
+  height:5px;
+  margin:12px auto 24px;
+  background-image:
+    repeating-linear-gradient(45deg, var(--gold-thread) 0 2px, transparent 2px 7px),
+    repeating-linear-gradient(-45deg, var(--gold-thread) 0 2px, transparent 2px 7px);
+  opacity:0.7;
 }
 
 /* Scroll reveal (IntersectionObserver via script.js) */
@@ -228,7 +310,20 @@ a{ color:inherit; }
 .reveal.in-view{ opacity:1; transform:translateY(0); }
 
 /* ---- Quote ---- */
-.quote-section{ background: var(--ivory); }
+.quote-section{ background-color: var(--ivory); }
+/* Gunungan wayang jadi watermark besar di belakang teks kutipan — motif
+   "pohon kehidupan" cocok scr makna dgn isi kutipan ttg pasangan hidup. */
+.quote-gunungan{
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  width:340px;
+  max-width:80%;
+  height:auto;
+  opacity:0.1;
+  pointer-events:none;
+  z-index:-1;
+}
 .quote-mark{
   font-family: var(--serif);
   font-size:64px;
@@ -252,10 +347,27 @@ a{ color:inherit; }
 }
 
 /* ---- Couple ---- */
-.couple-section{ background: var(--cream); }
+.couple-section{ background-color: var(--cream); }
+/* Sepasang ilustrasi yg saling cermin mengapit section (COUPLE-1/3 di sini,
+   COUPLE-2/4 dipakai lagi di Penutup) — nama filenya sendiri sengaja
+   "COUPLE" krn memang didesain berpasangan spt ini. */
+.couple-corner{
+  position:absolute;
+  width:120px;
+  height:auto;
+  opacity:0.9;
+  pointer-events:none;
+  z-index:-1;
+}
+.couple-corner-tl{ top:8px; left:-24px; }
+.couple-corner-br{ bottom:8px; right:-24px; }
+@media (min-width:400px){
+  .couple-corner{ width:140px; }
+}
 .couple-card{
   background: var(--card);
   border-radius:20px;
+  border-top:3px solid var(--gold-thread);
   padding:28px 24px;
   box-shadow: var(--shadow-sm);
   margin-bottom:18px;
@@ -300,7 +412,19 @@ a{ color:inherit; }
 }
 
 /* ---- Countdown ---- */
-.countdown-section{ background: var(--ivory); }
+.countdown-section{ background-color: var(--ivory); }
+/* Strip motif batik (MOTIF-ATAS/BAWAH) — pudar dari satu tepi ke tengah,
+   dipasang nempel di tepi atas/bawah section spt namanya. */
+.motif-border{
+  position:absolute;
+  left:0; right:0;
+  width:100%;
+  height:auto;
+  pointer-events:none;
+  z-index:-1;
+}
+.motif-atas{ top:0; }
+.motif-bawah{ bottom:0; }
 .countdown{
   display:flex; justify-content:center; gap:10px;
   margin-bottom:28px;
@@ -350,10 +474,11 @@ a{ color:inherit; }
 .btn-small{ padding:9px 18px; font-size:11px; }
 
 /* ---- Acara ---- */
-.event-section{ background: var(--cream); }
+.event-section{ background-color: var(--cream); }
 .event-card{
   background: var(--card);
   border-radius:20px;
+  border-top:3px solid var(--maroon);
   padding:28px 24px;
   box-shadow: var(--shadow-sm);
   margin-bottom:18px;
@@ -381,7 +506,7 @@ a{ color:inherit; }
 }
 
 /* ---- Galeri ---- */
-.gallery-section{ background: var(--ivory); }
+.gallery-section{ background-color: var(--ivory); }
 .gallery-grid{
   display:grid;
   grid-template-columns:repeat(3, 1fr);
@@ -442,7 +567,7 @@ a{ color:inherit; }
 }
 
 /* ---- RSVP ---- */
-.rsvp-section{ background: var(--cream); }
+.rsvp-section{ background-color: var(--cream); }
 .rsvp-form{
   text-align:left;
   background: var(--card);
@@ -525,7 +650,7 @@ a{ color:inherit; }
 .wish-text{ font-size:13px; color: var(--ink); margin:0; line-height:1.6; }
 
 /* ---- Gift ---- */
-.gift-section{ background: var(--ivory); }
+.gift-section{ background-color: var(--ivory); }
 .gift-note{
   font-size:13.5px;
   color: var(--muted);
@@ -535,6 +660,7 @@ a{ color:inherit; }
 .gift-card{
   background: var(--card);
   border-radius:20px;
+  border-top:3px solid var(--gold-thread);
   padding:22px 24px;
   box-shadow: var(--shadow-sm);
   margin-bottom:16px;
@@ -560,7 +686,7 @@ a{ color:inherit; }
 }
 
 /* ---- Closing ---- */
-.closing-section{ background: var(--cream); padding-bottom:88px; }
+.closing-section{ background-color: var(--cream); padding-bottom:88px; }
 .closing-text{
   font-size:14px;
   color: var(--muted);

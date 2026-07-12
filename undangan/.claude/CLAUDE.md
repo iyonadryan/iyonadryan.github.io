@@ -15,6 +15,9 @@ Prototype pertama dibuat lewat permintaan terbuka ("desain modern minimalis ala 
 7. RSVP & Ucapan disambungkan ke **Firebase Realtime Database** (path `undangan/rsvp`) — awalnya cuma demo client-side (hilang kalau refresh), sekarang submit beneran tersimpan & tersinkron realtime ke semua yg buka halaman (lihat "RSVP & Ucapan").
 8. Ditambah **panel admin terpisah** (`rsvp.html`) utk memantau semua data RSVP yg masuk — view-only, realtime, blm ada proteksi login (lihat "Panel Admin").
 9. Panel admin dikasih **gerbang PIN 6-digit** (`190723`) + lockout 1 menit stlh 3x salah — lihat "Proteksi PIN".
+10. `index.html` (undangan tamu) diberi sentuhan **unsur adat Jawa & Padang** — motif kawung, siluet gonjong, bingkai songket — murni ornamental, lihat "Unsur Adat". `rsvp.html`/`rsvp.css` sengaja **tidak ikut diubah** (permintaan eksplisit "fokus di index.html").
+11. Palet & motif kawung diganti lagi mengikuti referensi konkret tema "Adat Jawa" weddingbestie.id (screenshot + link dari user) — palet jadi sogan/blush/maroon/emas, motif kawung → belah-ketupat ramping, ditambah **2 ilustrasi bunga asli** (`asset/*.webp`) mengapit cover. Siluet gonjong (Padang) tetap dipertahankan. Lihat "Unsur Adat" bagian Tahap 2.
+12. User nambah 8 aset baru (`asset/java-heritage-*.webp` + `JAWA-PATTERN.png`) & komplain background section2 setelah cover masih polos → semua aset dipasang menyebar di tiap section (bkn cuma cover), 1 aset (`java-heritage-PATTERN.webp`) dipakai sbg tekstur berulang di **semua** section. Nemu & benerin 1 bug stacking-context nyata (bkn cuma CSS bawaan browser) — lihat "Unsur Adat" bagian Tahap 3.
 
 ## Struktur file
 
@@ -29,6 +32,17 @@ undangan/
   gallery/         # 6 foto prewedding asli (dipakai di section Galeri)
     0K0A3202-Edit.jpg, 0K0A3216-Edit.jpg, 0K0A3227-Edit.jpg,
     MONO0889-Edit.jpg, MONO0896-Edit.jpg, MONO0902-Edit.jpg
+  asset/           # ilustrasi adat (webp, alpha transparan) tersebar di semua section — lihat "Unsur Adat"
+    crescent-arch.webp, rose-spray.webp          # cover (Tahap 2)
+    java-heritage-COUPLE-1.webp                    # section Mempelai (kiri-atas)
+    java-heritage-COUPLE-2.webp                    # section Penutup (kiri-atas)
+    java-heritage-COUPLE-3.webp                    # section Mempelai (kanan-bawah, mirror dari -1)
+    java-heritage-COUPLE-4.webp                    # section Penutup (kanan-bawah, mirror dari -2)
+    java-heritage-GUNUNGAN.webp                    # watermark section Kutipan Pembuka
+    java-heritage-MOTIF-ATAS.webp                  # border atas section Countdown
+    java-heritage-MOTIF-BAWAH.webp                 # border bawah section Amplop Digital
+    java-heritage-PATTERN.webp                     # tekstur berulang di SEMUA section
+    JAWA-PATTERN.png                               # TIDAK dipakai — duplikat PATTERN.webp, lihat Tahap 3
   .claude/
     CLAUDE.md       # file ini
 ```
@@ -44,23 +58,67 @@ Tidak ada folder `.claude/` terpisah lagi di dalamnya — sama seperti `app/`/`t
 
 ## Palet Warna
 
-Ganti total dari draf pertama (ivory/gold/terracotta) mengikuti referensi gambar yg dikasih user (floral pink+eucalyptus, tombol olive). Token di `:root` (`style.css`):
+Sudah 3x iterasi (lihat "Status saat ini"): ivory/gold/terracotta → sage/forest/olive/blush (ikut referensi floral pink+eucalyptus) → **sogan & emas** (warna hangat blush-maroon-gold, ikut referensi tema "Adat Jawa" weddingbestie.id). **Nama variable di `:root` (`style.css`) sengaja TIDAK diubah** tiap iterasi (`--forest`, `--olive`, dst — cuma nilai hex-nya yg diganti) biar diff minimal & semua `var(--forest)`/`var(--olive)` yg sudah dipakai di banyak tempat otomatis ikut berubah — **artinya nama variable saat ini sudah tidak deskriptif** (`--forest` isinya maroon, bukan hijau; `--olive` isinya emas, bukan hijau-zaitun) — jangan tertipu nama variable-nya, cek tabel ini kalau nambah CSS baru:
 
 | Variable | Hex | Dipakai utk |
 |---|---|---|
-| `--ivory` | `#F8FBF6` | bg utama section |
-| `--cream` | `#EEF4EA` | bg section selang-seling |
-| `--ink` | `#33402F` | teks body/paragraf |
-| `--muted` | `#74847E` | label/eyebrow/teks sekunder (abu-hijau sejuk) |
-| `--sage` | `#7C9473` | ikon daun, link IG, ampersand, label kecil |
-| `--forest` | `#35492E` | **nama mempelai (script)**, heading section, angka countdown |
-| `--olive` | `#7E8C3F` | **tombol CTA solid/outline** (Buka Undangan, Kirim Ucapan, Salin Nomor) |
-| `--blush` | `#D98A96` | aksen dekoratif hangat (tanda kutip, label "Akad Nikah"/"Resepsi", status ucapan) |
-| `--line` | `#D9CFC0` | garis pembatas tipis, border monogram/countdown |
-
-**Prinsip pembagian warna**: label/teks sekunder = abu (`--muted`), judul & nama = hijau forest (`--forest`), tombol = olive (`--olive`), aksen dekoratif hangat = blush pink (`--blush`), ikon/link ringan = sage (`--sage`). Jangan campur — mis. jangan pakai `--forest` utk tombol (itu peran `--olive`), krn user membedakan keduanya scr eksplisit dari referensi gambar (nama = hijau lebih biru/tua, tombol = hijau lebih kuning/olive).
+| `--ivory` | `#FDF6F1` | bg utama section (blush-cream lembut) |
+| `--cream` | `#F8E9E1` | bg section selang-seling (pink-cream lebih pekat) |
+| `--ink` | `#4A342E` | teks body/paragraf (cokelat tua hangat) |
+| `--muted` | `#8A7A72` | label/eyebrow/teks sekunder (abu-cokelat) |
+| `--sage` | `#8CA184` | ikon dedaunan kecil, link IG, ampersand — **satu-satunya sisa hijau**, sengaja dipertahankan krn senada dgn dedaunan di foto bunga `asset/*.webp` |
+| `--forest` *(nama lama, isi baru)* | `#5C2A35` | **maroon tua** — nama mempelai (script), heading section, angka countdown, label ucapan |
+| `--olive` *(nama lama, isi baru)* | `#BB8A3D` | **emas/mustard** — tombol CTA solid/outline, label "THE WEDDING OF" |
+| `--blush` | `#D98A96` | aksen dekoratif hangat (tanda kutip, label "Akad Nikah"/"Resepsi", status ucapan) — tetap cocok dgn palet baru |
+| `--line` | `#E3CBB8` | garis pembatas tipis, border monogram/countdown (krem-cokelat, sebelumnya abu-hijau) |
+| `--gold-thread` | `#BB8A3D` | **nilainya sama persis dgn `--olive` baru** (sengaja disatukan — emas songket & emas tombol dianggap 1 keluarga warna) — dipakai utk motif divider, bingkai songket, underline judul, border atas kartu |
+| `--maroon` | `#7A3030` | siluet gonjong di cover, border kartu Acara (Akad/Resepsi) — sedikit lebih merah/gelap drpd `--forest` biar ada variasi |
 
 Tidak ada dark/light mode toggle — genre undangan digital selalu 1 tema tetap (bukan utility app), beda dari konvensi `app/`/`tool/`.
+
+**Efek samping yg disengaja**: `rsvp.html`/`rsvp.css` **ikut berubah warnanya juga** krn nge-`<link>` `style.css` yg sama (bukan salinan token sendiri) — ini bukan kelalaian, cuma memang tidak disentuh langsung (`rsvp.css`/`rsvp.js` tidak diedit sama sekali di iterasi palet ke-3 ini, sesuai instruksi "fokus di index.html"), tapi hasilnya tetap konsisten krn variable-nya sama. Sudah diverifikasi visual, tidak rusak.
+
+## Unsur Adat
+
+Fitur ini melalui **2 tahap** — penting dibedakan krn pendekatannya beda:
+
+### Tahap 1 — Fusion Jawa + Padang (ornamental murni, tanpa aset gambar)
+
+Permintaan awal ("tampilannya dirubah dgn unsur adat jawa dan padang") direspons dgn motif SVG buatan sendiri (bukan gambar):
+- **Siluet Gonjong (Minang/Padang)** — path SVG (`.gonjong-ornament`, viewBox 160×46) garis lengkung 5-puncak meniru atap rumah gadang. Di puncak cover, di atas "THE WEDDING OF". Warna `--maroon`, `stroke` bukan `fill`.
+- **Bingkai songket** — strip motif belah-ketupat CSS murni (2 `repeating-linear-gradient` 45°/-45°) di tepi atas/bawah cover (`.cover::before`/`.cover::after`) & underline mini di bawah tiap `.section-title` (`::after`).
+- Motif kawung (4 lingkaran batik Jawa) sempat dipakai di `.ornament-divider`, **lalu diganti** di Tahap 2 (lihat di bawah).
+
+### Tahap 2 — Ikut referensi visual konkret "Adat Jawa" (weddingbestie.id/id/tema/jawa)
+
+User kasih screenshot + link tema Jawa dari weddingbestie.id sbg acuan look yg mau ditiru (bkn sekadar motif abstrak lagi, tapi keseluruhan nuansa: warna sogan-emas, bunga di pojok cover, gaya divider). Perubahan:
+
+- **Palet warna diganti total** ke sogan & emas (blush-maroon-gold) — lihat "Palet Warna". Ini **menggantikan** (bukan menambah di atas) palet fusion sage/forest/olive Tahap 1.
+- **2 ilustrasi bunga asli** (`asset/crescent-arch.webp` & `asset/rose-spray.webp`, keduanya **sudah py alpha channel transparan** dari sumbernya — dicek via `sharp` sblm dipakai, tidak perlu diproses ulang) dipasang mengapit cover: `crescent-arch.webp` pojok kiri-atas (`.cover-floral-tl`), `rose-spray.webp` pojok kanan-bawah (`.cover-floral-br`, di-mirror `scaleX(-1)` biar motifnya "menghadap" ke tengah) — pola asimetris identik dgn referensi. Awalnya ini disebut "satu-satunya aset gambar eksternal" di dokumen — **sudah tidak berlaku**, lihat Tahap 3 di bawah (user nambah 8 aset lagi).
+- **Motif kawung (4 lingkaran) di `.ornament-divider` diganti** jadi bentuk belah-ketupat/daun ramping + titik tengah (`.divider-icon-outline` + `.divider-icon-dot`, viewBox 24×24) — meniru persis bentuk ornamen divider di screenshot referensi (garis - bentuk lonjong tipis - garis), dipakai di 3 tempat yg sama (cover, Kutipan Pembuka, Penutup).
+- **Eyebrow "THE WEDDING OF" dikasih garis pengapit kiri-kanan** (`.cover-eyebrow::before`/`::after`) + warna emas — meniru gaya label "— TEMA ADAT —" di referensi.
+- Nama mempelai (script) & semua heading section ikut berubah warna jadi maroon (efek otomatis dari palet baru, bukan perubahan struktur terpisah).
+- **Siluet gonjong dari Tahap 1 TETAP DIPERTAHANKAN** (tidak dihapus) — mewakili unsur Padang yg masih relevan, warnanya (`--maroon`) justru makin match dgn palet baru.
+
+### Tahap 3 — Sebar aset ilustrasi ke semua section + fix bug stacking-context
+
+User nambah 8 file baru ke `asset/` (`java-heritage-COUPLE-1..4.webp`, `java-heritage-GUNUNGAN.webp`, `java-heritage-MOTIF-ATAS.webp`, `java-heritage-MOTIF-BAWAH.webp`, `java-heritage-PATTERN.webp`, `JAWA-PATTERN.png`) & komplain: stlh "Buka Undangan", background section2 berikutnya (bukan cover) masih polos/kosong. Semua di-cek dulu isinya (dimensi, alpha, preview render) sblm dipasang, krn nama file tdk selalu jelas isinya (mis. "COUPLE-1/2/3/4" ternyata bkn foto pasangan, tapi 2 PASANG ilustrasi cermin: 1&3 = separuh gunungan+bunga lili, saling mirror; 2&4 = bunga lili polos, saling mirror — makanya dinamai "COUPLE").
+
+**Pemetaan aset → lokasi** (semua di `index.html`, style di `style.css`):
+
+| Aset | Lokasi | Class |
+|---|---|---|
+| `java-heritage-PATTERN.webp` | Tekstur linework mandala, diulang (`background-repeat:repeat`) di **SEMUA** section sbg background — inilah yg langsung mengatasi keluhan "polos" | `.section` (base rule, bukan per-section) |
+| `java-heritage-GUNUNGAN.webp` | Watermark besar tembus pandang (`opacity:0.1`) di belakang teks section Kutipan Pembuka — cocok scr makna (gunungan = "pohon kehidupan") dgn isi kutipan ttg pasangan hidup | `.quote-gunungan` |
+| `java-heritage-COUPLE-1.webp` / `-3.webp` | Mengapit section "Kedua Mempelai" (kiri-atas & kanan-bawah) — dipakai APA ADANYA tanpa CSS mirror krn keduanya SUDAH saling mirror dari sumbernya | `.couple-corner` (`-tl`/`-br` utk posisi) |
+| `java-heritage-COUPLE-2.webp` / `-4.webp` | Dipakai ULANG (class sama, `.couple-corner`) mengapit section Penutup — versi bunga polos (tanpa gunungan) cocok sbg "farewell" | `.couple-corner` |
+| `java-heritage-MOTIF-ATAS.webp` | Strip batik pudar nempel di tepi ATAS section Countdown (Save The Date) | `.motif-border.motif-atas` |
+| `java-heritage-MOTIF-BAWAH.webp` | Strip batik pudar nempel di tepi BAWAH section Amplop Digital | `.motif-border.motif-bawah` |
+| `JAWA-PATTERN.png` | **TIDAK dipakai** — dicek via `sharp`, statistik alpha channel & dimensinya identik persis dgn `java-heritage-PATTERN.webp` (sama-sama 512×512, alpha min/max/mean sama persis) → kesimpulan ini duplikat file yg sama dlm format berbeda, pakai salah satu (webp) sudah cukup, pakai dua-duanya cuma load asset yg sama 2x tanpa nilai tambah visual. |
+
+**Bug nyata yg ditemukan & diperbaiki: negative `z-index` "bocor" ke belakang seluruh halaman.** Semua ilustrasi di atas ditaruh `position:absolute; z-index:-1` (supaya otomatis tampil di ATAS background section tapi di BAWAH konten normal/teks/card — lebih robust drpd nambah rule `:not()` per elemen sibling). Tapi krn `.section` cuma py `position:relative` **tanpa** `z-index` eksplisit, `.section` **tidak** membentuk stacking context sendiri (per spesifikasi CSS, positioned element dgn `z-index:auto` tidak membentuk stacking context baru) — akibatnya elemen anak ber-`z-index:-1` "bocor" naik ke stacking context ANCESTOR TERDEKAT YG BENERAN py stacking context (bisa jadi `body`), rendernya jadi di **paling belakang seluruh halaman** (di belakang `background` si `body` sendiri) — makanya semua ilustrasi ini SAMA SEKALI TIDAK KELIHATAN pas pertama dipasang, padahal `getBoundingClientRect()`/`complete`/`opacity` semua terbaca normal di devtools (jebakan: elemen "ada" & "positioned benar" tapi tetap gak kelihatan). **Fix**: tambah `isolation:isolate;` ke `.section` (base rule) — cara modern bikin elemen py stacking context sendiri tanpa perlu otak-atik angka `z-index`. Ini murni technical gotcha, sama sekali gak spesifik ke tema adat — **kalau nambah elemen dekoratif `position:absolute` + `z-index` negatif di container CSS baru manapun di repo ini, pastikan container-nya py `isolation:isolate` atau `z-index` eksplisit, jangan cuma `position:relative` doang.**
+
+**Kalau nanti user kasih detail adat yg lebih spesifik** (mis. nama prosesi Jawa "Panggih", pantun/pasambahan Minang, busana adat, dst.) — itu akan jadi **konten baru** (section/teks tambahan), bukan cuma styling, jadi minta detail lengkapnya dulu sblm nambah, jangan menebak-nebak istilah adat krn resiko salah/kurang tepat scr budaya.
 
 ## Data acara
 
