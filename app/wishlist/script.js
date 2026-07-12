@@ -425,6 +425,12 @@
         (i) => i.title.toLowerCase().includes(searchQuery) || i.description.toLowerCase().includes(searchQuery)
       );
     }
+
+    // Total harga item yg sesuai filter kategori/prioritas/search aktif —
+    // dihitung ulang tiap render biar selalu sinkron dgn list yg tampil.
+    const totalPrice = filtered.reduce((sum, i) => sum + (Number(i.price) || 0), 0);
+    document.getElementById("wishlistTotalValue").textContent = formatCurrency(totalPrice);
+
     filtered = sortByPriorityThenDate(filtered);
 
     listEl.innerHTML = filtered.length
