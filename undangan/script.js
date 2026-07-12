@@ -147,7 +147,37 @@ document.querySelectorAll('.copy-btn').forEach(function (btn) {
   });
 });
 
-// ---------- RSVP FORM (mock, belum terhubung backend) ----------
+// ---------- RSVP & UCAPAN (Firebase: undangan/rsvp) ----------
+var rsvpRef = db.ref(UNDANGAN_PATH + '/rsvp');
+var wishListEl = document.getElementById('wishList');
+var ATTENDANCE_LABEL = { hadir: 'Hadir', ragu: 'Masih Ragu', tidak: 'Tidak Hadir' };
+
+function renderWishList(wishesObj) {
+  var wishes = Object.keys(wishesObj || {}).map(function (id) {
+    var w = wishesObj[id];
+    return { id: id, name: w.name, attendance: w.attendance, message: w.message, createdAt: w.createdAt };
+  }).sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+
+  if (!wishes.length) {
+    wishListEl.innerHTML = '<p class="wish-empty">Jadilah yang pertama mengirim ucapan &amp; doa.</p>';
+    return;
+  }
+
+  wishListEl.innerHTML = wishes.map(function (w) {
+    return '<div class="wish-card">' +
+      '<p class="wish-name">' + escapeHtml(w.name) + '<span class="wish-attendance">' + (ATTENDANCE_LABEL[w.attendance] || '') + '</span></p>' +
+      '<p class="wish-text">' + escapeHtml(w.message) + '</p>' +
+      '</div>';
+  }).join('');
+}
+
+rsvpRef.on('value', function (snapshot) {
+  renderWishList(snapshot.val());
+}, function (err) {
+  console.error('Gagal memuat ucapan:', err);
+  wishListEl.innerHTML = '<p class="wish-empty">Gagal memuat ucapan. Cek koneksi internet.</p>';
+});
+
 document.getElementById('rsvpForm').addEventListener('submit', function (e) {
   e.preventDefault();
   var name = document.getElementById('rsvpName').value.trim();
@@ -155,16 +185,24 @@ document.getElementById('rsvpForm').addEventListener('submit', function (e) {
   var message = document.getElementById('rsvpMessage').value.trim();
   if (!name || !message) return;
 
-  var attendanceLabel = { hadir: 'Hadir', ragu: 'Masih Ragu', tidak: 'Tidak Hadir' }[attendance];
-  var card = document.createElement('div');
-  card.className = 'wish-card';
-  card.innerHTML =
-    '<p class="wish-name">' + escapeHtml(name) + '<span class="wish-attendance">' + attendanceLabel + '</span></p>' +
-    '<p class="wish-text">' + escapeHtml(message) + '</p>';
-  document.getElementById('wishList').prepend(card);
+  var form = e.target;
+  var submitBtn = form.querySelector('button[type=submit]');
+  submitBtn.disabled = true;
 
-  showToast('Terima kasih atas ucapannya!');
-  e.target.reset();
+  rsvpRef.child(String(Date.now())).set({
+    name: name,
+    attendance: attendance,
+    message: message,
+    createdAt: Date.now()
+  }).then(function () {
+    showToast('Terima kasih atas ucapannya!');
+    form.reset();
+  }).catch(function (err) {
+    console.error('Gagal mengirim ucapan:', err);
+    showToast('Gagal mengirim, cek koneksi internet');
+  }).then(function () {
+    submitBtn.disabled = false;
+  });
 });
 
 function escapeHtml(str) {

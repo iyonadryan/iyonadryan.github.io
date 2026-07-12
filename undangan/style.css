@@ -494,6 +494,13 @@ a{ color:inherit; }
   margin-top:18px;
   display:flex; flex-direction:column; gap:10px;
 }
+.wish-empty{
+  text-align:center;
+  font-size:13px;
+  color: var(--muted);
+  font-style:italic;
+  margin:4px 0 0;
+}
 .wish-card{
   background: var(--card);
   border-left:3px solid var(--sage);

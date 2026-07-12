@@ -1,0 +1,227 @@
+/* Halaman admin (rsvp.html) — pakai token warna & font yg sama dgn style.css
+   (dilink bareng), file ini cuma nambah layout khusus dashboard: stat tile,
+   filter tab, dan kartu list data RSVP. */
+
+/* ---- PIN gate ---- */
+.pin-gate{
+  position:fixed;
+  inset:0;
+  z-index:100;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: var(--cream);
+  padding:24px;
+}
+.pin-card{
+  width:100%;
+  max-width:320px;
+  text-align:center;
+  background: var(--card);
+  border-radius:20px;
+  padding:36px 28px;
+  box-shadow: var(--shadow-md);
+}
+.pin-card.shake{ animation: pin-shake 0.4s ease; }
+@keyframes pin-shake{
+  0%, 100%{ transform: translateX(0); }
+  20%{ transform: translateX(-8px); }
+  40%{ transform: translateX(8px); }
+  60%{ transform: translateX(-6px); }
+  80%{ transform: translateX(6px); }
+}
+.pin-eyebrow{
+  margin:0 0 8px;
+  font-size:11px;
+  letter-spacing:0.3em;
+  text-transform:uppercase;
+  color: var(--sage);
+  font-weight:500;
+}
+.pin-title{
+  font-family: var(--serif);
+  font-size:24px;
+  font-weight:600;
+  color: var(--forest);
+  margin:0 0 8px;
+}
+.pin-sub{
+  font-size:12.5px;
+  color: var(--muted);
+  margin:0 0 26px;
+}
+.pin-boxes{
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  margin-bottom:18px;
+}
+.pin-box{
+  width:40px; height:52px;
+  text-align:center;
+  font-size:22px;
+  font-family: var(--serif);
+  border-radius:10px;
+  border:1px solid var(--line);
+  background: var(--ivory);
+  color: var(--ink);
+}
+.pin-box:focus{ outline:2px solid var(--olive); outline-offset:1px; }
+.pin-box:disabled{ opacity:0.5; }
+.pin-error{
+  font-size:12.5px;
+  color:#B04F60;
+  margin:0;
+}
+.pin-lock{
+  font-size:12.5px;
+  color: var(--muted);
+  margin:0;
+}
+
+.rsvp-admin{
+  max-width:560px;
+  margin:0 auto;
+  padding:24px 20px 60px;
+}
+
+.admin-topbar{
+  display:flex; align-items:center; gap:14px;
+  margin-bottom:24px;
+}
+.admin-topbar .back-link{
+  width:36px; height:36px; border-radius:50%;
+  border:1px solid var(--line);
+  background: var(--card);
+  color: var(--forest);
+  display:flex; align-items:center; justify-content:center;
+  text-decoration:none;
+  font-size:18px;
+  flex-shrink:0;
+  box-shadow: var(--shadow-sm);
+}
+.admin-topbar-text h1{
+  font-family: var(--serif);
+  font-size:22px;
+  font-weight:600;
+  margin:0;
+  color: var(--forest);
+}
+.admin-topbar-text .tagline{
+  font-size:12px;
+  color: var(--muted);
+  letter-spacing:0.03em;
+}
+
+.admin-stats{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:8px;
+  margin-bottom:20px;
+}
+.stat-tile{
+  background: var(--card);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:14px 6px;
+  text-align:center;
+  box-shadow: var(--shadow-sm);
+}
+.stat-num{
+  display:block;
+  font-family: var(--serif);
+  font-size:22px;
+  font-weight:600;
+  color: var(--forest);
+}
+.stat-label{
+  display:block;
+  font-size:9.5px;
+  letter-spacing:0.03em;
+  text-transform:uppercase;
+  color: var(--muted);
+  margin-top:4px;
+}
+.stat-hadir .stat-num{ color:#3E7449; }
+.stat-ragu .stat-num{ color:#A67525; }
+.stat-tidak .stat-num{ color:#B04F60; }
+
+.admin-filter-tabs{
+  display:flex; flex-wrap:wrap; gap:8px;
+  margin-bottom:18px;
+}
+.admin-filter-tabs .filter-tab{
+  font-family: var(--sans);
+  font-size:12px; font-weight:500;
+  padding:8px 16px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background: var(--card);
+  color: var(--muted);
+  cursor:pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.admin-filter-tabs .filter-tab:hover{ color: var(--ink); }
+.admin-filter-tabs .filter-tab.active{
+  background: var(--olive);
+  border-color: var(--olive);
+  color:#fff;
+}
+
+.admin-list{
+  display:flex; flex-direction:column; gap:10px;
+}
+.admin-card{
+  background: var(--card);
+  border-radius:14px;
+  padding:16px 18px;
+  box-shadow: var(--shadow-sm);
+}
+.admin-card-head{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px;
+  margin-bottom:8px;
+}
+.admin-name{
+  font-weight:600;
+  font-size:14px;
+  color: var(--ink);
+}
+.admin-badge{
+  font-size:10.5px;
+  font-weight:600;
+  letter-spacing:0.03em;
+  text-transform:uppercase;
+  padding:4px 10px;
+  border-radius:999px;
+  flex-shrink:0;
+  white-space:nowrap;
+}
+.badge-hadir{ background:rgba(62,116,73,0.14); color:#3E7449; }
+.badge-ragu{ background:rgba(166,117,37,0.16); color:#A67525; }
+.badge-tidak{ background:rgba(176,79,96,0.16); color:#B04F60; }
+
+.admin-message{
+  font-size:13.5px;
+  color: var(--ink);
+  line-height:1.6;
+  margin:0 0 8px;
+  white-space:pre-wrap;
+}
+.admin-time{
+  font-size:11px;
+  color: var(--muted);
+  margin:0;
+}
+
+.admin-empty{
+  text-align:center;
+  font-size:13px;
+  color: var(--muted);
+  font-style:italic;
+  padding:40px 0;
+}
+
+@media (max-width:420px){
+  .admin-stats{ grid-template-columns:repeat(2,1fr); }
+}

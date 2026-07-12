@@ -10,6 +10,26 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+
+<!-- Firebase (compat SDK) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
+    authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
+    databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
+    projectId: "iyon-adryanlf-trialerror",
+    storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
+    messagingSenderId: "519669963248",
+    appId: "1:519669963248:web:feab50008d27c2a7226535",
+    measurementId: "G-4MFLB4B68F"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  // Root data : /undangan
+  const UNDANGAN_PATH = "undangan";
+</script>
 </head>
 <body>
 
