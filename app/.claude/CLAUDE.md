@@ -33,6 +33,9 @@ iyonadryan.github.io/
     note/
     wishlist/
     mobile/              # project Flutter — BUKAN app web baru, lihat "Versi mobile (Flutter)"
+    downloads/
+      iyon-app.apk        # APK release Android hasil `flutter build apk --release`,
+                          # dilink dari tombol "Download APK Android" di bawah — lihat "Unduh Aplikasi Mobile"
   index.html             # portfolio utama, TIDAK terhubung ke app/ (lihat TODO)
   webimg/, trialerror/, wedding/, dst.  # project portfolio lama, tidak berubah
 ```
@@ -61,6 +64,15 @@ Tiap app **tidak lagi punya folder `.claude/` sendiri** — semua dokumentasi pr
 - Urutan card **bukan** urut abjad/urut dibuat — Finance → Kitchen → Routine → Patungan → Note → Wishlist (app baru ditaruh paling bawah, di atas `.empty-slot`, sesuai permintaan user tiap kali nambah app baru).
 - Ada `.empty-slot` placeholder dashed box di bawah list menandakan slot utk app berikutnya — update manual (tambah `<a class="app-card">` baru **di atas** `.empty-slot`, bukan di sembarang posisi) kalau ada app baru.
 - **Animasi masuk saat halaman dibuka**: tiap child langsung `.app-list` (semua `.app-card` + `.empty-slot` paling bawah) geser dari bawah (`translateY(24px)` → `0`) sambil fade in (`opacity 0` → `1`) lewat `@keyframes cardEnter` di `style-app.css`, dgn **delay 0.25 detik berjenjang** antar kartu (kartu ke-N delay `(N-1) × 0.25s`) — permintaan eksplisit user. Delay-nya **dihitung otomatis dari urutan DOM lewat JS** (`document.querySelectorAll(".app-list > *").forEach(...)` di `<script>` inline `index.html`, set `el.style.animationDelay`), **bukan** nth-child CSS manual — jadi nambah `.app-card` baru (lihat TODO di bawah) otomatis ikut kena stagger tanpa perlu sentuh CSS animasi ini sama sekali. Ada fallback `prefers-reduced-motion: reduce` (durasi dipangkas ke ~0, delay dibuang) di `style-app.css`.
+
+## Unduh Aplikasi Mobile
+
+Di bawah `.app-list` (sebelum `<footer class="hint">`), ada section baru berjudul "Unduh Aplikasi Mobile" berisi 2 tombol (`.download-btn`, styling meniru `.app-card` tapi dipakai bareng elemen `<a>` dan `<button>`):
+
+- **Download APK Android** (`<a href="downloads/iyon-app.apk" download>`) — link **download langsung** ke APK release sungguhan (`app/downloads/iyon-app.apk`, hasil `flutter build apk --release` di `app/mobile/`, lihat `app/.claude/mobile-app.md`). Atribut `download` HTML native memicu unduhan browser tanpa perlu JS. **File ini WAJIB ditimpa ulang tiap kali ada build baru** (nama file sengaja tidak versioned/tidak pakai tanggal, supaya link di halaman ini tidak perlu diubah tiap rilis).
+- **Download untuk iPhone (iOS)** (`<button id="iosDownloadBtn">`) — klik membuka popup info "🚧 Masih Dalam Pengembangan" (`#iosModalOverlay`, class `.confirm-overlay`/`.confirm-dialog` — **dipinjam dari pola app lain** yang sudah punya dialog konfirmasi terpusat, hub sebelumnya sama sekali tidak punya modal component). Ditutup lewat tombol "Tutup" atau klik area gelap di luar dialog (listener `e.target === iosOverlay`). Alasan belum ada build iOS: Xcode wajib jalan di macOS, tidak bisa dari Windows — lihat "Rencana / TODO ke depan" di `app/.claude/mobile-app.md`.
+
+Section ini **sengaja di luar `div.app-list`** (bukan `.app-card` tambahan di dalamnya) — supaya **tidak ikut** animasi stagger `cardEnter` yang cuma menyasar `.app-list > *`, dan supaya section-nya tidak dianggap bagian dari daftar 6 aplikasi utama.
 
 ## Tema light/dark
 

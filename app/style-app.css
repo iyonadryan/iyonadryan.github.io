@@ -211,3 +211,140 @@ footer.hint {
   font-size: 12px;
   color: var(--color-text-soft);
 }
+
+/* Unduh Aplikasi Mobile — dua tombol di bawah .app-list: Android (download
+   .apk sungguhan) & iOS (buka popup "belum tersedia", lihat .confirm-overlay
+   di bawah). Sengaja BUKAN bagian dari .app-list (di luar div-nya) supaya
+   TIDAK ikut animasi stagger cardEnter — itu berlaku ke ".app-list > *" saja. */
+.download-label { margin-top: 28px; }
+
+.download-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Base sama persis dgn .app-card, tapi dipakai bareng <a> (Android, download
+   asli lewat atribut `download`) dan <button> (iOS, cuma buka popup) — reset
+   properti bawaan <button> supaya kelihatan identik dgn <a>. */
+.download-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  padding: 14px 16px;
+  text-decoration: none;
+  color: var(--color-text);
+  box-shadow: var(--shadow-card);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.download-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-primary);
+}
+
+.download-btn:active { transform: translateY(0); }
+
+.download-icon {
+  flex-shrink: 0;
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+/* Hijau Android & abu-abu netral "logam" ala Apple — sengaja bukan ungu hub,
+   biar dua tombol ini langsung kebaca platform mana tanpa baca teksnya. */
+.download-icon.android { background: linear-gradient(135deg, #a4dd86, #3ddc84); }
+.download-icon.ios { background: linear-gradient(135deg, #d1d5db, #8e9aad); }
+
+.download-info { flex: 1; min-width: 0; }
+
+.download-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.download-desc {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--color-text-soft);
+}
+
+.download-arrow {
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+/* Popup "iOS belum tersedia" — dialog terpusat, pola sama dgn .confirm-overlay/
+   .confirm-dialog yg dipakai di semua app lain (Kitchen/Finance/Routine/dst)
+   utk konfirmasi hapus; dipinjam ke hub krn hub sebelumnya tidak py modal
+   component sama sekali. */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease;
+  z-index: 50;
+}
+
+.confirm-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.confirm-dialog {
+  background: var(--color-surface);
+  border-radius: 20px;
+  padding: 24px 20px;
+  max-width: 340px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+}
+
+.confirm-title {
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.confirm-text {
+  margin: 0 0 20px;
+  font-size: 13.5px;
+  color: var(--color-text-soft);
+  line-height: 1.5;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}

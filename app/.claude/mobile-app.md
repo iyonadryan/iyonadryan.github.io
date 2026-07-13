@@ -14,15 +14,43 @@ menyinkronkan otomatis.
 
 ## Status saat ini
 
-Keenam app + hub sudah diport dengan fitur mendekati parity. **Belum pernah
-di-compile/di-run** — Flutter SDK tidak terpasang di mesin tempat port ini
-ditulis, jadi `flutter analyze`/`flutter run` belum pernah jalan sekali pun.
-Anggap ini "kode lengkap tapi belum terverifikasi": kemungkinan besar masih ada
-error kecil (nama parameter API, import kurang) yang cuma ketahuan saat compile
-pertama.
+Keenam app + hub sudah diport dengan fitur mendekati parity. Flutter SDK, JDK 17,
+dan Android SDK (command-line tools) sudah terpasang di mesin dev — `flutter
+analyze` sekarang **bersih total** ("No issues found!"), dan **build APK release
+Android sudah berhasil** (`flutter build apk --release`), lihat "Build APK
+Android" di bawah.
 
-Folder `android/` & `ios/` **sengaja belum ada** — digenerate lewat
-`app/mobile/bootstrap.ps1` (lihat "Kenapa perlu bootstrap.ps1").
+Folder `android/` & `ios/` **sudah digenerate** (lewat langkah yang sama dengan
+`app/mobile/bootstrap.ps1`, lihat "Kenapa perlu bootstrap.ps1") dan ikut
+disimpan di repo. iOS **belum pernah di-build** — itu wajib jalan di macOS
+(Xcode), tidak bisa dari mesin dev Windows ini; lihat TODO.
+
+Build pertama (`flutter build apk --release`) berhasil, **55.1MB**, ~16 menit
+(sebagian besar waktu itu Gradle otomatis mengunduh komponen SDK yang belum
+ada: NDK 28.2, Build-Tools 36, Platform 34, CMake — build kedua & seterusnya
+akan jauh lebih cepat karena semua itu sudah ter-cache). Ada satu warning
+non-blocking ("plugin `share_plus` masih pakai Kotlin Gradle Plugin lama") —
+aman diabaikan untuk sekarang, cuma peringatan kompatibilitas ke depan dari tim
+Flutter, bukan error.
+
+Bug yang ditemukan & diperbaiki saat verifikasi pertama (`flutter analyze` +
+`flutter build apk`):
+- `Category` (kelas kita di `core/category.dart`) bentrok nama dengan kelas
+  anotasi test bawaan `package:flutter/foundation.dart`. Fix: `hide Category`
+  pada import itu di `kitchen/store.dart`, `note/store.dart`, `wishlist/store.dart`
+  (bukan di file `material.dart` lain — `material.dart` ternyata tidak
+  benar-benar mengekspor `Category`, sempat salah tambah `hide` di situ juga
+  lalu ditarik balik).
+- `const [FilteringTextInputFormatter.digitsOnly, ...]` gagal compile —
+  `digitsOnly` itu `static final`, bukan `const`. Fix: buang `const` dari
+  list itu di 4 tempat (field nominal Finance/Patungan/Wishlist).
+- **`android/app/src/main/AndroidManifest.xml` tidak punya permission
+  INTERNET** (`flutter create` cuma menambahkannya ke manifest `debug`/`profile`,
+  bukan `main` yang dipakai build **release**) — tanpa ini, build release tidak
+  bisa konek Firebase sama sekali. Sudah ditambahkan manual. **Kalau
+  regenerate `android/` dari nol lewat `bootstrap.ps1`/`flutter create` lagi,
+  WAJIB tambahkan ulang** baris ini, karena tooling Flutter tidak menaruhnya di
+  situ secara default.
 
 ## Struktur folder
 
@@ -105,6 +133,44 @@ yang sama): `_migrateLegacyPlans` & `_migrateTransactionOwners` (Finance),
 Note, Wishlist). Ini **wajib** ada — kalau tidak, app mobile bisa menulis data
 berskema baru ke database yang isinya masih skema lama.
 
+## Build APK Android
+
+```powershell
+cd app\mobile
+flutter build apk --release
+```
+
+Menghasilkan `build/app/outputs/flutter-apk/app-release.apk` — **satu APK
+universal** (semua ABI arm64-v8a/armeabi-v7a/x86/x86_64 digabung jadi satu
+file, bukan `--split-per-abi`) supaya bisa dipakai satu link download yang
+sama untuk device apa pun, sesuai kebutuhan tombol "Download APK Android" di
+hub (`app/index.html`, lihat "Unduh Aplikasi Mobile" di `app/.claude/CLAUDE.md`).
+
+**Signing**: `android/app/build.gradle.kts` masih pakai `signingConfigs.debug`
+untuk build type `release` (bawaan `flutter create`, belum diganti keystore
+sendiri) — cukup untuk sideload/dipakai sendiri, **tidak sah untuk submit ke
+Play Store** (Play Store butuh app signing key sungguhan). Kalau nanti mau
+rilis ke Play Store, ganti `signingConfig` dulu dengan keystore asli.
+
+**Menyalin ke hub**: hasil build **wajib disalin manual** ke
+`app/downloads/iyon-app.apk` (nama file tetap, ditimpa tiap build baru) supaya
+tombol download di `app/index.html` selalu mengarah ke build terbaru:
+
+```powershell
+Copy-Item "build\app\outputs\flutter-apk\app-release.apk" "..\downloads\iyon-app.apk" -Force
+```
+
+**Belum diverifikasi jalan di device sungguhan** — mesin dev ini tidak punya
+emulator maupun HP tersambung (setup Android SDK sengaja command-line-tools
+saja, lihat README), jadi baru sebatas "build sukses tanpa error Gradle/compile".
+Yang **belum** dikonfirmasi end-to-end: apakah Realtime Database benar-benar
+konek dari APK terpasang (secara arsitektur seharusnya bisa — `Firebase.initializeApp(options: ...)`
+eksplisit tidak butuh `google-services.json`, cukup `apiKey`/`projectId`/`databaseURL`
+yang valid, appId cuma dipakai Analytics/FCM/Installations — tapi ini nalar,
+bukan hasil tes nyata). **Install APK-nya di HP dan buka salah satu app
+(mis. Kitchen) untuk konfirmasi Dashboard benar-benar memuat data dari
+Firebase** sebelum menganggap ini "selesai".
+
 ## Kenapa perlu `bootstrap.ps1`
 
 `flutter create .` langsung di `app/mobile/` akan **menimpa `lib/main.dart` dan
@@ -131,12 +197,21 @@ terdaftar di `pubspec.yaml`.
 
 ## Rencana / TODO ke depan
 
-- **Compile pertama belum pernah jalan** — jalankan `flutter analyze` lalu
-  `flutter run` dan beresi error yang muncul. Ini pekerjaan pertama sebelum apa
-  pun yang lain.
+- **Verifikasi di device sungguhan** — install `app/downloads/iyon-app.apk` di
+  HP Android beneran, konfirmasi tiap app benar-benar bisa baca/tulis Firebase
+  (bukan cuma "build sukses"). Lihat catatan di "Build APK Android".
+- **iOS belum pernah di-build sama sekali** — wajib macOS + Xcode, tidak bisa
+  dari mesin dev Windows ini. Opsi kalau tidak punya Mac: CI cloud macOS
+  (Codemagic ada free tier khusus Flutter), lalu distribusi lewat TestFlight
+  atau Ad-Hoc `.ipa` + Sideloadly (bisa diinstal dari Windows tanpa Mac,
+  asal `.ipa`-nya sudah jadi). Sampai itu ada, tombol "Download untuk iPhone"
+  di hub cuma munculkan popup "belum tersedia" — lihat `app/.claude/CLAUDE.md`
+  bagian "Unduh Aplikasi Mobile".
 - **`firebase_options.dart` masih memakai appId web** (`1:...:web:...`).
-  Realtime Database umumnya tetap jalan, tapi **FCM tidak akan bisa register**
-  sampai `flutterfire configure` dijalankan.
+  Realtime Database **seharusnya** tetap jalan (`apiKey`/`projectId`/`databaseURL`
+  valid, appId cuma dipakai Analytics/FCM/Installations — lihat "Build APK
+  Android"), tapi **belum diverifikasi di device sungguhan**, dan **FCM tidak
+  akan bisa register** sampai `flutterfire configure` dijalankan.
 - **FCM baru hook** (`messaging/fcm_service.dart`): izin + token + listener
   sudah ada, tapi belum ada notifikasi nyata. Yang belum: simpan token ke
   Firebase, tambah `flutter_local_notifications` (Android tidak menampilkan

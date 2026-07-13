@@ -77,8 +77,39 @@
       <div class="empty-slot">+ Aplikasi berikutnya nanti muncul di sini</div>
     </div>
 
+    <p class="section-label download-label">Unduh Aplikasi Mobile</p>
+    <div class="download-list">
+      <a class="download-btn android" href="downloads/iyon-app.apk" download>
+        <div class="download-icon android">🤖</div>
+        <div class="download-info">
+          <p class="download-name">Download APK Android</p>
+          <p class="download-desc">Install langsung, tanpa Play Store</p>
+        </div>
+        <div class="download-arrow">⬇️</div>
+      </a>
+
+      <button type="button" class="download-btn ios" id="iosDownloadBtn">
+        <div class="download-icon ios">🍎</div>
+        <div class="download-info">
+          <p class="download-name">Download untuk iPhone (iOS)</p>
+          <p class="download-desc">Belum tersedia</p>
+        </div>
+        <div class="download-arrow">⬇️</div>
+      </button>
+    </div>
+
     <footer class="hint">Iyon App &middot; iyonadryan.github.io</footer>
   </main>
+</div>
+
+<div class="confirm-overlay" id="iosModalOverlay">
+  <div class="confirm-dialog">
+    <p class="confirm-title">🚧 Masih Dalam Pengembangan</p>
+    <p class="confirm-text">Versi iOS sedang disiapkan. Untuk sekarang, aplikasi mobile baru tersedia untuk Android.</p>
+    <div class="confirm-actions">
+      <button type="button" class="btn-secondary" id="iosModalCloseBtn">Tutup</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -109,6 +140,22 @@
     // perlu update manual tiap nambah app baru.
     document.querySelectorAll(".app-list > *").forEach(function (el, i) {
       el.style.animationDelay = (i * 0.25) + "s";
+    });
+
+    // Tombol download iOS cuma buka popup info — belum ada build iOS
+    // (lihat "Versi mobile (Flutter)" di app/.claude/CLAUDE.md soal kenapa).
+    var iosBtn = document.getElementById("iosDownloadBtn");
+    var iosOverlay = document.getElementById("iosModalOverlay");
+    var iosCloseBtn = document.getElementById("iosModalCloseBtn");
+
+    iosBtn.addEventListener("click", function () {
+      iosOverlay.classList.add("open");
+    });
+    iosCloseBtn.addEventListener("click", function () {
+      iosOverlay.classList.remove("open");
+    });
+    iosOverlay.addEventListener("click", function (e) {
+      if (e.target === iosOverlay) iosOverlay.classList.remove("open");
     });
   })();
 </script>
