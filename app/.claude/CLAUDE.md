@@ -25,12 +25,14 @@ iyonadryan.github.io/
       patungan-app.md      # dulu patungan/.claude/CLAUDE.md
       note-app.md          # dulu note/.claude/CLAUDE.md
       wishlist-app.md      # app baru, langsung dibuat di sini sejak awal (bukan pindahan)
+      mobile-app.md        # port Flutter (Android & iOS) dari SEMUA app di atas — lihat "Versi mobile"
     kitchen/
     finance/
     routine/
     patungan/
     note/
     wishlist/
+    mobile/              # project Flutter — BUKAN app web baru, lihat "Versi mobile (Flutter)"
   index.html             # portfolio utama, TIDAK terhubung ke app/ (lihat TODO)
   webimg/, trialerror/, wedding/, dst.  # project portfolio lama, tidak berubah
 ```
@@ -64,9 +66,21 @@ Tiap app **tidak lagi punya folder `.claude/` sendiri** — semua dokumentasi pr
 
 `data-theme` di `<html>`, variabel CSS di `:root`/`[data-theme="dark"]` — pola sama dengan Kitchen/Finance/Routine/Patungan/Note/Wishlist (lihat `app/.claude/kitchen-app.md`, `app/.claude/finance-app.md`, `app/.claude/routine-app.md`, `app/.claude/patungan-app.md`, `app/.claude/note-app.md`, `app/.claude/wishlist-app.md`), tapi state disimpan sendiri: localStorage key **`iyonapp_theme`** (terpisah dari `kitchenapp_theme`/`financeapp_theme`/`routineapp_theme`/`patunganapp_theme`/`noteapp_theme`/`wishlistapp_theme` — ini shell/hub sendiri, bukan bagian dari app manapun). Fallback ke `prefers-color-scheme` kalau belum ada preferensi tersimpan.
 
+## Versi mobile (Flutter) — `app/mobile/`
+
+Selain versi web di atas, ada **port Android & iOS** dari keenam app + hub ini, dikerjakan di `app/mobile/` sebagai satu project **Flutter** (dipilih karena user mau implementasi FCM ke depannya). Dokumentasi lengkapnya di `app/.claude/mobile-app.md`.
+
+Yang penting diingat saat menyentuh app web mana pun:
+
+- **`app/mobile/` bukan app web baru** — dia tidak punya `.app-card` di `app/index.html` dan tidak masuk daftar kartu hub versi web. Hub-nya di-*reimplementasi* di dalam Flutter (`lib/hub/hub_page.dart`), bukan me-link ke `app/index.html`.
+- **Database-nya SAMA PERSIS** dengan versi web (project `iyon-adryanlf-trialerror`, node `finance`/`kitchen`/`routine`/`patungan`/`note`/`wishlist`) — bukan salinan, bukan environment terpisah. Data nyambung dua arah.
+- **Konsekuensinya**: kalau skema Firebase salah satu app web berubah (field baru, node baru, migrasi), `app/mobile/lib/<app>/store.dart` **harus ikut diubah di perubahan yang sama** — dan sebaliknya. Tidak ada pipeline yang menyinkronkan keduanya; skema yang menyimpang akan merusak salah satu sisi diam-diam.
+- Warna tema di `app/mobile/lib/core/app_palette.dart` disalin **persis** dari `<app>/css/base.css` masing-masing. Ubah CSS → ubah juga di situ.
+- Folder `android/` & `ios/` sengaja belum ada (digenerate `app/mobile/bootstrap.ps1`), dan project-nya **belum pernah di-compile** — lihat TODO di `mobile-app.md`.
+
 ## Rencana / TODO ke depan
 
-- Tambah app baru: bikin folder baru **di dalam `app/`** (bukan di root repo lagi), tambah satu `.app-card` baru di `app/index.html` (ikon, nama, deskripsi, href ke `<folder>/index.html`), dan hapus/pindahkan `.empty-slot` placeholder kalau sudah tidak relevan. Jangan lupa tambah field "Semua Aplikasi" → `../index.html` (**relatif**, bukan absolut — lihat "Kenapa link relatif") di app baru itu sendiri (lihat pola di app lain). Dokumentasi app baru langsung dibuat di `app/.claude/<nama>-app.md`, **jangan** bikin folder `.claude/` terpisah di dalam folder app itu sendiri.
+- Tambah app baru: bikin folder baru **di dalam `app/`** (bukan di root repo lagi), tambah satu `.app-card` baru di `app/index.html` (ikon, nama, deskripsi, href ke `<folder>/index.html`), dan hapus/pindahkan `.empty-slot` placeholder kalau sudah tidak relevan. Kalau app itu juga mau ada di mobile, tambahkan `AppSpec` baru di `app/mobile/lib/core/app_palette.dart` (`AppSpecs.all`) + folder `lib/<app>/` sendiri. Jangan lupa tambah field "Semua Aplikasi" → `../index.html` (**relatif**, bukan absolut — lihat "Kenapa link relatif") di app baru itu sendiri (lihat pola di app lain). Dokumentasi app baru langsung dibuat di `app/.claude/<nama>-app.md`, **jangan** bikin folder `.claude/` terpisah di dalam folder app itu sendiri.
 - Belum ada favicon khusus — reuse `../webimg/iyon-favicon.ico` punya portfolio utama.
 - Belum dipikirkan apakah `app/index.html` nanti di-link dari `index.html` utama (portfolio) — saat ini berdiri sendiri, diakses langsung via URL `/app/` atau `/app/index.html`.
 

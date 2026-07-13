@@ -1,0 +1,47 @@
+name: iyon_mobile
+description: Iyon App — versi mobile (Android & iOS) dari kumpulan aplikasi web di app/.
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  # Butuh Flutter 3.35+ / Dart 3.9+ — dipakai `DropdownButtonFormField.initialValue`
+  # (menggantikan `value` yang sudah deprecated) dan `Color.withValues()`.
+  sdk: ">=3.9.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase — satu project (iyon-adryanlf-trialerror), sama dgn versi web.
+  firebase_core: ^3.6.0
+  firebase_database: ^11.1.4
+  firebase_messaging: ^15.1.3 # hook FCM, belum dipakai penuh (lihat lib/messaging/)
+
+  # State: satu store per app (ChangeNotifier) meniru pola "satu listener
+  # realtime -> rebuild semua -> render" di script.js versi web.
+  provider: ^6.1.2
+
+  # Preferensi lokal (tema per-app & pengguna aktif) — padanan localStorage.
+  shared_preferences: ^2.3.2
+
+  collection: ^1.19.0 # firstOrNull
+  intl: ^0.19.0 # format Rp & tanggal id-ID
+  url_launcher: ^6.3.1 # link di Note & Wishlist
+  flutter_markdown: ^0.7.4 # render isi catatan (Note App)
+
+  # Export Excel (Finance App) — padanan SheetJS di versi web. File ditulis ke
+  # folder temporer lalu dibuka lewat share sheet OS (di mobile tidak ada
+  # konsep "unduh ke folder Downloads" seperti di browser).
+  excel: ^4.0.6
+  path_provider: ^2.1.4
+  share_plus: ^11.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/img/
