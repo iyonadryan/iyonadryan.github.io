@@ -289,12 +289,14 @@
           <input type="date" id="dateInput" disabled>
         </label>
 
-        <!-- Cuma tampil kalau mode aktifnya "Both" — "Both" bukan orang beneran,
-             jadi transaksi baru wajib ditandai dibuat oleh siapa. -->
+        <!-- Saat TAMBAH: selalu tampil. Mode "Both" → harus dipilih manual;
+             mode Iyon/Ciwul → dikunci otomatis ke user aktif ("(otomatis)").
+             Saat EDIT: cuma tampil kalau mode "Both" (pembuat data lama tidak
+             bisa diubah, tidak relevan ditanya di mode single-user). -->
         <div class="field by-field" id="transactionByField" hidden>
-          <span>Dibuat oleh</span>
+          <span id="transactionByLabel">Dibuat oleh</span>
           <div class="type-toggle" id="transactionByToggle">
-            <button type="button" data-by="iyon" class="type-btn active">Iyon</button>
+            <button type="button" data-by="iyon" class="type-btn">Iyon</button>
             <button type="button" data-by="ciwul" class="type-btn">Ciwul</button>
           </div>
         </div>
@@ -369,11 +371,13 @@
           <input type="text" id="planLimitInput" placeholder="0" required inputmode="numeric" autocomplete="off">
         </label>
 
-        <!-- Cuma tampil kalau mode aktifnya "Both", sama seperti di modal Transaksi. -->
+        <!-- Sama pola dgn field "Dibuat oleh" modal Transaksi (lihat komentar
+             di atas): selalu tampil saat TAMBAH ("(otomatis)" kalau single-user),
+             disembunyikan saat EDIT kecuali mode "Both". -->
         <div class="field by-field" id="planByField" hidden>
-          <span>Dibuat oleh</span>
+          <span id="planByLabel">Dibuat oleh</span>
           <div class="type-toggle" id="planByToggle">
-            <button type="button" data-by="iyon" class="type-btn active">Iyon</button>
+            <button type="button" data-by="iyon" class="type-btn">Iyon</button>
             <button type="button" data-by="ciwul" class="type-btn">Ciwul</button>
           </div>
         </div>

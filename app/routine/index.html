@@ -257,12 +257,14 @@
           <input type="text" id="routineIconInput" placeholder="mis. 🏃" autocomplete="off">
         </label>
 
-        <!-- Cuma tampil kalau mode aktifnya "Both" — "Both" bukan orang beneran,
-             jadi rutinitas baru wajib ditandai dibuat oleh siapa. -->
+        <!-- Saat TAMBAH: selalu tampil. Mode "Both" → harus dipilih manual;
+             mode Iyon/Ciwul → dikunci otomatis ke user aktif ("(otomatis)").
+             Saat EDIT: cuma tampil kalau mode "Both" (pembuat rutinitas lama
+             tidak bisa diubah, tidak relevan ditanya di mode single-user). -->
         <div class="field" id="routineByField" hidden>
-          <span>Dibuat oleh</span>
+          <span id="routineByLabel">Dibuat oleh</span>
           <div class="mode-toggle" id="routineByToggle">
-            <button type="button" data-by="iyon" class="mode-btn active">Iyon</button>
+            <button type="button" data-by="iyon" class="mode-btn">Iyon</button>
             <button type="button" data-by="ciwul" class="mode-btn">Ciwul</button>
           </div>
         </div>

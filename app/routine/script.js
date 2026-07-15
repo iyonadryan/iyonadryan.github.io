@@ -437,12 +437,38 @@
     });
   });
 
+  const routineByLabel = document.getElementById("routineByLabel");
+
+  // Field "Dibuat oleh" saat TAMBAH rutinitas baru: mode "Both" → tampil
+  // normal, harus dipilih manual. Mode Iyon/Ciwul → tetap tampil tapi
+  // dikunci otomatis ke user aktif, label jadi "Dibuat oleh (otomatis)".
+  function setupByFieldForCreate() {
+    routineByField.hidden = false;
+    if (currentUser === "both") {
+      routineByLabel.textContent = "Dibuat oleh";
+      setByToggleValue("routineByToggle", null, false); // belum dipilih — user wajib pilih manual
+    } else {
+      routineByLabel.textContent = "Dibuat oleh (otomatis)";
+      setByToggleValue("routineByToggle", currentUser, true);
+    }
+  }
+
+  // Field "Dibuat oleh" saat EDIT: cuma tampil kalau mode "Both" (pembuat
+  // rutinitas lama sudah tetap, tidak relevan ditanya di mode single-user),
+  // selalu dikunci ke pembuat aslinya.
+  function setupByFieldForEdit(by) {
+    routineByField.hidden = currentUser !== "both";
+    routineByLabel.textContent = "Dibuat oleh";
+    setByToggleValue("routineByToggle", by, true);
+  }
+
   // Scope ke user aktif kalau bukan mode Both; kalau Both, baca toggle
-  // "Dibuat oleh" di modal (default "iyon" kalau belum ada yang aktif).
+  // "Dibuat oleh" di modal — null kalau belum dipilih (wajib pilih manual,
+  // tidak ada default), submit akan divalidasi & ditolak kalau masih null.
   function routineFormBy() {
     if (currentUser !== "both") return currentUser;
     const active = routineByToggle.querySelector(".mode-btn.active");
-    return active ? active.dataset.by : "iyon";
+    return active ? active.dataset.by : null;
   }
 
   function openRoutineModal(routine) {
@@ -457,7 +483,8 @@
     setDailyMode(selectedDays.length ? "tertentu" : "setiap");
     updatePeriodFieldsVisibility();
 
-    setByToggleValue("routineByToggle", routine ? routine.by : currentUser !== "both" ? currentUser : "iyon", !!routine);
+    if (routine) setupByFieldForEdit(routine.by);
+    else setupByFieldForCreate();
 
     routineModal.classList.add("open");
   }
@@ -481,6 +508,12 @@
       return;
     }
 
+    const by = routineFormBy();
+    if (!editingRoutineId && !by) {
+      alert('Pilih dulu "Dibuat oleh" siapa.');
+      return;
+    }
+
     const data = {
       name: document.getElementById("routineNameInput").value.trim(),
       period,
@@ -488,7 +521,7 @@
       // Selalu disertakan (walau kosong) supaya update() bersih menimpa `days`
       // lama kalau period/mode diganti — bukan cuma di-skip merge.
       days: isDailyTertentu ? [...selectedDays].sort((a, b) => a - b) : [],
-      by: routineFormBy(),
+      by,
     };
     if (!data.name) return;
 
@@ -725,19 +758,12 @@
     if (switchBtn) switchBtn.title = user ? "Ganti pengguna (aktif: " + user.label + ")" : "Ganti pengguna";
   }
 
-  // Field "Dibuat oleh" di modal Rutinitas cuma relevan kalau mode aktifnya
-  // "Both" (Iyon/Ciwul sendiri tidak perlu ditanya, sudah jelas).
-  function updateByFieldVisibility() {
-    routineByField.hidden = currentUser !== "both";
-  }
-
   function setCurrentUser(id) {
     currentUser = id;
     localStorage.setItem(STORAGE_KEYS.user, id);
     userSelectOverlay.classList.remove("open");
     userSwitchModal.classList.remove("open");
     updateActiveUserDesc();
-    updateByFieldVisibility();
     renderAll();
   }
 
@@ -747,7 +773,6 @@
     renderUserButtons(document.getElementById("userSelectOptions"), setCurrentUser);
     renderUserButtons(document.getElementById("userSwitchOptions"), setCurrentUser);
     updateActiveUserDesc();
-    updateByFieldVisibility();
     if (!currentUser) userSelectOverlay.classList.add("open");
   }
 

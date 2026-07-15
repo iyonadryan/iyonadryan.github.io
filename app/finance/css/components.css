@@ -305,6 +305,16 @@
   color: var(--color-income);
 }
 
+/* Toggle "Dibuat oleh" (data-by, bukan data-type) reuse .type-btn/.type-toggle
+   yang sama tapi tidak semantik expense/income — pakai warna primary netral
+   supaya jelas mana yang aktif (baik saat bisa dipilih manual mode Both,
+   maupun saat dikunci otomatis ke user aktif). */
+.type-btn.active[data-by] {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
 .field {
   display: block;
   margin-bottom: 14px;

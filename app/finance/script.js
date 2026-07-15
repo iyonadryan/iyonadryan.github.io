@@ -1063,10 +1063,11 @@
   // "Dibuat oleh" (atau currentUser langsung kalau bukan mode Both). Dipakai
   // buat nyimpen field `by` — bukan buat cek keunikan kategori (itu tetap
   // global: satu kategori+periode = satu rencana, siapa pun pembuatnya).
+  // null kalau belum dipilih (wajib pilih manual, tidak ada default).
   function planFormBy() {
     if (currentUser !== "both") return currentUser;
     const active = document.querySelector("#planByToggle .type-btn.active");
-    return active ? active.dataset.by : "iyon";
+    return active ? active.dataset.by : null;
   }
 
   // Disable opsi periode yang sudah penuh di dropdown modal.
@@ -1269,11 +1270,12 @@
   }
 
   // Scope ke user aktif kalau bukan mode Both; kalau Both, baca toggle
-  // "Dibuat oleh" di modal (default "iyon" kalau belum ada yang aktif).
+  // "Dibuat oleh" di modal — null kalau belum dipilih (wajib pilih manual,
+  // tidak ada default), submit akan divalidasi & ditolak kalau masih null.
   function transactionFormBy() {
     if (currentUser !== "both") return currentUser;
     const active = document.querySelector("#transactionByToggle .type-btn.active");
-    return active ? active.dataset.by : "iyon";
+    return active ? active.dataset.by : null;
   }
 
   // Set toggle 2-tombol (Dibuat oleh) ke satu nilai, opsional dikunci
@@ -1299,6 +1301,30 @@
     });
   }
 
+  // Field "Dibuat oleh" saat TAMBAH data baru: mode "Both" → tampil normal,
+  // harus dipilih manual. Mode Iyon/Ciwul → tetap tampil tapi dikunci
+  // otomatis ke user aktif, label berubah jadi "Dibuat oleh (otomatis)".
+  function setupByFieldForCreate(fieldId, labelId, toggleId) {
+    document.getElementById(fieldId).hidden = false;
+    const label = document.getElementById(labelId);
+    if (currentUser === "both") {
+      label.textContent = "Dibuat oleh";
+      setByToggleValue(toggleId, null, false); // belum dipilih — user wajib pilih manual
+    } else {
+      label.textContent = "Dibuat oleh (otomatis)";
+      setByToggleValue(toggleId, currentUser, true);
+    }
+  }
+
+  // Field "Dibuat oleh" saat EDIT: cuma relevan/tampil kalau mode "Both"
+  // (pembuat data lama sudah tetap, tidak perlu ditanya di mode single-user),
+  // dan selalu dikunci ke pembuat aslinya (tidak bisa diubah).
+  function setupByFieldForEdit(fieldId, labelId, toggleId, by) {
+    document.getElementById(fieldId).hidden = currentUser !== "both";
+    document.getElementById(labelId).textContent = "Dibuat oleh";
+    setByToggleValue(toggleId, by, true);
+  }
+
   function openTransactionModal() {
     editingTx = null;
     transactionModalTitle.textContent = "Tambah Transaksi";
@@ -1306,7 +1332,7 @@
     setImmutableFieldsLocked(false);
     setTxType("expense");
     dateInput.value = todayLocalDateStr();
-    setByToggleValue("transactionByToggle", currentUser !== "both" ? currentUser : "iyon", false);
+    setupByFieldForCreate("transactionByField", "transactionByLabel", "transactionByToggle");
     transactionModal.classList.add("open");
   }
 
@@ -1320,7 +1346,7 @@
     document.getElementById("noteInput").value = tx.note || "";
     dateInput.value = tx.date;
     setImmutableFieldsLocked(true); // kunci tipe & kategori setelah prefill
-    setByToggleValue("transactionByToggle", tx.by, true); // pembuat tidak bisa diubah
+    setupByFieldForEdit("transactionByField", "transactionByLabel", "transactionByToggle", tx.by);
     transactionModal.classList.add("open");
   }
 
@@ -1339,13 +1365,19 @@
     const amount = parseFloat(raw);
     if (!amount || amount <= 0) return;
 
+    const by = editingTx ? editingTx.by : transactionFormBy();
+    if (!editingTx && !by) {
+      alert('Pilih dulu "Dibuat oleh" siapa.');
+      return;
+    }
+
     const data = {
       type: currentTxType,
       amount: amount,
       category: categoryInput.value,
       note: document.getElementById("noteInput").value.trim(),
       date: dateInput.value,
-      by: editingTx ? editingTx.by : transactionFormBy(),
+      by,
     };
 
     const isAdd = !editingTx;
@@ -1494,7 +1526,7 @@
     editingPlan = null;
     planForm.reset();
     setPlanFieldsLocked(false);
-    setByToggleValue("planByToggle", currentUser !== "both" ? currentUser : "iyon", false);
+    setupByFieldForCreate("planByField", "planByLabel", "planByToggle");
     updatePeriodOptions(); // buramkan periode yang sudah penuh
     planPeriodInput.value = currentPeriod; // default ikut tab yang aktif
     populatePlanCategories(currentPeriod); // sembunyikan kategori yang sudah dipakai
@@ -1504,7 +1536,7 @@
   function openEditPlanModal(plan) {
     editingPlan = plan;
     planForm.reset();
-    setByToggleValue("planByToggle", plan.by, true); // pembuat tidak bisa diubah
+    setupByFieldForEdit("planByField", "planByLabel", "planByToggle", plan.by);
     planPeriodInput.value = plan.period;
     populatePlanCategories(plan.period, plan.category);
     planCategoryInput.value = plan.category;
@@ -1531,6 +1563,10 @@
     const category = planCategoryInput.value;
     if (!category) return; // tidak ada kategori tersedia (semua sudah dipakai)
     const by = editingPlan ? editingPlan.by : planFormBy();
+    if (!editingPlan && !by) {
+      alert('Pilih dulu "Dibuat oleh" siapa.');
+      return;
+    }
     const existing = plans.find((p) => p.id === period + "_" + category);
     const sort = existing ? existing.sort : nextSortForPeriod(period);
     savePlan(period, category, limit, sort, by).catch((err) => {
@@ -1688,21 +1724,12 @@
     if (switchBtn) switchBtn.title = user ? "Ganti pengguna (aktif: " + user.label + ")" : "Ganti pengguna";
   }
 
-  // Field "Dibuat oleh" di modal Transaksi/Rencana cuma relevan kalau mode
-  // aktifnya "Both" (Iyon/Ciwul sendiri tidak perlu ditanya, sudah jelas).
-  function updateByFieldVisibility() {
-    const showBy = currentUser === "both";
-    document.getElementById("transactionByField").hidden = !showBy;
-    document.getElementById("planByField").hidden = !showBy;
-  }
-
   function setCurrentUser(id) {
     currentUser = id;
     localStorage.setItem(STORAGE_KEYS.user, id);
     userSelectOverlay.classList.remove("open");
     userSwitchModal.classList.remove("open");
     updateActiveUserDesc();
-    updateByFieldVisibility();
     renderAll();
   }
 
@@ -1712,7 +1739,6 @@
     renderUserButtons(document.getElementById("userSelectOptions"), setCurrentUser);
     renderUserButtons(document.getElementById("userSwitchOptions"), setCurrentUser);
     updateActiveUserDesc();
-    updateByFieldVisibility();
     if (!currentUser) userSelectOverlay.classList.add("open");
   }
 
