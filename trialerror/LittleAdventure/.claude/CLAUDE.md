@@ -9,6 +9,7 @@ Prototype game petualangan 2D pixel-art di `trialerror/LittleAdventure/`. Tahap 
 - **Frontend:** HTML5 + CSS3 + Vanilla JavaScript (tanpa framework/build tool)
 - **Bahasa UI:** Indonesia
 - **Aset:** sprite sheet pixel-art PNG (lihat "Aset karakter" di bawah)
+- **Font:** [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans) (Google Fonts, gratis/open-source — lisensi SIL Open Font License, bebas dipakai tanpa atribusi) — dimuat via `<link>` CDN Google Fonts di `<head>` `index.html` (bukan self-host, konsisten dgn cara project ini tidak punya build step). Diset di `body` (`style.css`), dan `button { font-family: inherit; }` ditambahkan eksplisit krn elemen `<button>` tidak otomatis ikut font body di semua browser.
 
 ---
 

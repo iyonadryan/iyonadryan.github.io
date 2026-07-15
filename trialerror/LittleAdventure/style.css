@@ -21,8 +21,15 @@ body {
   gap: 16px;
   padding: 16px;
   background: var(--bg-sky);
-  font-family: "Segoe UI", system-ui, sans-serif;
+  font-family: "Pixelify Sans", "Segoe UI", system-ui, sans-serif;
   color: var(--text-dark);
+}
+
+/* <button> tidak otomatis ikut font-family body di browser manapun (aturan
+   UA default utk elemen form) — di-set manual di sini spy semua tombol
+   (Ganti Karakter, tab gender, thumbnail, tombol tutup) ikut Pixelify Sans. */
+button {
+  font-family: inherit;
 }
 
 h1 {
