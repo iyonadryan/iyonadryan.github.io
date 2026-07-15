@@ -20,16 +20,17 @@ LittleAdventure/
   style.css      # styling jendela kamera, dunia (motif "tanah"), & properti statis karakter
   script.js      # semua logic: sprite stepping, animasi jalan, kontrol keyboard, kamera mengikuti karakter
   img/
-    Male/        # sprite sheet karakter pria — banyak varian (01 s/d ~25+), tiap nomor
+    character/
+      Male/      # sprite sheet karakter pria — banyak varian (01 s/d ~25+), tiap nomor
                  # punya beberapa file -1/-2/-3/-4 (variasi warna/outfit sprite sheet yg sama)
-    Female/      # sama pola dgn Male/, varian karakter wanita
+      Female/    # sama pola dgn Male/, varian karakter wanita
   .claude/
     CLAUDE.md    # file ini
 ```
 
 Belum ada build tool — cukup buka `index.html` langsung di browser (tidak butuh Firebase/server, murni client-side).
 
-## Aset karakter (`img/Male/`, `img/Female/`)
+## Aset karakter (`img/character/Male/`, `img/character/Female/`)
 
 Tiap file adalah **satu sprite sheet 3 kolom × 4 baris**, ukuran asli 96×128px (1 frame = 32×32px). Konvensi baris (dicek langsung dari sample `Male 01-1.png`, berlaku sama utk semua file lain di kedua folder):
 
@@ -42,7 +43,9 @@ Tiap file adalah **satu sprite sheet 3 kolom × 4 baris**, ukuran asli 96×128px
 
 Kolom: **0 & 2** = pose kaki melangkah (kiri/kanan), **1 (tengah)** = pose idle/diam — dipakai juga sbg frame "netral" di tengah siklus animasi jalan.
 
-Prototype ini baru pakai **satu file hardcoded**: `img/Male/Male 01-1.png` (dikonfigurasi lewat konstanta `SPRITE_SRC` di `script.js`). Varian lain (nomor 02, 03, dst., suffix `-2`/`-3`/`-4`, dan seluruh isi `Female/`) belum dipakai sama sekali — belum ada UI pilih karakter (lihat "Rencana / TODO").
+Prototype ini baru pakai **satu file hardcoded**: `img/character/Male/Male 01-1.png` (dikonfigurasi lewat konstanta `SPRITE_SRC` di `script.js`). Varian lain (nomor 02, 03, dst., suffix `-2`/`-3`/`-4`, dan seluruh isi `Female/`) belum dipakai sama sekali — belum ada UI pilih karakter (lihat "Rencana / TODO").
+
+`Male/`/`Female/` awalnya langsung di dalam `img/` (sejajar), dipindah ke dalam `img/character/` supaya `img/` bisa menampung jenis aset lain ke depan (tile map, objek, UI, dll.) tanpa tercampur rata dgn sprite karakter.
 
 ## Cara kerja animasi & pergerakan (`script.js`)
 
@@ -73,7 +76,7 @@ Animasi frame (ganti `background-position`) dan pergerakan (`transform: translat
 
 ## Rencana / TODO ke depan
 
-- **Pilih karakter**: UI utk memilih dari `img/Male/`/`img/Female/` (banyak nomor & varian outfit) — saat ini masih hardcode `Male 01-1.png` di `SPRITE_SRC`.
+- **Pilih karakter**: UI utk memilih dari `img/character/Male/`/`img/character/Female/` (banyak nomor & varian outfit) — saat ini masih hardcode `Male 01-1.png` di `SPRITE_SRC`.
 - **Map/level**: dunia saat ini cuma kotak besar dgn motif rumput CSS berulang — belum ada tile map sungguhan, objek/bangunan, atau collision. Kamera mengikuti karakter **sudah ada** (lihat "Kamera mengikuti karakter").
 - **Kontrol mobile**: kontrol saat ini keyboard-only (Arrow/WASD) — belum ada on-screen d-pad/joystick utk HP, walau prototype dibuka lewat browser mobile.
 - Belum ada Firebase/data tersimpan — murni prototype client-side, tidak ada progres yang dipersist.

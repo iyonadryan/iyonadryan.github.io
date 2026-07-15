@@ -5,7 +5,7 @@
   // Sprite sheet karakter: 3 kolom x 4 baris, tiap frame 32x32px asli.
   // Baris:  0 = jalan bawah, 1 = jalan kiri, 2 = jalan kanan, 3 = jalan atas
   // Kolom:  0 & 2 = kaki melangkah, 1 = tengah/idle (dipakai juga sbg pose diam)
-  const SPRITE_SRC = "img/Male/Male 01-1.png";
+  const SPRITE_SRC = "img/character/Male/Male 01-1.png";
   const FRAME_SRC = 32; // px, ukuran asli 1 frame di file PNG
   const SHEET_COLS = 3;
   const SHEET_ROWS = 4;
