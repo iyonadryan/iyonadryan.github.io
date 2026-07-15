@@ -21,11 +21,18 @@
   const FRAME_DURATION = 140; // ms per pergantian frame animasi jalan
   const SPEED = 2.4; // px per frame animasi (~60fps) saat bergerak
 
-  // ================= Konfigurasi dunia & kamera =================
+  // ================= Konfigurasi peta dunia =================
+  // Gambar peta (persegi, hasil tile map) — diskalakan pakai SCALE yang SAMA
+  // dgn karakter di atas, supaya rasio karakter thd peta tetap konsisten.
+  const MAP_SRC = "img/samplemap.png";
+  const MAP_SRC_SIZE = 1920; // px, ukuran asli map (persegi: 1920x1920)
+
   // Dunia (#worldLayer) jauh lebih besar dari jendela kamera (#gameWorld)
   // supaya ada ruang buat karakter jalan-jalan & kameranya kelihatan geser.
-  const WORLD_WIDTH = 1440;
-  const WORLD_HEIGHT = 960;
+  // Ukurannya sekarang mengikuti ukuran peta setelah discale (bukan lagi
+  // angka arbitrer) — karakter dibatasi persis ke tepi gambar peta.
+  const WORLD_WIDTH = MAP_SRC_SIZE * SCALE;
+  const WORLD_HEIGHT = MAP_SRC_SIZE * SCALE;
   // 0-1: seberapa cepat kamera "mengejar" posisi target (karakter di tengah).
   // Makin kecil, makin nge-lag/lambat & smooth; makin besar, makin ketat
   // nempel ke karakter (1 = langsung nempel tanpa jeda sama sekali).
@@ -173,6 +180,8 @@
 
     worldLayer.style.width = `${WORLD_WIDTH}px`;
     worldLayer.style.height = `${WORLD_HEIGHT}px`;
+    worldLayer.style.backgroundImage = `url("${MAP_SRC}")`;
+    worldLayer.style.backgroundSize = `${WORLD_WIDTH}px ${WORLD_HEIGHT}px`;
 
     // Mulai di tengah dunia, menghadap bawah, pose idle.
     x = (WORLD_WIDTH - FRAME) / 2;

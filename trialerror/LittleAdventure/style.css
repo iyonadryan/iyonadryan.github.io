@@ -1,7 +1,5 @@
 :root {
   --bg-sky: #cdeffd;
-  --ground: #8bc34a;
-  --ground-dark: #6ea83b;
   --border-dark: #33691e;
   --text-dark: #2b2b2b;
 }
@@ -50,19 +48,17 @@ h1 {
 }
 
 /* "Dunia" sesungguhnya — jauh lebih besar dari jendela kamera di atas.
-   Ukuran (width/height) & posisi (transform, buat efek kamera) diisi lewat
-   JS, di sini cuma motif tanahnya (rumput selang-seling). */
+   Ukuran, background-image, & posisi (transform, buat efek kamera) diisi
+   lewat JS (lihat MAP_SRC/WORLD_WIDTH/WORLD_HEIGHT di script.js) — di sini
+   cuma properti statis. Gambar peta pixel-art, jadi perlu image-rendering
+   sama seperti karakter supaya hasil scale tetap tegas (tidak blur).*/
 #worldLayer {
   position: absolute;
   top: 0;
   left: 0;
-  background: repeating-linear-gradient(
-    45deg,
-    var(--ground),
-    var(--ground) 20px,
-    var(--ground-dark) 20px,
-    var(--ground-dark) 40px
-  );
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
   will-change: transform;
 }
 
