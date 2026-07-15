@@ -35,13 +35,27 @@ h1 {
   opacity: 0.75;
 }
 
-/* "Dunia" tempat karakter jalan-jalan — motif rumput selang-seling biar
-   kelihatan seperti tanah, bukan sekadar warna polos. */
+/* "Jendela" kamera — ukuran tetap, cuma menampilkan sepotong #worldLayer
+   yang jauh lebih besar. Isinya sendiri (rumput dkk.) ada di #worldLayer,
+   supaya bisa digeser (translate) tanpa ikut menggeser border/shadow ini. */
 #gameWorld {
   position: relative;
   width: 480px;
   height: 320px;
   max-width: 100%;
+  border: 6px solid var(--border-dark);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* "Dunia" sesungguhnya — jauh lebih besar dari jendela kamera di atas.
+   Ukuran (width/height) & posisi (transform, buat efek kamera) diisi lewat
+   JS, di sini cuma motif tanahnya (rumput selang-seling). */
+#worldLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
   background: repeating-linear-gradient(
     45deg,
     var(--ground),
@@ -49,10 +63,7 @@ h1 {
     var(--ground-dark) 20px,
     var(--ground-dark) 40px
   );
-  border: 6px solid var(--border-dark);
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  will-change: transform;
 }
 
 /* Ukuran & background-size diisi lewat JS (sesuai skala sprite sheet),

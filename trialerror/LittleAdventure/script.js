@@ -21,6 +21,16 @@
   const FRAME_DURATION = 140; // ms per pergantian frame animasi jalan
   const SPEED = 2.4; // px per frame animasi (~60fps) saat bergerak
 
+  // ================= Konfigurasi dunia & kamera =================
+  // Dunia (#worldLayer) jauh lebih besar dari jendela kamera (#gameWorld)
+  // supaya ada ruang buat karakter jalan-jalan & kameranya kelihatan geser.
+  const WORLD_WIDTH = 1440;
+  const WORLD_HEIGHT = 960;
+  // 0-1: seberapa cepat kamera "mengejar" posisi target (karakter di tengah).
+  // Makin kecil, makin nge-lag/lambat & smooth; makin besar, makin ketat
+  // nempel ke karakter (1 = langsung nempel tanpa jeda sama sekali).
+  const CAMERA_SMOOTH = 0.08;
+
   const KEY_TO_DIR = {
     ArrowUp: "up", w: "up", W: "up",
     ArrowDown: "down", s: "down", S: "down",
@@ -29,10 +39,13 @@
   };
 
   const character = document.getElementById("character");
-  const world = document.getElementById("gameWorld");
+  const viewport = document.getElementById("gameWorld");
+  const worldLayer = document.getElementById("worldLayer");
 
-  let x = 0;
+  let x = 0; // posisi karakter dalam koordinat dunia (bukan koordinat layar)
   let y = 0;
+  let camX = 0; // posisi kamera (pojok kiri-atas jendela) dalam koordinat dunia
+  let camY = 0;
   let facing = "down";
   let moving = false;
   let walkFrameIndex = 0;
@@ -44,6 +57,10 @@
   // arah terakhir, dan begitu dilepas otomatis balik ke arah sebelumnya yang
   // masih ditahan (bukan langsung berhenti total).
   let heldDirections = [];
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
 
   function addDirection(dir) {
     const idx = heldDirections.indexOf(dir);
@@ -91,10 +108,32 @@
     if (dir === "left") x -= dist;
     if (dir === "right") x += dist;
 
-    x = Math.max(0, Math.min(world.clientWidth - FRAME, x));
-    y = Math.max(0, Math.min(world.clientHeight - FRAME, y));
+    // Karakter dibatasi ke batas DUNIA (bukan lagi batas jendela kamera).
+    x = clamp(x, 0, WORLD_WIDTH - FRAME);
+    y = clamp(y, 0, WORLD_HEIGHT - FRAME);
 
     character.style.transform = `translate(${x}px, ${y}px)`;
+  }
+
+  // Kamera "mengejar" titik yang bikin karakter tepat di tengah jendela,
+  // tapi tidak langsung nempel — didekati sedikit demi sedikit tiap frame
+  // (exponential smoothing) supaya gerakannya smooth & sedikit "tertinggal"
+  // dari karakter, baru menyusul pelan-pelan sampai karakter balik ke tengah
+  // begitu ia berhenti.
+  function updateCamera(dt) {
+    const viewW = viewport.clientWidth;
+    const viewH = viewport.clientHeight;
+
+    const targetCamX = clamp(x + FRAME / 2 - viewW / 2, 0, WORLD_WIDTH - viewW);
+    const targetCamY = clamp(y + FRAME / 2 - viewH / 2, 0, WORLD_HEIGHT - viewH);
+
+    // 1 - (1-smooth)^dt: versi CAMERA_SMOOTH yang disesuaikan ke delta time,
+    // supaya kecepatan "mengejar" tetap konsisten walau framerate beda-beda.
+    const t = 1 - Math.pow(1 - CAMERA_SMOOTH, dt);
+    camX += (targetCamX - camX) * t;
+    camY += (targetCamY - camY) * t;
+
+    worldLayer.style.transform = `translate(${-camX}px, ${-camY}px)`;
   }
 
   function updateAnimation(time) {
@@ -120,6 +159,7 @@
     lastTime = time;
 
     updateMovement(dt);
+    updateCamera(dt);
     updateAnimation(time);
 
     requestAnimationFrame(loop);
@@ -131,11 +171,22 @@
     character.style.backgroundImage = `url("${SPRITE_SRC}")`;
     character.style.backgroundSize = `${FRAME * SHEET_COLS}px ${FRAME * SHEET_ROWS}px`;
 
+    worldLayer.style.width = `${WORLD_WIDTH}px`;
+    worldLayer.style.height = `${WORLD_HEIGHT}px`;
+
     // Mulai di tengah dunia, menghadap bawah, pose idle.
-    x = (world.clientWidth - FRAME) / 2;
-    y = (world.clientHeight - FRAME) / 2;
+    x = (WORLD_WIDTH - FRAME) / 2;
+    y = (WORLD_HEIGHT - FRAME) / 2;
     character.style.transform = `translate(${x}px, ${y}px)`;
     setSpriteFrame(ROW.down, IDLE_FRAME);
+
+    // Kamera langsung pas di tengah karakter sejak awal (tanpa animasi
+    // "mengejar" pas load pertama kali).
+    const viewW = viewport.clientWidth;
+    const viewH = viewport.clientHeight;
+    camX = clamp(x + FRAME / 2 - viewW / 2, 0, WORLD_WIDTH - viewW);
+    camY = clamp(y + FRAME / 2 - viewH / 2, 0, WORLD_HEIGHT - viewH);
+    worldLayer.style.transform = `translate(${-camX}px, ${-camY}px)`;
 
     requestAnimationFrame(loop);
   }
