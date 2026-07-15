@@ -1,0 +1,68 @@
+:root {
+  --bg-sky: #cdeffd;
+  --ground: #8bc34a;
+  --ground-dark: #6ea83b;
+  --border-dark: #33691e;
+  --text-dark: #2b2b2b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg-sky);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: var(--text-dark);
+}
+
+h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.hint {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.75;
+}
+
+/* "Dunia" tempat karakter jalan-jalan — motif rumput selang-seling biar
+   kelihatan seperti tanah, bukan sekadar warna polos. */
+#gameWorld {
+  position: relative;
+  width: 480px;
+  height: 320px;
+  max-width: 100%;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--ground),
+    var(--ground) 20px,
+    var(--ground-dark) 20px,
+    var(--ground-dark) 40px
+  );
+  border: 6px solid var(--border-dark);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* Ukuran & background-size diisi lewat JS (sesuai skala sprite sheet),
+   di sini cuma properti yang statis. */
+.character {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  will-change: transform;
+}
