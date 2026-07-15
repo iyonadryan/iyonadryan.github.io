@@ -47,6 +47,8 @@ Alasan: kalau header ikut jadi flex child biasa (spt sebelumnya), `justify-conte
 
 `.game-header` sendiri tetap `display:flex; flex-direction:column; align-items:center;` di dalam dirinya sendiri (buat nyusun h1/hint/tombol vertikal & center horizontal) — cuma **posisinya** thd `body` yang absolute, bukan strukturnya di dalam.
 
+**`.hint` (list kontrol) 2 kolom**: `display:grid; grid-template-columns: repeat(2, auto);` — auto-placement CSS grid row-major, jadi urutan `<p>` di HTML otomatis ngisi kiri→kanan lalu turun baris (baris 1 = hint ke-1 & ke-2, baris 2 = hint ke-3 & ke-4, dst.), tidak perlu atur posisi manual per item. `justify-content:center` di `.hint` biar grid-nya sendiri tetap center di dalam `.game-header`, walau tiap barisnya rata kiri (`text-align:left` + `white-space:nowrap` per `<p>`, biar antar kolom rapi sejajar, bukan rata tengah yg bikin col kiri/kanan "jalan" tidak sejajar tiap baris).
+
 **`#chatInput` pakai pola sama persis, tapi nempel di BAWAH `#gameWorld`** (bukan di header): dibungkus `.game-stage` (`position: relative`, satu-satunya anak alur-normalnya cuma `#gameWorld`, jadi ukurannya otomatis ngikut ukuran `#gameWorld` doang) bareng `#gameWorld`, lalu `#chatInput` diposisikan `position: absolute; top: 100%; left: 50%; transform: translateX(-50%);` relatif ke `.game-stage`. Efeknya: toggle `hidden` (muncul/hilang tiap buka/tutup chat) **tidak pernah menggeser posisi `#gameWorld`** — persis krn `#chatInput` sudah dikeluarkan dari alur normal, sama prinsipnya dgn `.game-header`.
 - **Kenapa `#chatInput` BUKAN child `#gameWorld` langsung** (padahal `#gameWorld` juga sudah `position: relative`): `#gameWorld` punya `overflow: hidden` (dipakai buat motong `#worldLayer` yg jauh lebih besar, lihat "Kamera mengikuti karakter") — kalau `#chatInput` ditaruh sbg child-nya dgn `top:100%` (di luar batas kotak 320px tingginya), otomatis ke-clip/hilang krn `overflow:hidden` ikut motong descendant yg posisinya di luar box, bukan cuma `#worldLayer`. Makanya `#chatInput` ditaruh sbg **sibling** `#gameWorld` (sama-sama child `.game-stage`), bukan descendant-nya.
 
@@ -84,6 +86,15 @@ Default saat load pertama: `img/character/Male/Male 01-1.png` (`currentGender`/`
   - Gerak: `speed = shiftHeld ? SPEED * WALK_SLOW_FACTOR : SPEED` (dikalikan — makin kecil faktornya, makin lambat geraknya).
   - Animasi: `frameDuration = shiftHeld ? FRAME_DURATION / WALK_SLOW_FACTOR : FRAME_DURATION` (**dibagi**, bukan dikali — durasi tiap frame perlu jadi lebih LAMA/besar supaya animasinya lebih lambat; `/0.5` = 2× durasi normal, senilai dgn "setengah kecepatan").
 - Guard `document.activeElement === chatInput` juga dipasang di keydown Shift (sama pola dgn tombol arah) — supaya Shift+huruf pas ngetik pesan (mis. bikin huruf kapital) tidak ke-anggap "mulai jalan pelan" begitu chat ditutup.
+
+### Lompat (tekan Space)
+
+- **Murni efek visual (hop)** — tekan Space memicu class `.jumping` di `#character`, yang menjalankan `@keyframes jump` (CSS, `style.css`): `translateY` naik ke `-14px` di titik tengah animasi lalu balik ke `0`, durasi `0.45s`. **Tidak mengubah** posisi dunia (`x`/`y`), kecepatan, arah hadap, atau collision sama sekali — bisa dipicu sambil diam maupun sambil jalan, dua-duanya independen.
+- **Kenapa posisi karakter dipindah dari CSS `transform` ke properti `translate` terpisah** (`character.style.translate = "${x}px ${y}px"`, di `updateMovement`/`init`, bukan lagi `character.style.transform = "translate(...)"`): krn animasi lompat JUGA butuh `transform` (`translateY` hop). Kalau posisi masih pakai `transform` inline dari JS, animasi CSS yang jg menyasar `transform` bakal rebutan/saling timpa nilai di properti yang sama. `translate` (properti CSS individual, terpisah dari `transform`, didukung semua browser evergreen) & `transform` dijamin dikompose bareng oleh browser (posisi dari `translate`, ditambah offset hop dari `transform`), jadi keduanya jalan bebas tanpa konflik.
+- **Guard `isJumping`**: menekan Space lagi selagi masih di tengah animasi lompat diabaikan (tidak restart/menumpuk animasi) sampai lompatan sebelumnya selesai.
+- **Class `.jumping` dilepas via event `animationend`** (bukan `setTimeout` durasi hardcoded) — supaya kalau durasi di `@keyframes jump` diubah nanti, JS otomatis ikut tanpa perlu disinkronkan manual di dua tempat.
+- Guard `document.activeElement === chatInput` sama spt Shift/tombol arah — spasi dipakai buat ngetik spasi normal di pesan chat, bukan trigger lompat, selama fokus di `#chatInput`.
+- **`#speechBubble` ikut naik-turun bareng saat lompat** (bukan bug) — krn dia child `#character`, & animasi hop-nya nempel di `#character` itu sendiri.
 
 ## Map dunia (`img/samplemap.png`, `#worldLayer`)
 

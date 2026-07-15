@@ -181,6 +181,32 @@
     if (e.key === "Shift") shiftHeld = false;
   });
 
+  // ================= Lompat (Space) =================
+  // Lompat murni efek visual (hop naik-turun via animasi CSS "jump" di
+  // .character, lihat style.css) — TIDAK mengubah posisi/kecepatan gerak
+  // atau logika tabrakan sama sekali, cuma kosmetik. Bisa dipicu sambil
+  // diam atau sambil jalan.
+  let isJumping = false;
+
+  window.addEventListener("keydown", (e) => {
+    if (document.activeElement === chatInput) return; // lagi ngetik chat, spasi jadi karakter biasa
+    if (e.code !== "Space") return;
+    e.preventDefault(); // spasi jangan sampai scroll halaman
+    if (isJumping) return; // lagi lompat, abaikan spasi tambahan sampai selesai
+    isJumping = true;
+    character.classList.add("jumping");
+  });
+
+  // Lepas class "jumping" begitu animasi CSS-nya selesai, bukan pakai
+  // setTimeout durasi hardcoded — otomatis selalu sinkron dgn durasi asli
+  // yang didefinisikan di @keyframes "jump" (style.css), walau durasinya
+  // diubah di sana nanti.
+  character.addEventListener("animationend", (e) => {
+    if (e.animationName !== "jump") return;
+    character.classList.remove("jumping");
+    isJumping = false;
+  });
+
   // Kalau window kehilangan fokus (alt-tab dll), lepas semua tombol supaya
   // karakter tidak "nyangkut" jalan terus walau tombolnya sudah tidak ditekan.
   window.addEventListener("blur", () => {
@@ -209,7 +235,10 @@
     x = clamp(x, 0, WORLD_WIDTH - FRAME);
     y = clamp(y, 0, WORLD_HEIGHT - FRAME);
 
-    character.style.transform = `translate(${x}px, ${y}px)`;
+    // Pakai properti CSS "translate" (bukan "transform") buat posisi — biar
+    // "transform" tetap bebas dipakai animasi CSS "jump" (lihat "Lompat
+    // (Space)") tanpa keduanya rebutan/saling timpa di properti yang sama.
+    character.style.translate = `${x}px ${y}px`;
   }
 
   // Kamera "mengejar" titik yang bikin karakter tepat di tengah jendela,
@@ -407,7 +436,7 @@
     // Mulai di tengah dunia, menghadap bawah, pose idle.
     x = (WORLD_WIDTH - FRAME) / 2;
     y = (WORLD_HEIGHT - FRAME) / 2;
-    character.style.transform = `translate(${x}px, ${y}px)`;
+    character.style.translate = `${x}px ${y}px`;
     setSpriteFrame(ROW.down, IDLE_FRAME);
 
     // Kamera langsung pas di tengah karakter sejak awal (tanpa animasi

@@ -55,14 +55,22 @@ h1 {
   font-size: 22px;
 }
 
+/* 2 kolom (auto-fill row-major dari urutan DOM: baris 1 = item 1&2, baris
+   2 = item 3&4, dst.) — justify-content:center biar grid-nya sendiri tetap
+   center di dalam .game-header, walau tiap baris teksnya rata kiri. */
 .hint {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 4px 24px;
+  justify-content: center;
   font-size: 14px;
   opacity: 0.75;
-  text-align: center;
 }
 
 .hint p {
   margin: 0;
+  text-align: left;
+  white-space: nowrap;
 }
 
 .change-character-btn {
@@ -146,7 +154,9 @@ h1 {
 }
 
 /* Ukuran & background-size diisi lewat JS (sesuai skala sprite sheet),
-   di sini cuma properti yang statis. */
+   di sini cuma properti yang statis. Posisi (gerak) diisi JS lewat properti
+   CSS "translate" (bukan "transform") — dgn begitu "transform" tetap bebas
+   dipakai animasi "jump" di bawah tanpa keduanya rebutan properti yang sama. */
 .character {
   position: absolute;
   top: 0;
@@ -155,6 +165,22 @@ h1 {
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   will-change: transform;
+}
+
+/* Lompat (tekan Space) — hop naik-turun murni kosmetik, dipicu toggle class
+   ini dari JS (dilepas otomatis lewat event "animationend", lihat script.js). */
+.character.jumping {
+  animation: jump 0.45s ease-in-out;
+}
+
+@keyframes jump {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
 }
 
 /* Bubble chat — child dari .character, jadi otomatis ikut posisi karakter
