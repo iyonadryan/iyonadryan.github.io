@@ -2,6 +2,9 @@
   --bg-sky: #cdeffd;
   --border-dark: #33691e;
   --text-dark: #2b2b2b;
+  --accent: #4a7c2f;
+  --surface: #ffffff;
+  --surface-alt: #f0f3ec;
 }
 
 * {
@@ -31,6 +34,22 @@ h1 {
   margin: 0;
   font-size: 14px;
   opacity: 0.75;
+}
+
+.change-character-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.change-character-btn:hover {
+  filter: brightness(1.08);
 }
 
 /* "Jendela" kamera — ukuran tetap, cuma menampilkan sepotong #worldLayer
@@ -72,4 +91,113 @@ h1 {
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   will-change: transform;
+}
+
+/* ================= Overlay pilih karakter ================= */
+
+.character-picker-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 10;
+}
+
+.character-picker-overlay.open {
+  display: flex;
+}
+
+.character-picker-sheet {
+  width: 100%;
+  max-width: 420px;
+  max-height: 80vh;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+}
+
+.picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.picker-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.picker-close-btn {
+  border: none;
+  background: var(--surface-alt);
+  color: var(--text-dark);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.gender-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.gender-tab {
+  flex: 1;
+  padding: 8px 0;
+  border: 2px solid var(--surface-alt);
+  border-radius: 8px;
+  background: var(--surface-alt);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-dark);
+  cursor: pointer;
+}
+
+.gender-tab.active {
+  border-color: var(--accent);
+  background: #e4efdc;
+  color: var(--accent);
+}
+
+/* Grid thumbnail tiap varian sprite — bisa sampai puluhan item per gender,
+   makanya dibatasi tinggi & di-scroll (bukan meluas tak terbatas). */
+.character-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+/* Ukuran, background-image/size/position (crop pose idle-bawah dari tiap
+   sprite sheet) diisi lewat JS — di sini cuma properti statis + state. */
+.character-thumb {
+  aspect-ratio: 1;
+  border: 2px solid var(--surface-alt);
+  border-radius: 8px;
+  background-color: var(--surface-alt);
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  cursor: pointer;
+  padding: 0;
+}
+
+.character-thumb:hover {
+  border-color: var(--accent);
+}
+
+.character-thumb.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
 }

@@ -1,6 +1,6 @@
 # CLAUDE.md — Little Adventure
 
-Prototype game petualangan 2D pixel-art di `trialerror/LittleAdventure/`. Tahap ini **fokus murni ke animasi & pergerakan karakter** — belum ada NPC, musuh, atau pilihan karakter. Satu karakter yang bisa jalan 4 arah di atas gambar map sungguhan (`img/samplemap.png`), dengan kamera yang mengikuti karakter secara smooth (lihat "Kamera mengikuti karakter").
+Prototype game petualangan 2D pixel-art di `trialerror/LittleAdventure/`. Tahap ini **fokus murni ke animasi & pergerakan karakter** — belum ada NPC atau musuh. Satu karakter (bisa diganti lewat picker Male/Female, lihat "Ganti karakter") yang bisa jalan 4 arah di atas gambar map sungguhan (`img/samplemap.png`), dengan kamera yang mengikuti karakter secara smooth (lihat "Kamera mengikuti karakter").
 
 ---
 
@@ -16,9 +16,12 @@ Prototype game petualangan 2D pixel-art di `trialerror/LittleAdventure/`. Tahap 
 
 ```
 LittleAdventure/
-  index.html     # halaman prototype — judul, hint kontrol, #gameWorld (kamera) > #worldLayer (dunia) > #character
-  style.css      # styling jendela kamera, dunia (skala/posisi diisi lewat JS), & properti statis karakter
-  script.js      # semua logic: sprite stepping, animasi jalan, kontrol keyboard, kamera mengikuti karakter
+  index.html     # halaman prototype — judul, hint kontrol, tombol Ganti Karakter, #gameWorld (kamera) >
+                 # #worldLayer (dunia) > #character, dan overlay #characterPickerOverlay (picker Male/Female)
+  style.css      # styling jendela kamera, dunia (skala/posisi diisi lewat JS), properti statis karakter,
+                 # & overlay picker karakter (tombol, tab gender, grid thumbnail)
+  script.js      # semua logic: sprite stepping, animasi jalan, kontrol keyboard, kamera mengikuti karakter,
+                 # picker ganti karakter
   img/
     character/
       Male/      # sprite sheet karakter pria — banyak varian (01 s/d ~25+), tiap nomor
@@ -45,7 +48,7 @@ Tiap file adalah **satu sprite sheet 3 kolom × 4 baris**, ukuran asli 96×128px
 
 Kolom: **0 & 2** = pose kaki melangkah (kiri/kanan), **1 (tengah)** = pose idle/diam — dipakai juga sbg frame "netral" di tengah siklus animasi jalan.
 
-Prototype ini baru pakai **satu file hardcoded**: `img/character/Male/Male 01-1.png` (dikonfigurasi lewat konstanta `SPRITE_SRC` di `script.js`). Varian lain (nomor 02, 03, dst., suffix `-2`/`-3`/`-4`, dan seluruh isi `Female/`) belum dipakai sama sekali — belum ada UI pilih karakter (lihat "Rencana / TODO").
+Default saat load pertama: `img/character/Male/Male 01-1.png` (`currentGender`/`currentFile` di `script.js`, awalnya `"Male"`/`CHARACTER_FILES.Male[0]`). Semua varian lain (nomor 02 s/d 18 utk Male, 02 s/d 25 utk Female, suffix `-2`/`-3`/`-4`) sudah bisa dipilih lewat picker "Ganti Karakter" (lihat "Ganti karakter").
 
 `Male/`/`Female/` awalnya langsung di dalam `img/` (sejajar), dipindah ke dalam `img/character/` supaya `img/` bisa menampung jenis aset lain ke depan (tile map, objek, UI, dll.) tanpa tercampur rata dgn sprite karakter.
 
@@ -79,13 +82,23 @@ Dua layer terpisah — dipisah krn kamera & dunia butuh digeser independen dari 
 - **Clamp ke tepi dunia**: `targetCamX/Y` di-clamp ke `[0, WORLD_WIDTH/HEIGHT - viewport]` — kalau karakter jalan ke pojok dunia, kamera berhenti di tepi (tidak menampilkan area kosong di luar `#worldLayer`), jadi karakter TIDAK selalu pas di tengah persis di dekat tepi dunia (perilaku standar kamera game tile, bukan bug).
 - **Saat load pertama**: kamera langsung dipasang pas di tengah karakter tanpa animasi "mengejar" (`init()` set `camX`/`camY` langsung ke target, tidak lewat `updateCamera`) — smoothing cuma kerasa pas karakter mulai/berhenti gerak, bukan pas halaman pertama dibuka.
 
+## Ganti karakter (`#changeCharacterBtn`, `#characterPickerOverlay`)
+
+- Tombol **"🧑 Ganti Karakter"** di atas jendela game membuka overlay picker (`characterPickerOverlay.classList.add("open")` — pola show/hide sama spt modal umum, `display:none` default lalu `.open` jadi `flex`).
+- **Tab gender** (Pria/Wanita, `.gender-tab[data-gender]`) menentukan `pickerGender` — daftar yang ditampilkan di grid, **belum tentu** karakter yang lagi dipakai (`currentGender`/`currentFile`). Ganti tab cuma ganti apa yang ditampilkan; karakter beneran baru berubah begitu user klik salah satu thumbnail.
+- **Grid thumbnail** (`renderCharacterGrid()`) dibangun murni dari JS (bukan hardcode di HTML) krn jumlahnya banyak (69 file Male + 91 file Female). Tiap thumbnail adalah `<button>` kosong dgn `background-image` = sprite sheet file itu sendiri, `background-position` di-crop ke pose **idle menghadap bawah** (baris 0, kolom tengah — sama spt pose awal karakter) lewat `THUMB_SIZE` (48px, terpisah dari `FRAME` karakter sungguhan) — jadi tidak perlu file preview/thumbnail terpisah, cukup 1 file sprite sheet dipakai dobel (karakter & preview-nya sendiri).
+- **Sumber daftar file** (`CHARACTER_FILES.Male`/`.Female`): ditulis eksplisit sbg array literal di `script.js`, **bukan** digenerate dari pola angka (mis. `for i in 1..25`) — krn tidak semua nomor punya keempat varian `-1/-2/-3/-4` lengkap (mis. `Male 18` & `Female 23/24/25` cuma py `-1`). Kalau nanti ada file baru ditambah ke `img/character/Male|Female/`, array ini **harus diupdate manual** biar muncul di picker (tidak otomatis ke-detect, krn JS di browser tidak bisa listing folder di static hosting/`file://`).
+- Klik thumbnail → `setCharacterSprite(gender, file)` (update `currentGender`/`currentFile` + `character.style.backgroundImage`) lalu overlay langsung tertutup (`closeCharacterPicker()`) — tidak ada tombol "Terapkan" terpisah, pilih = langsung pakai.
+- **Tidak disimpan** (localStorage/Firebase) — ganti karakter cuma di memori, balik ke default Male 01-1 tiap reload halaman, konsisten dgn prototype ini yang memang belum ada persistensi sama sekali (lihat "Rencana / TODO ke depan").
+- Ukuran (`FRAME`)/`background-size` karakter **tidak berubah** saat ganti sprite — semua file di `CHARACTER_FILES` dijamin format sama (32×32/frame, 3 kolom × 4 baris), jadi cukup ganti `background-image` saja tanpa perlu resize apa pun.
+
 ## Kenapa bukan CSS `@keyframes` / sprite animation library
 
 Animasi frame (ganti `background-position`) dan pergerakan (`transform: translate`) sama-sama didorong dari JS `requestAnimationFrame`, bukan CSS `@keyframes` — karena animasi jalan **harus start/stop persis mengikuti tombol ditekan/dilepas** (bukan animasi berulang otomatis), dan arah (baris sprite) berubah dinamis tergantung input. `@keyframes` cocok utk animasi yang bentuknya tetap/predictable, kurang cocok utk kontrol interaktif seperti ini.
 
 ## Rencana / TODO ke depan
 
-- **Pilih karakter**: UI utk memilih dari `img/character/Male/`/`img/character/Female/` (banyak nomor & varian outfit) — saat ini masih hardcode `Male 01-1.png` di `SPRITE_SRC`.
+- **Pilih karakter**: sudah ada (lihat "Ganti karakter") — belum ada: pilihan tersimpan (reset ke Male 01-1 tiap reload), dan daftar file di `CHARACTER_FILES` harus diupdate manual kalau ada sprite baru ditambahkan.
 - **Map/level**: sudah pakai gambar map sungguhan (`img/samplemap.png`, lihat "Map dunia") & kamera mengikuti karakter **sudah ada** (lihat "Kamera mengikuti karakter") — tapi belum ada collision (karakter bisa jalan tembus sungai/rumah di gambar map), belum ada tile map berbasis data (posisi objek/bangunan tidak diketahui program, cuma gambar statis), dan `img/tileset/` masih kosong (belum dipakai).
 - **Kontrol mobile**: kontrol saat ini keyboard-only (Arrow/WASD) — belum ada on-screen d-pad/joystick utk HP, walau prototype dibuka lewat browser mobile.
 - Belum ada Firebase/data tersimpan — murni prototype client-side, tidak ada progres yang dipersist.

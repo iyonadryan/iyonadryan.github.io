@@ -5,12 +5,75 @@
   // Sprite sheet karakter: 3 kolom x 4 baris, tiap frame 32x32px asli.
   // Baris:  0 = jalan bawah, 1 = jalan kiri, 2 = jalan kanan, 3 = jalan atas
   // Kolom:  0 & 2 = kaki melangkah, 1 = tengah/idle (dipakai juga sbg pose diam)
-  const SPRITE_SRC = "img/character/Male/Male 01-1.png";
+  // Semua file di CHARACTER_FILES (lihat bawah) sama persis formatnya
+  // (32x32/frame, 3x4), jadi ganti karakter cuma perlu ganti backgroundImage.
   const FRAME_SRC = 32; // px, ukuran asli 1 frame di file PNG
   const SHEET_COLS = 3;
   const SHEET_ROWS = 4;
   const SCALE = 1.5; // pixel-art diperbesar 1.5x biar keliatan jelas di layar
   const FRAME = FRAME_SRC * SCALE; // ukuran 1 frame setelah discale (48px)
+
+  // Daftar semua file sprite yang tersedia per gender, dari isi folder
+  // img/character/Male & img/character/Female apa adanya (banyak file tidak
+  // punya keempat varian -1/-2/-3/-4 lengkap, mis. "Male 18" cuma ada -1) —
+  // makanya daftarnya ditulis apa adanya sbg data, bukan digenerate dari pola
+  // angka yang diasumsikan.
+  const CHARACTER_FILES = {
+    Male: [
+      "Male 01-1.png", "Male 01-2.png", "Male 01-3.png", "Male 01-4.png",
+      "Male 02-1.png", "Male 02-2.png", "Male 02-3.png", "Male 02-4.png",
+      "Male 03-1.png", "Male 03-2.png", "Male 03-3.png", "Male 03-4.png",
+      "Male 04-1.png", "Male 04-2.png", "Male 04-3.png", "Male 04-4.png",
+      "Male 05-1.png", "Male 05-2.png", "Male 05-3.png", "Male 05-4.png",
+      "Male 06-1.png", "Male 06-2.png", "Male 06-3.png", "Male 06-4.png",
+      "Male 07-1.png", "Male 07-2.png", "Male 07-3.png", "Male 07-4.png",
+      "Male 08-1.png", "Male 08-2.png", "Male 08-3.png", "Male 08-4.png",
+      "Male 09-1.png", "Male 09-2.png", "Male 09-3.png", "Male 09-4.png",
+      "Male 10-1.png", "Male 10-2.png", "Male 10-3.png", "Male 10-4.png",
+      "Male 11-1.png", "Male 11-2.png", "Male 11-3.png", "Male 11-4.png",
+      "Male 12-1.png", "Male 12-2.png", "Male 12-3.png", "Male 12-4.png",
+      "Male 13-1.png", "Male 13-2.png", "Male 13-3.png", "Male 13-4.png",
+      "Male 14-1.png", "Male 14-2.png", "Male 14-3.png", "Male 14-4.png",
+      "Male 15-1.png", "Male 15-2.png", "Male 15-3.png", "Male 15-4.png",
+      "Male 16-1.png", "Male 16-2.png", "Male 16-3.png", "Male 16-4.png",
+      "Male 17-1.png", "Male 17-2.png", "Male 17-3.png", "Male 17-4.png",
+      "Male 18-1.png",
+    ],
+    Female: [
+      "Female 01-1.png", "Female 01-2.png", "Female 01-3.png", "Female 01-4.png",
+      "Female 02-1.png", "Female 02-2.png", "Female 02-3.png", "Female 02-4.png",
+      "Female 03-1.png", "Female 03-2.png", "Female 03-3.png", "Female 03-4.png",
+      "Female 04-1.png", "Female 04-2.png", "Female 04-3.png", "Female 04-4.png",
+      "Female 05-1.png", "Female 05-2.png", "Female 05-3.png", "Female 05-4.png",
+      "Female 06-1.png", "Female 06-2.png", "Female 06-3.png", "Female 06-4.png",
+      "Female 07-1.png", "Female 07-2.png", "Female 07-3.png", "Female 07-4.png",
+      "Female 08-1.png", "Female 08-2.png", "Female 08-3.png", "Female 08-4.png",
+      "Female 09-1.png", "Female 09-2.png", "Female 09-3.png", "Female 09-4.png",
+      "Female 10-1.png", "Female 10-2.png", "Female 10-3.png", "Female 10-4.png",
+      "Female 11-1.png", "Female 11-2.png", "Female 11-3.png", "Female 11-4.png",
+      "Female 12-1.png", "Female 12-2.png", "Female 12-3.png", "Female 12-4.png",
+      "Female 13-1.png", "Female 13-2.png", "Female 13-3.png", "Female 13-4.png",
+      "Female 14-1.png", "Female 14-2.png", "Female 14-3.png", "Female 14-4.png",
+      "Female 15-1.png", "Female 15-2.png", "Female 15-3.png", "Female 15-4.png",
+      "Female 16-1.png", "Female 16-2.png", "Female 16-3.png", "Female 16-4.png",
+      "Female 17-1.png", "Female 17-2.png", "Female 17-3.png", "Female 17-4.png",
+      "Female 18-1.png", "Female 18-2.png", "Female 18-3.png", "Female 18-4.png",
+      "Female 19-1.png", "Female 19-2.png", "Female 19-3.png", "Female 19-4.png",
+      "Female 20-1.png", "Female 20-2.png", "Female 20-3.png", "Female 20-4.png",
+      "Female 21-1.png", "Female 21-2.png", "Female 21-3.png", "Female 21-4.png",
+      "Female 22-1.png", "Female 22-2.png", "Female 22-3.png", "Female 22-4.png",
+      "Female 23-1.png", "Female 24-1.png", "Female 25-1.png",
+    ],
+  };
+  const THUMB_SIZE = 48; // px, ukuran tiap kotak preview di grid pilih karakter
+
+  function characterPath(gender, file) {
+    return `img/character/${gender}/${file}`;
+  }
+
+  let currentGender = "Male"; // gender karakter yang lagi dipakai
+  let currentFile = CHARACTER_FILES.Male[0]; // file spesifik yang lagi dipakai
+  let pickerGender = currentGender; // tab gender yang lagi ditampilkan di picker (belum tentu dipakai)
 
   const ROW = { down: 0, left: 1, right: 2, up: 3 };
 
@@ -48,6 +111,12 @@
   const character = document.getElementById("character");
   const viewport = document.getElementById("gameWorld");
   const worldLayer = document.getElementById("worldLayer");
+
+  const changeCharacterBtn = document.getElementById("changeCharacterBtn");
+  const characterPickerOverlay = document.getElementById("characterPickerOverlay");
+  const closePickerBtn = document.getElementById("closePickerBtn");
+  const genderTabs = document.getElementById("genderTabs");
+  const characterGrid = document.getElementById("characterGrid");
 
   let x = 0; // posisi karakter dalam koordinat dunia (bukan koordinat layar)
   let y = 0;
@@ -158,6 +227,64 @@
     setSpriteFrame(ROW[facing], WALK_FRAMES[walkFrameIndex]);
   }
 
+  // ================= Ganti karakter (picker Male/Female) =================
+  function setCharacterSprite(gender, file) {
+    currentGender = gender;
+    currentFile = file;
+    character.style.backgroundImage = `url("${characterPath(gender, file)}")`;
+  }
+
+  // Isi ulang grid thumbnail sesuai tab gender yang lagi ditampilkan
+  // (pickerGender) — tiap thumbnail nge-crop pose idle-bawah (baris 0,
+  // kolom tengah) dari sprite sheet-nya sendiri lewat background-position,
+  // jadi tidak perlu file preview terpisah.
+  function renderCharacterGrid() {
+    characterGrid.innerHTML = "";
+    CHARACTER_FILES[pickerGender].forEach((file) => {
+      const thumb = document.createElement("button");
+      thumb.type = "button";
+      thumb.className = "character-thumb";
+      if (pickerGender === currentGender && file === currentFile) {
+        thumb.classList.add("selected");
+      }
+      thumb.title = file.replace(".png", "");
+      thumb.style.backgroundImage = `url("${characterPath(pickerGender, file)}")`;
+      thumb.style.backgroundSize = `${THUMB_SIZE * SHEET_COLS}px ${THUMB_SIZE * SHEET_ROWS}px`;
+      thumb.style.backgroundPosition = `-${IDLE_FRAME * THUMB_SIZE}px -${ROW.down * THUMB_SIZE}px`;
+      thumb.addEventListener("click", () => {
+        setCharacterSprite(pickerGender, file);
+        closeCharacterPicker();
+      });
+      characterGrid.appendChild(thumb);
+    });
+  }
+
+  function openCharacterPicker() {
+    pickerGender = currentGender;
+    genderTabs.querySelectorAll(".gender-tab").forEach((tab) => {
+      tab.classList.toggle("active", tab.dataset.gender === pickerGender);
+    });
+    renderCharacterGrid();
+    characterPickerOverlay.classList.add("open");
+  }
+
+  function closeCharacterPicker() {
+    characterPickerOverlay.classList.remove("open");
+  }
+
+  changeCharacterBtn.addEventListener("click", openCharacterPicker);
+  closePickerBtn.addEventListener("click", closeCharacterPicker);
+  characterPickerOverlay.addEventListener("click", (e) => {
+    if (e.target === characterPickerOverlay) closeCharacterPicker();
+  });
+  genderTabs.querySelectorAll(".gender-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      pickerGender = tab.dataset.gender;
+      genderTabs.querySelectorAll(".gender-tab").forEach((t) => t.classList.toggle("active", t === tab));
+      renderCharacterGrid();
+    });
+  });
+
   let lastTime = 0;
   function loop(time) {
     // Normalisasi delta time ke satuan "per frame 60fps" supaya SPEED tetap
@@ -175,7 +302,7 @@
   function init() {
     character.style.width = `${FRAME}px`;
     character.style.height = `${FRAME}px`;
-    character.style.backgroundImage = `url("${SPRITE_SRC}")`;
+    character.style.backgroundImage = `url("${characterPath(currentGender, currentFile)}")`;
     character.style.backgroundSize = `${FRAME * SHEET_COLS}px ${FRAME * SHEET_ROWS}px`;
 
     worldLayer.style.width = `${WORLD_WIDTH}px`;

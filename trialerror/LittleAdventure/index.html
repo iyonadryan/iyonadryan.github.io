@@ -9,10 +9,26 @@
 <body>
   <h1>Little Adventure</h1>
   <p class="hint">Gerakkan karakter pakai tombol panah atau W A S D</p>
+  <button type="button" id="changeCharacterBtn" class="change-character-btn">🧑 Ganti Karakter</button>
 
   <div id="gameWorld">
     <div id="worldLayer">
       <div class="character" id="character"></div>
+    </div>
+  </div>
+
+  <!-- ===================== OVERLAY: PILIH KARAKTER ===================== -->
+  <div class="character-picker-overlay" id="characterPickerOverlay">
+    <div class="character-picker-sheet">
+      <div class="picker-header">
+        <h2>Pilih Karakter</h2>
+        <button type="button" class="picker-close-btn" id="closePickerBtn">✕</button>
+      </div>
+      <div class="gender-tabs" id="genderTabs">
+        <button type="button" class="gender-tab active" data-gender="Male">Pria</button>
+        <button type="button" class="gender-tab" data-gender="Female">Wanita</button>
+      </div>
+      <div class="character-grid" id="characterGrid"></div>
     </div>
   </div>
 
