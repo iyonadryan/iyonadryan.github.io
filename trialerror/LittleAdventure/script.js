@@ -83,6 +83,7 @@
   const IDLE_FRAME = 1;
   const FRAME_DURATION = 140; // ms per pergantian frame animasi jalan
   const SPEED = 2.4; // px per frame animasi (~60fps) saat bergerak
+  const WALK_SLOW_FACTOR = 0.5; // dikali ke SPEED, dibagi ke FRAME_DURATION saat Shift ditahan (jalan pelan)
 
   // ================= Konfigurasi peta dunia =================
   // Gambar peta (persegi, hasil tile map) — diskalakan pakai SCALE yang SAMA
@@ -118,6 +119,10 @@
   const genderTabs = document.getElementById("genderTabs");
   const characterGrid = document.getElementById("characterGrid");
 
+  const chatInput = document.getElementById("chatInput");
+  const speechBubble = document.getElementById("speechBubble");
+  const BUBBLE_DURATION = 4000; // ms, bubble ilang otomatis stlh sekian lama
+
   let x = 0; // posisi karakter dalam koordinat dunia (bukan koordinat layar)
   let y = 0;
   let camX = 0; // posisi kamera (pojok kiri-atas jendela) dalam koordinat dunia
@@ -133,6 +138,10 @@
   // arah terakhir, dan begitu dilepas otomatis balik ke arah sebelumnya yang
   // masih ditahan (bukan langsung berhenti total).
   let heldDirections = [];
+
+  // Tahan Shift = jalan pelan (mode "sneak/walk"). Kecepatan gerak & animasi
+  // sama-sama diperlambat setengah kali lipat (dikali 0.5) selagi ditahan.
+  let shiftHeld = false;
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -150,6 +159,7 @@
   }
 
   window.addEventListener("keydown", (e) => {
+    if (document.activeElement === chatInput) return; // lagi ngetik chat, jangan dianggap tombol gerak
     const dir = KEY_TO_DIR[e.key];
     if (!dir) return;
     e.preventDefault(); // tombol panah jangan sampai scroll halaman
@@ -162,10 +172,20 @@
     removeDirection(dir);
   });
 
+  window.addEventListener("keydown", (e) => {
+    if (document.activeElement === chatInput) return; // lagi ngetik chat, jangan dianggap tombol jalan-pelan
+    if (e.key === "Shift") shiftHeld = true;
+  });
+
+  window.addEventListener("keyup", (e) => {
+    if (e.key === "Shift") shiftHeld = false;
+  });
+
   // Kalau window kehilangan fokus (alt-tab dll), lepas semua tombol supaya
   // karakter tidak "nyangkut" jalan terus walau tombolnya sudah tidak ditekan.
   window.addEventListener("blur", () => {
     heldDirections = [];
+    shiftHeld = false;
   });
 
   function setSpriteFrame(row, col) {
@@ -178,7 +198,8 @@
     if (!moving) return;
 
     facing = dir;
-    const dist = SPEED * dt;
+    const speed = shiftHeld ? SPEED * WALK_SLOW_FACTOR : SPEED;
+    const dist = speed * dt;
     if (dir === "up") y -= dist;
     if (dir === "down") y += dist;
     if (dir === "left") x -= dist;
@@ -220,7 +241,10 @@
       return;
     }
 
-    if (time - lastWalkFrameTime >= FRAME_DURATION) {
+    // Shift ditahan -> animasi jalan ikut diperlambat (durasi per frame dibagi
+    // WALK_SLOW_FACTOR, bukan dikali, krn makin besar durasi = makin lambat).
+    const frameDuration = shiftHeld ? FRAME_DURATION / WALK_SLOW_FACTOR : FRAME_DURATION;
+    if (time - lastWalkFrameTime >= frameDuration) {
       walkFrameIndex = (walkFrameIndex + 1) % WALK_FRAMES.length;
       lastWalkFrameTime = time;
     }
@@ -283,6 +307,76 @@
       genderTabs.querySelectorAll(".gender-tab").forEach((t) => t.classList.toggle("active", t === tab));
       renderCharacterGrid();
     });
+  });
+
+  // ================= Ngomong (chat bubble) =================
+  const BUBBLE_MAX_CHARS_PER_LINE = 30;
+  let bubbleHideTimer = null;
+
+  function openChatInput() {
+    chatInput.hidden = false;
+    chatInput.value = "";
+    chatInput.focus();
+  }
+
+  function closeChatInput() {
+    chatInput.hidden = true;
+    chatInput.blur();
+  }
+
+  // Pecah teks jadi baris maks BUBBLE_MAX_CHARS_PER_LINE karakter, greedy
+  // word-wrap (pecah di spasi selama muat). Kata yang sendirian sudah lebih
+  // panjang dari batas (jarang, tapi bisa terjadi) dipaksa dipotong per
+  // BUBBLE_MAX_CHARS_PER_LINE juga, supaya tidak ada satu baris pun yang
+  // kepanjangan.
+  function wrapText(text, maxChars) {
+    const words = text.split(/\s+/).filter(Boolean);
+    const lines = [];
+    let current = "";
+    words.forEach((word) => {
+      if (word.length > maxChars) {
+        if (current) {
+          lines.push(current);
+          current = "";
+        }
+        for (let i = 0; i < word.length; i += maxChars) {
+          lines.push(word.slice(i, i + maxChars));
+        }
+        return;
+      }
+      const candidate = current ? `${current} ${word}` : word;
+      if (candidate.length > maxChars) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = candidate;
+      }
+    });
+    if (current) lines.push(current);
+    return lines;
+  }
+
+  function showSpeechBubble(text) {
+    speechBubble.textContent = wrapText(text, BUBBLE_MAX_CHARS_PER_LINE).join("\n");
+    speechBubble.classList.add("visible");
+    clearTimeout(bubbleHideTimer);
+    bubbleHideTimer = setTimeout(() => {
+      speechBubble.classList.remove("visible");
+    }, BUBBLE_DURATION);
+  }
+
+  // Enter di luar chat input = buka input; Enter di dalam chat input = submit
+  // (tutup input, tampilkan bubble kalau ada teksnya, batal kalau kosong).
+  window.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    if (document.activeElement === chatInput) {
+      const text = chatInput.value.trim();
+      closeChatInput();
+      if (text) showSpeechBubble(text);
+    } else {
+      openChatInput();
+    }
   });
 
   let lastTime = 0;

@@ -12,6 +12,7 @@
 }
 
 body {
+  position: relative; /* containing block utk .game-header (position: absolute) */
   margin: 0;
   min-height: 100vh;
   display: flex;
@@ -23,6 +24,23 @@ body {
   background: var(--bg-sky);
   font-family: "Pixelify Sans", "Segoe UI", system-ui, sans-serif;
   color: var(--text-dark);
+}
+
+/* Absolute & nempel di atas — sengaja DIKELUARKAN dari alur flex body, biar
+   cuma .game-stage (isinya #gameWorld) yang dihitung body saat nge-center
+   (justify-content), jadi kotak game selalu pas di tengah layar apa pun
+   tinggi header ini. */
+.game-header {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 0 16px;
 }
 
 /* <button> tidak otomatis ikut font-family body di browser manapun (aturan
@@ -38,9 +56,13 @@ h1 {
 }
 
 .hint {
-  margin: 0;
   font-size: 14px;
   opacity: 0.75;
+  text-align: center;
+}
+
+.hint p {
+  margin: 0;
 }
 
 .change-character-btn {
@@ -57,6 +79,41 @@ h1 {
 
 .change-character-btn:hover {
   filter: brightness(1.08);
+}
+
+/* Bungkus #gameWorld + #chatInput — satu-satunya anak yg ikut alur normal
+   adalah #gameWorld (#chatInput di-absolute-kan, lihat bawah), jadi ukuran
+   .game-stage otomatis ngikut ukuran #gameWorld saja & tetap jadi flex-item
+   tunggal yang di-center body (sama prinsipnya dgn kenapa .game-header
+   dikeluarkan dari alur — lihat komentar di situ). */
+.game-stage {
+  position: relative;
+}
+
+/* Absolute nempel di BAWAH #gameWorld (bukan child #gameWorld — sengaja di
+   luar, krn #gameWorld pakai overflow:hidden yang bakal motong apa pun yg
+   nongol di luar batas kotaknya). Muncul/hilangnya (toggle "hidden" via JS)
+   TIDAK menggeser posisi #gameWorld sama sekali krn tetap di luar alur. */
+.chat-input {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 12px;
+  width: 100%;
+  max-width: 480px;
+  padding: 8px 14px;
+  border: 2px solid var(--accent);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-dark);
+  background: var(--surface);
+}
+
+.chat-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent);
 }
 
 /* "Jendela" kamera — ukuran tetap, cuma menampilkan sepotong #worldLayer
@@ -98,6 +155,52 @@ h1 {
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   will-change: transform;
+}
+
+/* Bubble chat — child dari .character, jadi otomatis ikut posisi karakter
+   (gerak & kena geser kamera bareng) tanpa perlu hitung posisi manual.
+   Disembunyikan lewat opacity (bukan display:none) supaya bisa di-transisi
+   smooth saat muncul/hilang. */
+.speech-bubble {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translateX(-50%) translateY(-8px);
+  /* width: max-content WAJIB ada — tanpa ini, elemen absolute dgn cuma
+     "left" (tanpa "right") & width:auto menghitung shrink-to-fit dari sisa
+     ruang containing block (.character, cuma 48px lebar) sbg "lebar
+     tersedia", bukan dari max-width di bawah — hasilnya baris ke-wrap
+     ekstrem tiap 2-3 karakter (bug nyata yg ketemu). max-content memaksa
+     lebar dihitung dari kontennya sendiri, max-width tetap jadi batas atas. */
+  width: max-content;
+  min-width: 40px;
+  max-width: 32ch; /* baris teksnya sendiri sudah di-wrap manual maks 30 char (lihat wrapText() di script.js), 32ch cuma buffer */
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-dark);
+  font-size: 12px;
+  text-align: center;
+  white-space: pre-line; /* hormati "\n" hasil wrapText(), tapi tetap boleh reflow kalau ternyata masih kepanjangan */
+  word-break: break-word;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.speech-bubble::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--surface);
+}
+
+.speech-bubble.visible {
+  opacity: 1;
 }
 
 /* ================= Overlay pilih karakter ================= */

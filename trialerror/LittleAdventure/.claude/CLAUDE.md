@@ -17,12 +17,15 @@ Prototype game petualangan 2D pixel-art di `trialerror/LittleAdventure/`. Tahap 
 
 ```
 LittleAdventure/
-  index.html     # halaman prototype — judul, hint kontrol, tombol Ganti Karakter, #gameWorld (kamera) >
-                 # #worldLayer (dunia) > #character, dan overlay #characterPickerOverlay (picker Male/Female)
+  index.html     # halaman prototype — .game-header (judul, hint kontrol, tombol Ganti Karakter — absolute,
+                 # nempel atas, lihat "Layout: header vs #gameWorld"), .game-stage (#gameWorld/kamera >
+                 # #worldLayer/dunia > #character > #speechBubble, PLUS #chatInput ngomong — absolute,
+                 # nempel di BAWAH #gameWorld, lihat "Layout"), dan overlay #characterPickerOverlay
+                 # (picker Male/Female)
   style.css      # styling jendela kamera, dunia (skala/posisi diisi lewat JS), properti statis karakter,
-                 # & overlay picker karakter (tombol, tab gender, grid thumbnail)
+                 # overlay picker karakter (tombol, tab gender, grid thumbnail), input chat, & speech bubble
   script.js      # semua logic: sprite stepping, animasi jalan, kontrol keyboard, kamera mengikuti karakter,
-                 # picker ganti karakter
+                 # picker ganti karakter, fitur ngomong (chat bubble)
   img/
     character/
       Male/      # sprite sheet karakter pria — banyak varian (01 s/d ~25+), tiap nomor
@@ -35,6 +38,17 @@ LittleAdventure/
 ```
 
 Belum ada build tool — cukup buka `index.html` langsung di browser (tidak butuh Firebase/server, murni client-side).
+
+## Layout: `.game-header` & `#chatInput` vs `#gameWorld` (`style.css`)
+
+`body` masih `display:flex; flex-direction:column; align-items:center; justify-content:center;` spy `#gameWorld` (jendela kamera, dibungkus `.game-stage`) selalu **pas di tengah layar** — tapi `.game-header` (judul, hint kontrol, tombol Ganti Karakter) sengaja **dikeluarkan dari alur flex itu** lewat `position: absolute; top: 24px; left: 50%; transform: translateX(-50%);` (containing block-nya `body`, yang dikasih `position: relative` khusus utk ini).
+
+Alasan: kalau header ikut jadi flex child biasa (spt sebelumnya), `justify-content: center` di `body` nge-center **seluruh grup** (header + gameWorld) sbg satu blok — akibatnya `#gameWorld` sendiri tidak pas di tengah layar, geser ke bawah sejumlah tinggi header. Dgn header di-absolute-kan (dikeluarkan dari flow), `.game-stage` jadi **satu-satunya** flex child yang dihitung body, jadi `justify-content: center` bisa nge-center `#gameWorld` itu sendiri persis di tengah, apa pun tinggi header di atasnya (nambah/ngurangin baris hint tidak akan menggeser posisi `#gameWorld`).
+
+`.game-header` sendiri tetap `display:flex; flex-direction:column; align-items:center;` di dalam dirinya sendiri (buat nyusun h1/hint/tombol vertikal & center horizontal) — cuma **posisinya** thd `body` yang absolute, bukan strukturnya di dalam.
+
+**`#chatInput` pakai pola sama persis, tapi nempel di BAWAH `#gameWorld`** (bukan di header): dibungkus `.game-stage` (`position: relative`, satu-satunya anak alur-normalnya cuma `#gameWorld`, jadi ukurannya otomatis ngikut ukuran `#gameWorld` doang) bareng `#gameWorld`, lalu `#chatInput` diposisikan `position: absolute; top: 100%; left: 50%; transform: translateX(-50%);` relatif ke `.game-stage`. Efeknya: toggle `hidden` (muncul/hilang tiap buka/tutup chat) **tidak pernah menggeser posisi `#gameWorld`** — persis krn `#chatInput` sudah dikeluarkan dari alur normal, sama prinsipnya dgn `.game-header`.
+- **Kenapa `#chatInput` BUKAN child `#gameWorld` langsung** (padahal `#gameWorld` juga sudah `position: relative`): `#gameWorld` punya `overflow: hidden` (dipakai buat motong `#worldLayer` yg jauh lebih besar, lihat "Kamera mengikuti karakter") — kalau `#chatInput` ditaruh sbg child-nya dgn `top:100%` (di luar batas kotak 320px tingginya), otomatis ke-clip/hilang krn `overflow:hidden` ikut motong descendant yg posisinya di luar box, bukan cuma `#worldLayer`. Makanya `#chatInput` ditaruh sbg **sibling** `#gameWorld` (sama-sama child `.game-stage`), bukan descendant-nya.
 
 ## Aset karakter (`img/character/Male/`, `img/character/Female/`)
 
@@ -62,7 +76,14 @@ Default saat load pertama: `img/character/Male/Male 01-1.png` (`currentGender`/`
 - **Multi-tombol ditahan sekaligus**: `heldDirections` adalah **array berurutan** (bukan `Set`) — arah yang dipakai gerak/animasi selalu elemen **paling akhir** (paling baru ditekan & masih ditahan). Efeknya: kalau user menekan Kanan lalu (tanpa lepas) menekan Atas, karakter langsung menghadap/jalan Atas; begitu Atas dilepas, otomatis balik jalan Kanan (bukan berhenti total) selama Kanan masih ditahan. Dilepas semua → berhenti & idle.
 - **Loop gerak**: satu `requestAnimationFrame` loop (`loop()`), delta time dinormalisasi ke satuan "per frame 60fps" (`dt = (time - lastTime) / (1000/60)`) supaya `SPEED` (px per frame) konsisten di refresh rate layar berapa pun.
 - **Batas dunia**: posisi karakter (`x`, `y`) — dalam koordinat **dunia** (`#worldLayer`), bukan koordinat layar — di-clamp ke `[0, WORLD_WIDTH/HEIGHT - FRAME]` tiap frame gerak, jadi karakter tidak bisa jalan keluar gambar map.
-- **Kehilangan fokus window**: listener `blur` mengosongkan `heldDirections` supaya karakter tidak "nyangkut" jalan terus kalau user pindah tab/app saat tombol masih dianggap tertekan oleh browser.
+- **Kehilangan fokus window**: listener `blur` mengosongkan `heldDirections` (& `shiftHeld`, lihat "Jalan pelan") supaya karakter tidak "nyangkut" jalan terus kalau user pindah tab/app saat tombol masih dianggap tertekan oleh browser.
+
+### Jalan pelan (tahan Shift)
+
+- Tahan **Shift** selagi jalan → `shiftHeld = true` (listener `keydown`/`keyup` terpisah dari `KEY_TO_DIR`, krn Shift bukan tombol arah). Baik **kecepatan gerak** (`updateMovement`) maupun **kecepatan animasi jalan** (`updateAnimation`) ikut diperlambat bersamaan, sama-sama dikali `WALK_SLOW_FACTOR = 0.5` — permintaan eksplisit user supaya jalan pelan terlihat proporsional (bukan cuma gerakannya lambat tapi kaki masih "lari" cepat, atau sebaliknya).
+  - Gerak: `speed = shiftHeld ? SPEED * WALK_SLOW_FACTOR : SPEED` (dikalikan — makin kecil faktornya, makin lambat geraknya).
+  - Animasi: `frameDuration = shiftHeld ? FRAME_DURATION / WALK_SLOW_FACTOR : FRAME_DURATION` (**dibagi**, bukan dikali — durasi tiap frame perlu jadi lebih LAMA/besar supaya animasinya lebih lambat; `/0.5` = 2× durasi normal, senilai dgn "setengah kecepatan").
+- Guard `document.activeElement === chatInput` juga dipasang di keydown Shift (sama pola dgn tombol arah) — supaya Shift+huruf pas ngetik pesan (mis. bikin huruf kapital) tidak ke-anggap "mulai jalan pelan" begitu chat ditutup.
 
 ## Map dunia (`img/samplemap.png`, `#worldLayer`)
 
@@ -92,6 +113,18 @@ Dua layer terpisah — dipisah krn kamera & dunia butuh digeser independen dari 
 - Klik thumbnail → `setCharacterSprite(gender, file)` (update `currentGender`/`currentFile` + `character.style.backgroundImage`) lalu overlay langsung tertutup (`closeCharacterPicker()`) — tidak ada tombol "Terapkan" terpisah, pilih = langsung pakai.
 - **Tidak disimpan** (localStorage/Firebase) — ganti karakter cuma di memori, balik ke default Male 01-1 tiap reload halaman, konsisten dgn prototype ini yang memang belum ada persistensi sama sekali (lihat "Rencana / TODO ke depan").
 - Ukuran (`FRAME`)/`background-size` karakter **tidak berubah** saat ganti sprite — semua file di `CHARACTER_FILES` dijamin format sama (32×32/frame, 3 kolom × 4 baris), jadi cukup ganti `background-image` saja tanpa perlu resize apa pun.
+
+## Ngomong / chat bubble (`#chatInput`, `#speechBubble`)
+
+- **Tekan Enter** (kapan pun, selama fokus **bukan** di `#chatInput`) → buka `#chatInput` (`openChatInput()`: `hidden = false`, kosongkan value, `.focus()`). Input ini diposisikan **absolute nempel di bawah `#gameWorld`** (lihat "Layout" — sengaja bukan bagian alur normal, biar muncul/hilangnya tidak menggeser posisi kotak game).
+- **Tekan Enter lagi** (kali ini fokus **di dalam** `#chatInput`) → submit: input ditutup (`closeChatInput()`), lalu kalau teksnya tidak kosong, tampilkan `#speechBubble` berisi teks itu (`showSpeechBubble()`). Submit dgn input kosong = batal diam-diam (bubble tidak muncul).
+- **Satu listener `keydown` di `window`** menangani kedua kasus (buka vs submit) dgn cek `document.activeElement === chatInput` — bukan dua listener terpisah (satu di `window` utk buka, satu di `#chatInput` utk submit), krn kalau dipisah, event `keydown` Enter yang sama akan bubbling dari `#chatInput` ke `window` dan bisa memicu KEDUANYA di satu kali tekan (submit lalu langsung ke-buka lagi). Satu listener dgn branching menghindari masalah itu sekaligus.
+- **Bubble jadi child dari `#character`** (bukan child `#worldLayer`/`#gameWorld` terpisah) — otomatis ikut posisi & transform karakter (gerak, kena geser kamera) tanpa perlu hitung posisi manual sama sekali. Posisi CSS `bottom: 100%` (nempel pas di atas kepala karakter) + `left: 50%` & `transform: translateX(-50%)` (center horizontal).
+- **Auto-hilang** stlh `BUBBLE_DURATION` (4 detik, `setTimeout` + `clearTimeout` kalau ada bubble baru muncul sebelum yang lama hilang — jadi ngomong lagi sebelum 4 detik langsung reset timer-nya, bukan numpuk 2 timer). Disembunyikan lewat class `.visible` (`opacity`, ada transisi) — bukan `display`, spy bisa fade sederhana.
+- **Word-wrap manual maks 30 karakter/baris** (`BUBBLE_MAX_CHARS_PER_LINE`, fungsi `wrapText()`) — teks dipecah jadi array baris di JS (greedy, pecah di spasi selama muat; kata tunggal yg sendirinya udah lebih panjang dari 30 karakter dipaksa dipotong per 30 char) SEBELUM di-render, hasilnya digabung pakai `"\n"` lalu `speechBubble.textContent = ...`. CSS `.speech-bubble` diset `white-space: pre-line` (hormati `\n` manual ini) + `max-width: 32ch` (buffer dikit di atas 30 char, jaga-jaga variasi lebar karakter font). Sengaja **bukan** cuma andalkan CSS `max-width` + word-wrap otomatis browser — krn itu cuma "kira-kira" pas di lebar tertentu (tergantung lebar tiap huruf), sedangkan permintaan user spesifik "maks 30 karakter", bukan "kira-kira muat di sekian piksel".
+  - **Bug yang sempat kejadian & fix-nya**: pas awal diimplementasi, bubble malah ke-wrap tiap ~2-3 karakter (jauh lebih agresif dari 30), khususnya kalau isinya satu "kata" tanpa spasi (mis. ngetik berulang tanpa spasi). Penyebabnya BUKAN di `wrapText()` (itu sudah benar), tapi krn `.speech-bubble` posisinya `position: absolute` dgn cuma `left: 50%` (tanpa `right`) & `width` dibiarkan `auto` — utk elemen begini, spec CSS menghitung lebar shrink-to-fit dari SISA RUANG containing block (`.character`, cuma lebar `FRAME`=48px!), bukan dari `max-width` yang di-set. Hasilnya lebar efektif yang dipakai buat wrap jadi jauh lebih sempit dari 32ch yang dimaksud. **Fix**: tambah `width: max-content` eksplisit — ini memaksa lebar dihitung dari kontennya sendiri (bukan dari sisa ruang containing block), `max-width: 32ch` tetap jadi batas atas seperti niat awal. Pelajaran: elemen `position:absolute` dgn cuma satu offset (`left` **atau** `right`, bukan dua-duanya) + `width:auto` itu jebakan umum — kalau containing block-nya kecil, WAJIB kasih `width: max-content` (atau `width` eksplisit) kalau maksudnya mau shrink-to-fit ke konten, bukan ke containing block.
+- **Tombol gerak (Arrow/WASD) di-nonaktifkan sementara fokus di `#chatInput`** (guard `if (document.activeElement === chatInput) return;` di listener `keydown` gerak yang sudah ada) — supaya ngetik huruf "w"/"a"/"s"/"d" di pesan tidak ikut menggerakkan karakter. **Tidak** di-guard di listener `keyup` (melepas tombol yang kepencet sebelum fokus pindah ke input tetap harus dibersihkan dari `heldDirections`, apa pun status fokusnya).
+- **Belum ada** validasi panjang teks/emoji/sanitasi HTML (`textContent` dipakai, bukan `innerHTML`, jadi otomatis aman dari HTML injection) — juga belum ada riwayat chat atau multiplayer (chat cuma tampilan lokal, tidak dikirim ke mana pun).
 
 ## Kenapa bukan CSS `@keyframes` / sprite animation library
 

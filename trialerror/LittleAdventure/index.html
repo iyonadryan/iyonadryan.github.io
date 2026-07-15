@@ -10,14 +10,31 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Little Adventure</h1>
-  <p class="hint">Gerakkan karakter pakai tombol panah atau W A S D</p>
-  <button type="button" id="changeCharacterBtn" class="change-character-btn">🧑 Ganti Karakter</button>
-
-  <div id="gameWorld">
-    <div id="worldLayer">
-      <div class="character" id="character"></div>
+  <!-- Dipisah dari #gameWorld & diposisikan absolute (nempel di atas layar)
+       supaya TIDAK ikut dihitung flexbox body saat nge-center #gameWorld —
+       jadi kotak game selalu pas di tengah layar, apa pun tinggi header ini. -->
+  <div class="game-header">
+    <h1>Little Adventure</h1>
+    <div class="hint">
+      <p>— Gerakkan karakter pakai tombol panah atau W A S D</p>
+      <p>— Tekan Shift untuk jalan pelan</p>
+      <p>— Tekan Enter untuk ngomong</p>
     </div>
+    <button type="button" id="changeCharacterBtn" class="change-character-btn">🧑 Ganti Karakter</button>
+  </div>
+
+  <!-- #chatInput ditaruh di sini (bukan di .game-header) & diposisikan
+       absolute nempel di BAWAH #gameWorld — biar muncul/hilangnya tidak
+       menggeser posisi kotak game (lihat "Layout" di CLAUDE.md). -->
+  <div class="game-stage">
+    <div id="gameWorld">
+      <div id="worldLayer">
+        <div class="character" id="character">
+          <div class="speech-bubble" id="speechBubble"></div>
+        </div>
+      </div>
+    </div>
+    <input type="text" id="chatInput" class="chat-input" placeholder="Ketik pesan, lalu tekan Enter..." hidden>
   </div>
 
   <!-- ===================== OVERLAY: PILIH KARAKTER ===================== -->
