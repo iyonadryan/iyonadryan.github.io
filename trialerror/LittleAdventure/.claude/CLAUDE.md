@@ -17,27 +17,39 @@ Prototype game petualangan 2D pixel-art di `trialerror/LittleAdventure/`. Tahap 
 
 ```
 LittleAdventure/
-  index.html     # halaman prototype — .game-header (judul, hint kontrol, tombol Ganti Karakter — absolute,
-                 # nempel atas, lihat "Layout: header vs #gameWorld"), .game-stage (#gameWorld/kamera >
-                 # #worldLayer/dunia > #character > #speechBubble, PLUS #chatInput ngomong — absolute,
-                 # nempel di BAWAH #gameWorld, lihat "Layout"), dan overlay #characterPickerOverlay
-                 # (picker Male/Female)
-  style.css      # styling jendela kamera, dunia (skala/posisi diisi lewat JS), properti statis karakter,
-                 # overlay picker karakter (tombol, tab gender, grid thumbnail), input chat, & speech bubble
-  script.js      # semua logic: sprite stepping, animasi jalan, kontrol keyboard, kamera mengikuti karakter,
-                 # picker ganti karakter, fitur ngomong (chat bubble)
+  index.html         # halaman GAME — .game-header (judul, hint kontrol, tombol Ganti Karakter — absolute,
+                     # nempel atas, lihat "Layout: header vs #gameWorld"), .game-stage (#gameWorld/kamera >
+                     # #worldLayer/dunia > #character > #speechBubble, PLUS #chatInput ngomong — absolute,
+                     # nempel di BAWAH #gameWorld, lihat "Layout"), overlay #characterPickerOverlay
+                     # (picker Male/Female), & link ke tilemap.html
+  style.css          # styling khusus index.html (di atas)
+  script.js          # logic khusus index.html: sprite stepping, animasi jalan, kontrol keyboard, kamera
+                     # mengikuti karakter, picker ganti karakter, fitur ngomong (chat bubble)
+  tilemap.html       # halaman TERPISAH — editor tile map (lihat "Tilemap Editor"), tema gelap sendiri,
+                     # TIDAK menggunakan style.css/script.js milik index.html
+  tilemap-style.css  # styling khusus tilemap.html
+  tilemap-script.js  # logic khusus tilemap.html: layers, tools (brush/fill/erase), undo/redo, tileset
+                     # picker, save/load JSON, save/load Firebase, autosave localStorage
   img/
     character/
       Male/      # sprite sheet karakter pria — banyak varian (01 s/d ~25+), tiap nomor
                  # punya beberapa file -1/-2/-3/-4 (variasi warna/outfit sprite sheet yg sama)
       Female/    # sama pola dgn Male/, varian karakter wanita
-    samplemap.png  # gambar map dunia (1920×1920px) — dipakai sbg background #worldLayer
-    tileset/       # folder kosong, disiapkan utk tile individual ke depan — belum dipakai
+    samplemap.png  # gambar map dunia (1920×1920px) — dipakai sbg background #worldLayer di index.html
+                   # (statis, BEDA dari tileset editable di tilemap.html — lihat "Tilemap Editor")
+    tileset/       # aset tileset PIPO (32×32px/tile)
+      [Base]BaseChip_pipo.png  # DUPLIKAT file yg sama di SampleMap/ — TIDAK dipakai tilemap.html (lihat SampleMap/ di bawah, itu yg dipakai)
+      [A]_type1/, [A]_type2/, [A]_type3/  # varian animasi air/rumput per "musim"/tone warna — belum dipakai editor
+      SampleMap/     # ★ INI yang dipakai tilemap.html ★ — 8 file PNG (+ .tsx Tiled pendampingnya, tidak
+                     # dibaca tilemap.html, tilemap.html render sendiri bukan baca .tmx/.tsx) jadi 8 tab
+                     # tileset tetap di editor (`TILESET_TYPES` di tilemap-script.js): [Base]BaseChip_pipo.png,
+                     # LightShadow_pipo.png, [A]Dirt_pipo.png, [A]Flower_pipo.png, [A]Grass_pipo.png,
+                     # [A]Wall-Up_pipo.png, [A]Water_pipo.png, [A]WaterFall_pipo.png — lihat "Tileset panel"
   .claude/
     CLAUDE.md    # file ini
 ```
 
-Belum ada build tool — cukup buka `index.html` langsung di browser (tidak butuh Firebase/server, murni client-side).
+Belum ada build tool — cukup buka `index.html`/`tilemap.html` langsung di browser (tidak butuh server; Firebase dipakai opsional utk fitur simpan-ke-cloud, lihat "Tilemap Editor").
 
 ## Layout: `.game-header` & `#chatInput` vs `#gameWorld` (`style.css`)
 
@@ -137,6 +149,113 @@ Dua layer terpisah — dipisah krn kamera & dunia butuh digeser independen dari 
 - **Tombol gerak (Arrow/WASD) di-nonaktifkan sementara fokus di `#chatInput`** (guard `if (document.activeElement === chatInput) return;` di listener `keydown` gerak yang sudah ada) — supaya ngetik huruf "w"/"a"/"s"/"d" di pesan tidak ikut menggerakkan karakter. **Tidak** di-guard di listener `keyup` (melepas tombol yang kepencet sebelum fokus pindah ke input tetap harus dibersihkan dari `heldDirections`, apa pun status fokusnya).
 - **Belum ada** validasi panjang teks/emoji/sanitasi HTML (`textContent` dipakai, bukan `innerHTML`, jadi otomatis aman dari HTML injection) — juga belum ada riwayat chat atau multiplayer (chat cuma tampilan lokal, tidak dikirim ke mana pun).
 
+## Tilemap Editor (`tilemap.html`, `tilemap-style.css`, `tilemap-script.js`)
+
+Halaman **terpisah total** dari game (`index.html`) — link dua arah: tombol "🗺️ Tilemap Editor" di `.game-header` index.html → `tilemap.html`, dan link "← Kembali ke Little Adventure" di topbar `tilemap.html` → `index.html`. Dibuat terinspirasi [tilemapstudio.app](https://tilemapstudio.app/) (referensi UI: panel Layers kiri, kanvas+toolbar tengah, panel Tileset kanan), tapi versi jauh lebih sederhana (lihat "Beda dari referensi" di bawah).
+
+Di `index.html`, tombolnya sengaja ditaruh **sebaris & bersebelahan** dgn "🧑 Ganti Karakter" (dibungkus `.header-actions`, `display:flex`) — permintaan eksplisit user biar tombolnya keliatan jelas, bukan link teks kecil terpisah di bawahnya spt versi awal. Styling `.tilemap-link` sengaja **outline** (bukan solid spt `.change-character-btn`) supaya dua-duanya sama-sama jelas sbg tombol tapi "Ganti Karakter" (aksi utama saat main game) tetap terasa lebih menonjol drpd "Tilemap Editor" (tool terpisah, bukan bagian gameplay).
+
+**Kenapa file CSS/JS-nya dipisah dari `style.css`/`script.js` game** (`tilemap-style.css`/`tilemap-script.js`, bukan reuse): dua halaman ini punya kebutuhan UI & tema yang beda total (game = pixel-art/Pixelify Sans/light-blue sky; editor = tool padat teks/angka kecil, tema gelap, font sans-serif biasa spy lebih terbaca) dan tidak berbagi elemen DOM sama sekali — courtesy split biar tiap file tetap fokus ke satu halaman, bukan digabung terus isinya penuh pengecekan "kalau di halaman ini... kalau di halaman itu...".
+
+### Konsep & struktur data
+
+- **Tile size tetap 32×32px** (`TILE_SIZE`), sama persis di SEMUA tileset yg dipakai (lihat "Tileset panel — 8 tipe tetap" di bawah).
+- **Model data** (dipegang di `layers` array, tiap elemen 1 layer):
+  ```js
+  { name: "Background", visible: true, opacity: 1, tilesetType: "Base", tiles: number[] } // tiles: row-major, panjang mapWidth*mapHeight, isi = index tile (row*tilesetCols+col, KOLOM SPESIFIK TILESET tilesetType-nya sendiri) atau -1 (EMPTY/kosong)
+  ```
+  `layers[0]` = paling belakang/bawah (di-render duluan), index makin besar makin ke depan — tombol "↑ Naik" di panel Layers = pindah ke index lebih besar (ke depan), "↓ Turun" = kebalikannya. List UI di `#layerList` di-render **terbalik** (`for i = layers.length-1; i>=0; i--`) spy layer paling depan tampil PALING ATAS di list, meniru konvensi umum image editor (Photoshop dkk.).
+- **Rendering**: satu `<canvas>` per layer (native resolution `mapWidth*TILE_SIZE` × `mapHeight*TILE_SIZE`, DIBANGUN/DIHAPUS ULANG tiap kali jumlah/urutan layer atau ukuran map berubah — `rebuildLayerCanvases()`), ditumpuk `position:absolute` di dalam `#canvasWrapper`, plus satu `#gridCanvas` paling atas (`pointer-events:none`, cuma gambar garis grid, tidak ikut disave). Tile digambar via `ctx.drawImage(cacheEntry.img, srcX, srcY, 32, 32, destX, destY, 32, 32)` — `cacheEntry` diambil dari `tilesetCache[layer.tilesetType]` **milik layer itu sendiri**, BUKAN dari `#tilesetImg` yg tampil di panel kanan (krn tiap layer bisa beda tileset, sedangkan panel kanan cuma nunjukin SATU tileset — punya layer yg lagi aktif). Lihat "Tileset panel" di bawah.
+- **Zoom** (map maupun tileset) murni CSS: ukuran *native* canvas/img tetap tegas, yang di-scale cuma ukuran TAMPILAN (`canvasWrapper.style.width/height` utk map, `tilesetImg.style.width/height` utk tileset, dihitung dari `tilesetCols/Rows * TILE_SIZE * zoom` — BUKAN dari `naturalWidth` biar tidak ada race kondisi timing decode gambar, lihat "Tileset panel") — `image-rendering:pixelated` di kedua tempat spy hasil scale tetap tegas.
+- **Hit-testing klik→sel** (baik di kanvas map maupun tileset) pakai rasio posisi klik thd `getBoundingClientRect()` (`xRatio = (clientX-rect.left)/rect.width`, dst.), BUKAN pembagian manual dgn nilai zoom — otomatis benar berapa pun zoom-nya tanpa perlu sinkron variabel zoom ke rumus klik.
+- **Bug ditemukan & diperbaiki**: garis grid paling KANAN & paling BAWAH (`renderGrid()`) sempat tidak kelihatan sama sekali (padahal garis-garis lainnya normal). Penyebab: trik "+0.5" pada koordinat garis (standar utk bikin garis 1px kanvas jatuh pas di tengah pixel, tidak blur) mendorong garis TERAKHIR (`col === mapWidth` / `row === mapHeight`, persis di tepi kanvas) 0.5px ke LUAR area kanvas yg valid — jadi ke-clip abis, bukan cuma blur. Garis-garis lain (interior) aman krn +0.5-nya masih dalam batas kanvas. **Fix**: posisi garis di-clamp ke `Math.min(pos + 0.5, canvasSize - 0.5)` — garis interior tidak berubah sama sekali (clamp tidak kena), cuma garis paling tepi yg "didorong balik" dikit ke dalam spy tetap masuk area kanvas & tetap kelihatan.
+
+### Tools
+
+- **Brush**: timpa 1 sel di layer aktif dgn `selectedTile` (tile yg lagi dipilih di panel Tileset kanan, ditandai kotak merah `#tileHighlight`).
+- **Erase**: set sel jadi `EMPTY` (-1).
+- **Fill**: flood-fill 4-arah (BFS, stack-based) dari sel yg diklik — ganti semua sel bersambung yg nilainya SAMA PERSIS dgn sel awal, jadi `selectedTile`.
+- Klik = 1 kali paint; klik-tahan-geser = **continuous paint** otomatis (tidak ada toggle terpisah spt referensi, selalu aktif) — dilacak via `pointerdown`/`pointermove`(di `window`, bukan cuma kanvas, biar tetap kebaca kalau kursor sempat keluar batas kanvas sebentar saat drag)/`pointerup`, dgn `lastPaintedCell` supaya sel yg sama tidak berulang kali di-render ulang selama drag di situ-situ saja.
+- **Undo/redo**: snapshot **per-stroke** (satu array `tiles` layer aktif disalin utuh pas `pointerdown`, sebelum stroke itu mengubah apa pun) — bukan per-sel, jadi 1x Ctrl+Z/tombol Undo membatalkan SATU stroke/drag penuh, sesuai ekspektasi umum editor gambar. Maks 50 riwayat (`undoStack` dipotong dari depan kalau kelebihan). Ctrl+Z / Ctrl+Y (atau Ctrl+Shift+Z) jg jalan, diabaikan kalau fokus lagi di `<input>`/`<select>` (spy tidak nyasar pas lagi ngetik nama map).
+
+### Tileset panel — 8 tipe tetap, 1 layer = 1 tileset (permintaan eksplisit user)
+
+Awalnya bisa **Import** tileset PNG bebas (`<input type="file">`) — **dihapus total**, diganti 8 tileset TETAP dari `img/tileset/SampleMap/` (`TILESET_TYPES` di `tilemap-script.js`):
+
+| Tab | File |
+|---|---|
+| Base | `[Base]BaseChip_pipo.png` |
+| Light Shadow | `LightShadow_pipo.png` |
+| Dirt | `[A]Dirt_pipo.png` |
+| Flower | `[A]Flower_pipo.png` |
+| Grass | `[A]Grass_pipo.png` |
+| Wall Up | `[A]Wall-Up_pipo.png` |
+| Water | `[A]Water_pipo.png` |
+| Water Fall | `[A]WaterFall_pipo.png` |
+
+Ukuran (kolom×baris) beda-beda per file (dicek langsung dari tiap PNG, bukan diasumsikan sama): Base 8×133, Light Shadow 8×6, Dirt 8×42, Flower 8×12, Grass 8×66, Wall Up 8×12, Water **64×48** (lebar bgt, beda dari yg lain), Water Fall 32×18 — makanya `tilesetCols`/`tilesetRows` SELALU dihitung ulang per tileset (`cache.cols`/`cache.rows`, dari `naturalWidth/naturalHeight / TILE_SIZE` saat preload), tidak pernah di-hardcode 8 kolom spt asumsi awal.
+
+- **Preload SEMUA 8 tileset sekaligus di awal** (`preloadAllTilesets()`, dipanggil sekali di `init()`, editor baru interaktif SETELAH semuanya selesai) — hasilnya disimpan di `tilesetCache` (object: `key -> { img, cols, rows, loaded }`, satu `Image()` in-memory per tipe, TERPISAH dari `#tilesetImg` yg tampil di panel kanan). Alasan preload semua di depan (bukan lazy-load pas dipilih): render layer manapun kapan saja butuh akses ke tileset APA PUN (krn tiap layer bisa beda tipe) — kalau lazy, layer dgn tileset yg belum sempat dimuat bakal gagal render/putih kosong.
+- **1 layer = 1 tileset, field `tilesetType` per layer** (bukan lagi satu tileset global bwt semua layer) — field ini WAJIB diisi tiap layer (`createLayer(name, tilesetType)`), default **`"Base"`** utk 2 layer bawaan (Background & Foreground, `initDefaultLayers()`) sesuai permintaan eksplisit user.
+- **Panel Tileset kanan SELALU menampilkan tileset milik layer yang lagi AKTIF** (`showTilesetForActiveLayer()`, dipanggil tiap kali `activeLayerIndex` berubah — klik baris layer lain, tambah/hapus layer, load map) — bukan pilihan bebas independen dari layer.
+- **Tab (`.tileset-tab`) di panel ini SEKADAR INDIKATOR, bukan tombol ganti tileset** — permintaan eksplisit user. Cuma tab yg cocok dgn `tilesetType` layer aktif yg tampil solid/bisa diklik (`.active`, tapi klik-nya sendiri tidak ngapa-ngapain lagi krn sudah cocok); **7 tab lainnya di-`disabled`** (`updateTilesetTabsActive()` set `btn.disabled = true` utk semua yg bukan tipe aktif — native HTML `disabled`, jadi otomatis tidak bisa diklik sama sekali, bukan cuma gaya visual). Tileset satu layer sekarang **cuma bisa ditentukan sekali, sewaktu layer itu dibuat** (modal Layer Baru, lihat "Layers panel") — tidak ada lagi cara ganti tileset layer yg sudah ada (versi sebelumnya sempat bisa via klik tab + konfirmasi hapus isi, **dihapus** krn permintaan ini).
+- **`selectedTile` di-reset ke 0** tiap kali panel Tileset berganti (ganti layer aktif) — nomor tile lama sudah tidak relevan di tileset baru.
+- Label tileset tiap layer ditampilkan di panel Layers kiri (lihat "Layers panel" di bawah) & di info panel kanan (`#tilesetInfo`, format `"<Label> — tile #N (col C, row R)"`).
+
+### Layers panel
+
+- Tombol **+** membuka **modal "Layer Baru"** (`#newLayerModal`) — input nama + WAJIB pilih salah satu dari 8 tab tileset (`newLayerSelectedType`, default "Base") sebelum bisa klik "Buat Layer". Beda dari versi awal yg cuma `prompt()` nama doang — permintaan eksplisit user spy tileset layer baru selalu ditentukan jelas sejak awal, bukan menyusul.
+- Tombol **− / ↑ / ↓**: hapus layer aktif (minimal 1 layer harus tetap ada), naik/turunkan urutan (tukar posisi di array `layers`, lalu `rebuildLayerCanvases()` krn urutan DOM canvas ikut berubah).
+- Tiap baris: tombol mata (👁️/🚫, toggle `visible`), nama layer (klik ganda = ganti nama via `prompt()`), **label tileset** (`.layer-tileset-label`, teks kecil di bawah nama — permintaan eksplisit user spy kelihatan tipe tileset yg dipakai tiap layer), slider opacity (0–100%, langsung `renderLayer()` ulang saat digeser). Klik baris (di luar tombol mata) = jadikan layer itu **aktif** (target painting brush/fill/erase berikutnya, DAN otomatis switch panel Tileset kanan ke tileset milik layer itu — lihat "Tileset panel").
+  - **Nama tileset di label dibungkus badge kapsul berwarna** (`.tileset-badge` — `border-radius:999px`, teks tebal+putih, permintaan eksplisit user) — warnanya beda per tipe (`TILESET_TYPES[].color`, satu field warna tetap per entry, mis. Grass hijau `#16a34a`, Flower pink `#db2777`, Water biru `#0284c7`) biar bisa bedain sekilas pandang layer mana pakai tileset apa tanpa perlu baca teksnya dulu. Warna diisi via `badge.style.background` di JS (bukan class CSS per tipe) krn sumbernya satu tempat (`TILESET_TYPES`), bukan didup di CSS.
+
+### Save/Load — kenapa JSON, bukan plain text
+
+**Direkomendasikan & yang diimplementasikan: JSON**, bukan format teks custom, alasannya:
+1. **Struktur bersarang** (banyak layer, tiap layer array puluhan-ratusan angka tile) canggung direpresentasikan rata sbg teks tanpa bikin parser/format ad-hoc sendiri (mis. CSV multi-level) — JSON sudah punya cara alami merepresentasikan ini (`layers: [ {tiles: [...]}, ... ]`).
+2. **Native di JavaScript** — `JSON.stringify`/`JSON.parse` bawaan, tidak perlu nulis parser custom sama sekali (beda dari format teks bikinan sendiri yg butuh parser+writer manual, rawan bug edge-case spt delimiter yg kepakai di dalam data).
+3. **Match 1:1 dgn Firebase Realtime Database** — Firebase RTDB **secara native menyimpan data sbg pohon JSON**. Objek hasil `buildMapData()` bisa LANGSUNG di-`.set()` ke Firebase maupun didownload sbg file `.json`, tanpa transformasi/konversi format apa pun di antara keduanya — satu fungsi (`buildMapData()`) melayani kedua tujuan sekaligus.
+- **Save JSON** (`saveJsonBtn`): `Blob` + elemen `<a download>` sementara → file `<namaMap>.json` ke folder Downloads browser.
+- **Load JSON** (`loadJsonBtn` → `<input type="file">` tersembunyi): `FileReader.readAsText` → `JSON.parse` → `applyMapData()` (rebuild layers, canvas, tileset, dsb. — dibungkus `try/catch`, gagal parse cuma nampilin pesan error di status bar, bukan crash halaman).
+- **Format `buildMapData()`** (**`version: 2`** — naik dari v1 krn perubahan skema `tilesetType` per-layer, lihat catatan compat di bawah):
+  ```json
+  {
+    "version": 2,
+    "tileSize": 32,
+    "mapWidth": 25, "mapHeight": 19,
+    "layers": [
+      { "name": "Background", "visible": true, "opacity": 1, "tilesetType": "Base", "tiles": [-1, 12, 12, ...] },
+      { "name": "Foreground", "visible": true, "opacity": 1, "tilesetType": "Grass", "tiles": [-1, -1, 45, ...] }
+    ]
+  }
+  ```
+  Field global v1 (`tilesetSrc`/`tilesetCols`/`tilesetRows`) **dihapus** — sudah tidak relevan krn tileset sekarang per-layer (`tilesetType`), bukan satu tileset berlaku bwt semua layer. **Backward-compat**: `applyMapData()` fallback `tilesetType` ke `"Base"` kalau memuat file v1 lama yg tidak punya field itu sama sekali (drpd gagal/`undefined`) — asumsi arbitrer paling masuk akal, user perlu cek ulang manual tileset tiap layer setelah muat file selawas itu.
+
+### Simpan/muat ke Firebase
+
+- **Project Firebase SAMA PERSIS dgn app lain di repo ini** (`iyon-adryanlf-trialerror`, SDK compat v8.10.1, config disalin apa adanya dari `app/finance/index.html`) — path baru **`trial-error/littleAdventure/tilemaps/<nama>`** (permintaan eksplisit user; top-level `trial-error` dipakai sbg namespace bareng, `littleAdventure` sub-node khusus project ini, `tilemaps` khusus data map — nyisain ruang kalau ke depan ada data lain punya Little Adventure yg jg mau disimpan di Firebase, mis. save-game).
+- Input nama map (`#mapNameInput`) di-**sanitize** (`sanitizeKey()`: karakter `. # $ [ ] /` diganti `_`, krn karakter itu terlarang jadi key Firebase) sebelum dipakai sbg path.
+- **Simpan** (`saveFirebaseBtn`): `db.ref("trial-error/littleAdventure/tilemaps/"+key).set(buildMapData())` — timpa penuh kalau nama sudah ada (bukan merge), lalu refresh daftar dropdown.
+- **Muat** (`#firebaseMapSelect`, populated dari `db.ref("trial-error/littleAdventure/tilemaps").once("value")` — list semua key/nama map tersimpan): pilih dari dropdown langsung `applyMapData()` (tidak perlu tombol "Load" terpisah, ganti pilihan = langsung muat).
+- **Belum ada auth** — path ini publik readable/writable, sama seperti semua app lain di repo (lihat pola serupa di `app/.claude/*.md`).
+- **Rules Firebase console PERLU ditambahkan manual** sebelum fitur ini benar-benar jalan — path `trial-error` belum tentu otomatis dapat `.write:true` di rules Realtime Database (beda node top-level = beda entry di rules), kalau belum ada bakal muncul error `permission_denied` pas simpan/muat/refresh daftar. Cek console Firebase project `iyon-adryanlf-trialerror` kalau fitur cloud ini gagal — pola sama dgn app lain (lihat "Rencana / TODO ke depan" app-app di `app/.claude/*.md`).
+
+### Autosave lokal (`localStorage`)
+
+Jaring pengaman **murni lokal**, bukan pengganti Save JSON/Firebase manual — tiap ada perubahan (painting, resize, ganti layer, dll.) dijadwalkan (`scheduleAutosave()`, debounce 600ms biar tidak nulis `localStorage` tiap gerakan kuas) nulis snapshot penuh (`buildMapData()`) ke `localStorage["littleadventure_tilemap_autosave"]`. Saat halaman dibuka, kalau ada draft tersimpan → `confirm()` tawarkan pulihkan (`tryRestoreAutosave()`); kalau ditolak/tidak ada, mulai dari map kosong default (`DEFAULT_MAP_WIDTH`×`DEFAULT_MAP_HEIGHT` = 25×19).
+
+### Beda dari referensi (tilemapstudio.app) — sengaja disederhanakan
+
+- **Tidak ada** multi-tile pattern brush (referensi bisa pilih blok 4×4 tile sekali jalan) — cuma 1 tile per klik.
+- **Tidak ada** Shapes/Select tool, Rotate/Flip tile, L/R Swap.
+- **Tidak ada** "Hide Tileset"/"Hide Layers" toggle collapse panel (panel Layers & Tileset selalu tampil).
+- Screenshot capture (kamera icon di referensi) tidak ada — export cuma lewat Save JSON/Firebase, bukan gambar PNG hasil render map.
+- **Import tileset bebas (`<input type="file">`) sempat ada, lalu DIHAPUS** — diganti 8 tab tileset tetap dari `img/tileset/SampleMap/`, permintaan eksplisit user (lihat "Tileset panel — 8 tipe tetap"). Beda dari referensi yg tetap punya tombol Import bebas.
+
+### Belum terhubung ke game (`index.html`) — masih tool berdiri sendiri
+
+Map yg dibuat/disimpan di sini **belum otomatis dipakai** `index.html`/`script.js` (yang masih pakai `img/samplemap.png` statis, lihat "Map dunia") — tilemap.html murni alat bikin & simpan data map dulu. Menyambungkannya (render map JSON hasil editor ini jadi `#worldLayer` game, gantiin gambar statis) adalah pekerjaan terpisah ke depan (lihat "Rencana / TODO ke depan") krn butuh mengganti pendekatan render `#worldLayer` dari 1 `background-image` jadi tumpukan `<canvas>`/gambar per-tile spt di editor ini.
+
 ## Kenapa bukan CSS `@keyframes` / sprite animation library
 
 Animasi frame (ganti `background-position`) dan pergerakan (`transform: translate`) sama-sama didorong dari JS `requestAnimationFrame`, bukan CSS `@keyframes` — karena animasi jalan **harus start/stop persis mengikuti tombol ditekan/dilepas** (bukan animasi berulang otomatis), dan arah (baris sprite) berubah dinamis tergantung input. `@keyframes` cocok utk animasi yang bentuknya tetap/predictable, kurang cocok utk kontrol interaktif seperti ini.
@@ -144,9 +263,9 @@ Animasi frame (ganti `background-position`) dan pergerakan (`transform: translat
 ## Rencana / TODO ke depan
 
 - **Pilih karakter**: sudah ada (lihat "Ganti karakter") — belum ada: pilihan tersimpan (reset ke Male 01-1 tiap reload), dan daftar file di `CHARACTER_FILES` harus diupdate manual kalau ada sprite baru ditambahkan.
-- **Map/level**: sudah pakai gambar map sungguhan (`img/samplemap.png`, lihat "Map dunia") & kamera mengikuti karakter **sudah ada** (lihat "Kamera mengikuti karakter") — tapi belum ada collision (karakter bisa jalan tembus sungai/rumah di gambar map), belum ada tile map berbasis data (posisi objek/bangunan tidak diketahui program, cuma gambar statis), dan `img/tileset/` masih kosong (belum dipakai).
+- **Map/level**: sudah pakai gambar map sungguhan (`img/samplemap.png`, lihat "Map dunia") & kamera mengikuti karakter **sudah ada** (lihat "Kamera mengikuti karakter") — tapi belum ada collision (karakter bisa jalan tembus sungai/rumah di gambar map), dan gambar map itu masih statis (bukan tile map berbasis data). **Tilemap Editor** (`tilemap.html`, lihat "Tilemap Editor") sudah bisa bikin & simpan map berbasis data (JSON/Firebase) pakai aset `img/tileset/`, tapi **belum disambungkan** ke `index.html` — game masih render `img/samplemap.png` statis, belum baca output editor ini.
 - **Kontrol mobile**: kontrol saat ini keyboard-only (Arrow/WASD) — belum ada on-screen d-pad/joystick utk HP, walau prototype dibuka lewat browser mobile.
-- Belum ada Firebase/data tersimpan — murni prototype client-side, tidak ada progres yang dipersist.
+- **Firebase**: `tilemap.html` sudah terhubung (simpan/muat map JSON ke `trial-error/littleAdventure/tilemaps/`, lihat "Tilemap Editor") — **rules Firebase console utk path `trial-error` perlu dicek/ditambahkan manual** (belum dikonfirmasi bisa tulis, lihat "Simpan/muat ke Firebase"). `index.html` (game-nya sendiri) masih murni client-side, tidak ada progres/save-game yang dipersist.
 - Belum ada testing otomatis — project murni HTML/CSS/JS statis, sama seperti trialerror lain.
 
 ## Catatan implementasi

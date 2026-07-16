@@ -1,0 +1,494 @@
+/* Tilemap Editor — tema gelap terpisah dari game (Pixelify Sans di
+   index.html cocok utk judul game, tapi kurang terbaca utk UI tool yang
+   padat teks/angka kecil begini), makanya pakai font sans-serif biasa. */
+:root {
+  --bg-page: #1b2333;
+  --bg-panel: #232c40;
+  --bg-panel-alt: #2c3650;
+  --bg-input: #1b2333;
+  --border: #3a4560;
+  --text: #e8ecf5;
+  --text-muted: #9aa4bd;
+  --accent: #3b82f6;
+  --accent-hover: #2f6fd8;
+  --danger: #dc4c56;
+  --danger-hover: #c53a44;
+  --success: #34d399;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg-page);
+  color: var(--text);
+  font-family: system-ui, "Segoe UI", sans-serif;
+  font-size: 14px;
+}
+
+button {
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+input,
+select {
+  font-family: inherit;
+  font-size: 13px;
+}
+
+/* ================= Top bar ================= */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.btn-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.btn-link:hover {
+  color: var(--text);
+}
+
+/* ================= Layout 3 kolom ================= */
+
+.editor-layout {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  padding: 12px;
+  height: calc(100vh - 53px);
+}
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel h2 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.layers-panel {
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.tileset-panel {
+  width: 320px;
+  flex-shrink: 0;
+}
+
+.editor-panel {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ================= Tombol umum ================= */
+
+.tool-btn,
+.layer-actions button,
+.toolbar button,
+.tileset-zoom button {
+  background: var(--bg-panel-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.tool-btn:hover,
+.layer-actions button:hover,
+.toolbar button:hover,
+.tileset-zoom button:hover {
+  border-color: var(--accent);
+}
+
+.tool-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn-primary {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover) !important;
+}
+
+.btn-danger {
+  background: transparent !important;
+  border-color: var(--danger) !important;
+  color: var(--danger);
+}
+
+.btn-danger:hover {
+  background: var(--danger) !important;
+  color: #fff;
+}
+
+/* ================= Layers ================= */
+
+.layer-actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.layer-actions button {
+  flex: 1;
+  padding: 6px 0;
+}
+
+.layer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.layer-row {
+  background: var(--bg-panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.layer-row.active {
+  border-color: var(--accent);
+  background: #28407a;
+}
+
+.layer-row-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.layer-visibility {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 14px;
+  padding: 2px 4px;
+}
+
+.layer-name {
+  flex: 1;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Permintaan eksplisit user — tampilkan tipe tileset yg dipakai tiap layer,
+   krn 1 layer cuma boleh pakai 1 tileset (lihat tilemap-script.js). */
+.layer-tileset-label {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Kapsul warna nama tileset — warna background diisi per-tipe lewat JS
+   (TILESET_TYPES.color), di sini cuma bentuk & teksnya (tebal + putih,
+   permintaan eksplisit user, supaya kontras di atas warna apa pun). */
+.tileset-badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.layer-opacity {
+  width: 100%;
+  margin-top: 6px;
+}
+
+/* ================= Toolbar & status bar (editor tengah) ================= */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tool-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+}
+
+.field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.field-label input[type="number"] {
+  width: 56px;
+}
+
+input[type="text"],
+input[type="number"] {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 5px 8px;
+}
+
+select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 5px 8px;
+}
+
+.map-name-input {
+  width: 110px;
+}
+
+.zoom-label {
+  min-width: 42px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.canvas-scroll {
+  flex: 1;
+  overflow: auto;
+  background: #10141f;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+/* Ukuran sesungguhnya (native px x zoom) diisi lewat JS — semua canvas anak
+   di sini di-stretch 100% biar ikut ukuran wrapper (efek zoom yang seragam),
+   sementara resolusi internal tiap canvas (attr width/height) tetap native
+   supaya image-rendering:pixelated tetap tegas walau di-scale gedein. */
+.canvas-wrapper {
+  position: relative;
+  margin: 16px;
+}
+
+.canvas-wrapper canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+}
+
+#gridCanvas {
+  pointer-events: none; /* biar tidak menghalangi apa pun — event tetap ditangani di canvasWrapper */
+}
+
+.status-bar {
+  display: flex;
+  gap: 16px;
+  padding-top: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.status-msg {
+  color: var(--success);
+}
+
+/* ================= Tileset panel ================= */
+
+.tileset-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tileset-header h2 {
+  margin: 0;
+}
+
+/* Tab pilih tipe tileset — dipakai di 2 tempat beda kelakuan:
+   1. Panel Tileset kanan (#tilesetTabs): SEKADAR INDIKATOR tileset milik
+      layer aktif — cuma 1 tab yg aktif/bisa diklik, sisanya :disabled (lihat
+      renderTilesetTabs()/updateTilesetTabsActive() di tilemap-script.js).
+   2. Modal Layer Baru (#newLayerTilesetTabs): semua tab tetap bisa diklik
+      bebas, krn di situ user memang lagi MEMILIH tileset utk layer baru. */
+.tileset-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.tileset-tab {
+  background: var(--bg-panel-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.tileset-tab:hover {
+  border-color: var(--accent);
+}
+
+.tileset-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.tileset-tab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tileset-tab:disabled:hover {
+  border-color: var(--border);
+}
+
+.tileset-zoom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.tileset-scroll {
+  flex: 1;
+  overflow: auto;
+  background: #10141f;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.tileset-image-wrapper {
+  position: relative;
+  display: inline-block;
+  margin: 8px;
+}
+
+.tileset-image-wrapper img {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+}
+
+.tile-highlight {
+  position: absolute;
+  border: 2px solid #ef4444;
+  pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+.tileset-info {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* ================= Modal (Layer Baru) ================= */
+
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 20;
+}
+
+.modal-overlay.open {
+  display: flex;
+}
+
+.modal-sheet {
+  width: 100%;
+  max-width: 380px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.modal-sheet h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.modal-field-label {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.modal-field-label input[type="text"] {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.modal-actions button {
+  background: var(--bg-panel-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 14px;
+}

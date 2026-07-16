@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tilemap Editor — Little Adventure</title>
+<link rel="stylesheet" href="tilemap-style.css">
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+  // Project Firebase yang SAMA dgn app lain di repo ini (iyon-adryanlf-trialerror),
+  // path baru "trial-error/littleAdventure/tilemaps" — belum dipakai app lain, aman.
+  const firebaseConfig = {
+    apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
+    authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
+    databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
+    projectId: "iyon-adryanlf-trialerror",
+    storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
+    messagingSenderId: "519669963248",
+    appId: "1:519669963248:web:feab50008d27c2a7226535",
+    measurementId: "G-4MFLB4B68F"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const TILEMAP_PATH = "trial-error/littleAdventure/tilemaps";
+</script>
+</head>
+<body>
+  <header class="topbar">
+    <h1>🗺️ Tilemap Editor</h1>
+    <a href="index.html" class="btn-link">← Kembali ke Little Adventure</a>
+  </header>
+
+  <div class="editor-layout">
+    <!-- ===================== PANEL: LAYERS ===================== -->
+    <aside class="panel layers-panel">
+      <h2>Layers</h2>
+      <div class="layer-actions">
+        <button type="button" id="addLayerBtn" title="Tambah layer">+</button>
+        <button type="button" id="removeLayerBtn" title="Hapus layer">−</button>
+        <button type="button" id="moveLayerUpBtn" title="Naikkan urutan (ke depan)">↑</button>
+        <button type="button" id="moveLayerDownBtn" title="Turunkan urutan (ke belakang)">↓</button>
+      </div>
+      <div id="layerList" class="layer-list"></div>
+    </aside>
+
+    <!-- ===================== EDITOR UTAMA ===================== -->
+    <main class="panel editor-panel">
+      <div class="toolbar">
+        <div class="tool-group" id="toolGroup">
+          <button type="button" class="tool-btn active" data-tool="brush">✏️ Brush</button>
+          <button type="button" class="tool-btn" data-tool="fill">🪣 Fill</button>
+          <button type="button" class="tool-btn" data-tool="erase">🧹 Erase</button>
+        </div>
+        <div class="tool-group">
+          <button type="button" id="undoBtn">↶ Undo</button>
+          <button type="button" id="redoBtn">↷ Redo</button>
+        </div>
+        <div class="tool-group">
+          <label class="checkbox-label"><input type="checkbox" id="showGridCheckbox" checked> Show Grid</label>
+        </div>
+        <div class="tool-group">
+          <label class="field-label">Lebar <input type="number" id="mapWidthInput" min="1" max="200" value="25"></label>
+          <label class="field-label">Tinggi <input type="number" id="mapHeightInput" min="1" max="200" value="19"></label>
+          <button type="button" id="resizeMapBtn">Resize</button>
+        </div>
+        <div class="tool-group">
+          <button type="button" id="zoomOutBtn">−</button>
+          <span id="zoomLabel" class="zoom-label">100%</span>
+          <button type="button" id="zoomInBtn">+</button>
+          <button type="button" id="zoomFitBtn">Fit</button>
+        </div>
+        <div class="tool-group">
+          <button type="button" id="clearAllBtn" class="btn-danger">🗑️ Clear Layer</button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="tool-group">
+          <button type="button" id="saveJsonBtn" class="btn-primary">💾 Save JSON</button>
+          <button type="button" id="loadJsonBtn">📂 Load JSON</button>
+          <input type="file" id="loadJsonFile" accept="application/json,.json" hidden>
+        </div>
+        <div class="tool-group">
+          <input type="text" id="mapNameInput" class="map-name-input" placeholder="Nama map" value="map1">
+          <button type="button" id="saveFirebaseBtn">☁️ Simpan</button>
+          <select id="firebaseMapSelect">
+            <option value="">— Muat dari Firebase —</option>
+          </select>
+          <button type="button" id="refreshFirebaseListBtn" title="Refresh daftar">⟳</button>
+        </div>
+      </div>
+
+      <div class="canvas-scroll" id="canvasScroll">
+        <div class="canvas-wrapper" id="canvasWrapper">
+          <canvas id="gridCanvas"></canvas>
+        </div>
+      </div>
+
+      <div class="status-bar">
+        <span id="statusTool">Brush</span>
+        <span id="statusCoords">-, -</span>
+        <span id="statusSize">25 x 19</span>
+        <span id="statusSelectedTile">Tile #0</span>
+        <span id="statusAutosave"></span>
+        <span id="statusSaveMsg" class="status-msg"></span>
+      </div>
+    </main>
+
+    <!-- ===================== PANEL: TILESET ===================== -->
+    <aside class="panel tileset-panel">
+      <div class="tileset-header">
+        <h2>Tileset</h2>
+      </div>
+      <!-- Tab tileset layer AKTIF — klik tab = ganti tileset layer itu (bukan
+           cuma preview, lihat "Tileset panel" di CLAUDE.md: 1 layer = 1 tileset). -->
+      <div class="tileset-tabs" id="tilesetTabs"></div>
+      <div class="tileset-zoom">
+        <button type="button" id="tilesetZoomOutBtn">−</button>
+        <span id="tilesetZoomLabel" class="zoom-label">50%</span>
+        <button type="button" id="tilesetZoomInBtn">+</button>
+        <button type="button" id="tilesetZoomFitBtn">Fit</button>
+      </div>
+      <div class="tileset-scroll" id="tilesetScroll">
+        <div class="tileset-image-wrapper" id="tilesetImageWrapper">
+          <img id="tilesetImg" alt="Tileset">
+          <div class="tile-highlight" id="tileHighlight"></div>
+        </div>
+      </div>
+      <div class="tileset-info" id="tilesetInfo">Selected: tile #0 (col 0, row 0)</div>
+    </aside>
+  </div>
+
+  <!-- ===================== MODAL: LAYER BARU ===================== -->
+  <div class="modal-overlay" id="newLayerModal">
+    <div class="modal-sheet">
+      <h3>Layer Baru</h3>
+      <label class="modal-field-label">
+        Nama Layer
+        <input type="text" id="newLayerNameInput" placeholder="mis. Objek">
+      </label>
+      <p class="modal-field-label">Tileset (wajib pilih salah satu)</p>
+      <div class="tileset-tabs" id="newLayerTilesetTabs"></div>
+      <div class="modal-actions">
+        <button type="button" id="cancelNewLayerBtn">Batal</button>
+        <button type="button" id="confirmNewLayerBtn" class="btn-primary">Buat Layer</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="tilemap-script.js"></script>
+</body>
+</html>

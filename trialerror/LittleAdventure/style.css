@@ -73,6 +73,12 @@ h1 {
   white-space: nowrap;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .change-character-btn {
   border: none;
   border-radius: 999px;
@@ -87,6 +93,27 @@ h1 {
 
 .change-character-btn:hover {
   filter: brightness(1.08);
+}
+
+/* Sengaja outline (bukan solid spt .change-character-btn) — biar dua-duanya
+   sama-sama keliatan jelas sbg tombol berdampingan, tapi "Ganti Karakter"
+   (aksi utama saat main) tetap menonjol drpd "Tilemap Editor" (tool terpisah). */
+.tilemap-link {
+  display: inline-flex;
+  align-items: center;
+  border: 2px solid var(--accent);
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--surface);
+  text-decoration: none;
+}
+
+.tilemap-link:hover {
+  background: var(--accent);
+  color: #fff;
 }
 
 /* Bungkus #gameWorld + #chatInput — satu-satunya anak yg ikut alur normal
