@@ -61,6 +61,7 @@
   const zoomFitBtn = document.getElementById("zoomFitBtn");
   const zoomLabel = document.getElementById("zoomLabel");
   const clearAllBtn = document.getElementById("clearAllBtn");
+  const bgSwatches = document.getElementById("bgSwatches");
 
   const saveJsonBtn = document.getElementById("saveJsonBtn");
   const loadJsonBtn = document.getElementById("loadJsonBtn");
@@ -104,6 +105,7 @@
   let layers = []; // { name, visible, opacity, tilesetType, tiles: number[] } — tiles: row-major, EMPTY = kosong
   let activeLayerIndex = 0;
   let layerCanvases = []; // <canvas> per layer, paralel dgn `layers`
+  let editingLayerNameIndex = null; // index layer yg lagi diedit namanya (inline), null = tidak ada
 
   // Cache 1 <img> per tipe tileset (dimuat sekali di awal, dipakai sbg source
   // ctx.drawImage() utk RENDER — independen dari #tilesetImg yang cuma dipakai
@@ -159,19 +161,42 @@
   }
 
   // ================= Layer helpers =================
-  function createLayer(name, tilesetType) {
+  // layerPosition = identitas TETAP tiap layer (independen dari nama, jadi
+  // ganti nama tidak mempengaruhi status kunci): -1 = Background, 0 =
+  // Foreground — dua-duanya TERKUNCI (tidak bisa dihapus/dipindah urutan,
+  // permintaan eksplisit user). Layer buatan user SELALU > 0, maks 98 (jadi
+  // range 1-98, total 98 layer tambahan) — dijaga di `confirmNewLayerBtn`.
+  const LOCKED_MAX_POSITION = 0;
+  const USER_LAYER_MAX_POSITION = 98;
+
+  function isLayerLocked(layer) {
+    return layer.layerPosition <= LOCKED_MAX_POSITION;
+  }
+
+  function createLayer(name, tilesetType, layerPosition) {
     return {
       name,
       visible: true,
       opacity: 1,
       tilesetType: tilesetType || DEFAULT_TILESET_TYPE,
+      layerPosition,
       tiles: new Array(mapWidth * mapHeight).fill(EMPTY),
     };
   }
 
   function initDefaultLayers() {
-    layers = [createLayer("Background", "Base"), createLayer("Foreground", "Base")];
+    layers = [createLayer("Background", "Base", -1), createLayer("Foreground", "Base", 0)];
     activeLayerIndex = 0;
+  }
+
+  // Posisi user-layer berikutnya = posisi tertinggi yg sudah dipakai + 1
+  // (mulai dari 1 kalau belum ada layer buatan user sama sekali).
+  function nextUserLayerPosition() {
+    let max = 0;
+    layers.forEach((l) => {
+      if (l.layerPosition > max) max = l.layerPosition;
+    });
+    return max + 1;
   }
 
   // ================= Canvas dunia (layer + grid) =================
@@ -452,6 +477,18 @@
     renderGrid();
   });
 
+  // Background di belakang kanvas map & preview tileset (bukan warna tile) —
+  // cuma nunjuk `--preview-bg-current` ke salah satu variabel `--preview-bg-*`
+  // yg SUDAH didefinisikan di :root (tilemap-style.css), bukan nulis hex
+  // literal dari JS — jadi kalau warnanya di-tweak langsung di CSS nanti,
+  // tombol lingkaran ini otomatis ikut brubah tanpa perlu sentuh JS sama sekali.
+  bgSwatches.querySelectorAll(".bg-swatch").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.documentElement.style.setProperty("--preview-bg-current", `var(${btn.dataset.var})`);
+      bgSwatches.querySelectorAll(".bg-swatch").forEach((b) => b.classList.toggle("active", b === btn));
+    });
+  });
+
   clearAllBtn.addEventListener("click", () => {
     if (!confirm(`Kosongkan semua isi layer "${layers[activeLayerIndex].name}"?`)) return;
     pushUndo();
@@ -552,6 +589,16 @@
   });
 
   // ================= Layer list UI =================
+  // Commit rename inline (tombol 💾 atau tekan Enter) — nama kosong/spasi
+  // doang diabaikan (nama lama dipertahankan), bukan dianggap error.
+  function commitLayerRename(index, rawValue) {
+    const newName = rawValue.trim();
+    if (newName) layers[index].name = newName;
+    editingLayerNameIndex = null;
+    renderLayerList();
+    scheduleAutosave();
+  }
+
   function renderLayerList() {
     layerList.innerHTML = "";
     for (let i = layers.length - 1; i >= 0; i--) {
@@ -575,22 +622,74 @@
         scheduleAutosave();
       });
 
-      const nameSpan = document.createElement("span");
-      nameSpan.className = "layer-name";
-      nameSpan.textContent = layer.name;
-      nameSpan.title = "Klik dua kali utk ganti nama";
-      nameSpan.addEventListener("dblclick", (e) => {
-        e.stopPropagation();
-        const newName = prompt("Nama layer:", layer.name);
-        if (newName && newName.trim()) {
-          layer.name = newName.trim();
-          renderLayerList();
-          scheduleAutosave();
-        }
-      });
-
       top.appendChild(visBtn);
-      top.appendChild(nameSpan);
+
+      // Ganti nama inline (bukan lagi dblclick + prompt()) — klik ✏️ → nama
+      // jadi <input> langsung di tempat, ikonnya ganti jadi 💾, klik itu utk
+      // commit & balik ke tampilan teks biasa. Permintaan eksplisit user.
+      // Layer TERKUNCI (Background/Foreground) tidak dapat tombol ✏️ sama
+      // sekali — namanya tetap, tidak bisa diedit (permintaan eksplisit user).
+      if (!isLayerLocked(layer) && editingLayerNameIndex === i) {
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.className = "layer-name-input";
+        nameInput.value = layer.name;
+        nameInput.addEventListener("click", (e) => e.stopPropagation());
+        nameInput.addEventListener("keydown", (e) => {
+          e.stopPropagation();
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commitLayerRename(i, nameInput.value);
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            editingLayerNameIndex = null;
+            renderLayerList();
+          }
+        });
+        top.appendChild(nameInput);
+
+        const saveBtn = document.createElement("button");
+        saveBtn.type = "button";
+        saveBtn.className = "layer-rename-btn";
+        saveBtn.title = "Simpan nama";
+        saveBtn.textContent = "💾";
+        saveBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          commitLayerRename(i, nameInput.value);
+        });
+        top.appendChild(saveBtn);
+      } else {
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "layer-name";
+        nameSpan.textContent = layer.name;
+        top.appendChild(nameSpan);
+
+        if (!isLayerLocked(layer)) {
+          const editBtn = document.createElement("button");
+          editBtn.type = "button";
+          editBtn.className = "layer-rename-btn";
+          editBtn.title = "Ganti nama layer";
+          editBtn.textContent = "✏️";
+          editBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            editingLayerNameIndex = i;
+            renderLayerList();
+          });
+          top.appendChild(editBtn);
+        }
+      }
+
+      // Background & Foreground (layerPosition <= 0) TERKUNCI — permintaan
+      // eksplisit user, tidak bisa dihapus/dipindah urutan. Ikon gembok murni
+      // indikator visual (lihat removeLayerBtn/moveLayerUpBtn/moveLayerDownBtn
+      // di bawah utk penegakan aturannya yg sesungguhnya).
+      if (isLayerLocked(layer)) {
+        const lockIcon = document.createElement("span");
+        lockIcon.className = "layer-lock-icon";
+        lockIcon.textContent = "🔒";
+        lockIcon.title = "Layer ini terkunci — tidak bisa dihapus atau dipindah urutan";
+        top.appendChild(lockIcon);
+      }
 
       // Label tileset — permintaan eksplisit user spy kelihatan tipe tileset
       // yg dipakai tiap layer (krn 1 layer cuma boleh 1 tileset). Nama tileset
@@ -628,6 +727,24 @@
 
       layerList.appendChild(row);
     }
+
+    // Fokus & select otomatis ke input nama yg lagi diedit (kalau ada) —
+    // dipanggil stlh elemen-nya benar-benar masuk DOM (baru bisa fokus).
+    const editingInput = layerList.querySelector(".layer-name-input");
+    if (editingInput) {
+      editingInput.focus();
+      editingInput.select();
+    }
+
+    // Tombol Hapus/Naik/Turun dinonaktifkan kalau layer AKTIF terkunci, atau
+    // kalau tetangga yg mau ditukar posisinya adalah layer yg terkunci
+    // (mis. layer user paling bawah tidak boleh "Turun" krn di bawahnya
+    // Foreground yg terkunci).
+    const activeLayer = layers[activeLayerIndex];
+    const locked = isLayerLocked(activeLayer);
+    removeLayerBtn.disabled = locked;
+    moveLayerUpBtn.disabled = locked || activeLayerIndex >= layers.length - 1;
+    moveLayerDownBtn.disabled = locked || activeLayerIndex <= 0 || isLayerLocked(layers[activeLayerIndex - 1]);
   }
 
   // ================= Modal Layer Baru (nama + wajib pilih tileset) =================
@@ -647,6 +764,10 @@
   }
 
   function openNewLayerModal() {
+    if (nextUserLayerPosition() > USER_LAYER_MAX_POSITION) {
+      alert(`Sudah mencapai maksimal ${USER_LAYER_MAX_POSITION} layer tambahan.`);
+      return;
+    }
     newLayerNameInput.value = `Layer ${layers.length + 1}`;
     newLayerSelectedType = DEFAULT_TILESET_TYPE;
     renderNewLayerTilesetTabs();
@@ -670,7 +791,12 @@
       alert("Nama layer tidak boleh kosong.");
       return;
     }
-    layers.push(createLayer(name, newLayerSelectedType));
+    const position = nextUserLayerPosition();
+    if (position > USER_LAYER_MAX_POSITION) {
+      alert(`Sudah mencapai maksimal ${USER_LAYER_MAX_POSITION} layer tambahan.`);
+      return;
+    }
+    layers.push(createLayer(name, newLayerSelectedType, position));
     activeLayerIndex = layers.length - 1;
     rebuildLayerCanvases();
     renderLayerList();
@@ -680,6 +806,10 @@
   });
 
   removeLayerBtn.addEventListener("click", () => {
+    if (isLayerLocked(layers[activeLayerIndex])) {
+      alert("Layer Background/Foreground terkunci, tidak bisa dihapus.");
+      return;
+    }
     if (layers.length <= 1) {
       alert("Minimal harus ada 1 layer.");
       return;
@@ -698,9 +828,17 @@
 
   // "Naik" = mendekati depan/foreground (index makin besar), "Turun" = mendekati
   // belakang/background (index makin kecil) — sesuai urutan render layers[].
+  // Background/Foreground (layerPosition <= 0) TERKUNCI: tidak bisa jadi
+  // sumber ATAU tujuan tukar posisi (dicek dua-duanya krn layer user paling
+  // bawah bertetangga langsung dgn Foreground yg terkunci).
   moveLayerUpBtn.addEventListener("click", () => {
+    if (isLayerLocked(layers[activeLayerIndex])) return;
     if (activeLayerIndex >= layers.length - 1) return;
-    [layers[activeLayerIndex], layers[activeLayerIndex + 1]] = [layers[activeLayerIndex + 1], layers[activeLayerIndex]];
+    if (isLayerLocked(layers[activeLayerIndex + 1])) return;
+    const a = layers[activeLayerIndex];
+    const b = layers[activeLayerIndex + 1];
+    [a.layerPosition, b.layerPosition] = [b.layerPosition, a.layerPosition];
+    [layers[activeLayerIndex], layers[activeLayerIndex + 1]] = [b, a];
     activeLayerIndex++;
     rebuildLayerCanvases();
     renderLayerList();
@@ -708,8 +846,13 @@
   });
 
   moveLayerDownBtn.addEventListener("click", () => {
+    if (isLayerLocked(layers[activeLayerIndex])) return;
     if (activeLayerIndex <= 0) return;
-    [layers[activeLayerIndex], layers[activeLayerIndex - 1]] = [layers[activeLayerIndex - 1], layers[activeLayerIndex]];
+    if (isLayerLocked(layers[activeLayerIndex - 1])) return;
+    const a = layers[activeLayerIndex];
+    const b = layers[activeLayerIndex - 1];
+    [a.layerPosition, b.layerPosition] = [b.layerPosition, a.layerPosition];
+    [layers[activeLayerIndex], layers[activeLayerIndex - 1]] = [b, a];
     activeLayerIndex--;
     rebuildLayerCanvases();
     renderLayerList();
@@ -746,9 +889,11 @@
   //
   // version 2: tilesetSrc/tilesetCols/tilesetRows global (v1) diganti jadi
   // `tilesetType` PER LAYER (krn 1 layer = 1 tileset, tiap layer bisa beda).
+  // version 3: tambah `layerPosition` per layer (identitas kunci Background
+  // -1/Foreground 0, lihat "Layer helpers").
   function buildMapData() {
     return {
-      version: 2,
+      version: 3,
       tileSize: TILE_SIZE,
       mapWidth,
       mapHeight,
@@ -757,23 +902,46 @@
         visible: l.visible,
         opacity: l.opacity,
         tilesetType: l.tilesetType,
+        layerPosition: l.layerPosition,
         tiles: l.tiles,
       })),
     };
   }
 
+  // File v1/v2 lama tidak punya `layerPosition` sama sekali — ditebak dari
+  // NAMA layer ("Background"/"Foreground" persis → -1/0, lainnya → posisi
+  // user berurutan mulai 1) krn itu satu-satunya info yg tersisa. Kalau nama
+  // sudah diganti user sebelum sempat upgrade ke versi ini, tebakannya bisa
+  // meleset (jadi dianggap layer user biasa, tidak terkunci) — batasan yg
+  // disadari, bukan bug, tidak ada cara lain menebak identitas aslinya.
+  function migrateLayerPositions(rawLayers) {
+    let nextPosition = 1;
+    return rawLayers.map((l) => {
+      if (typeof l.layerPosition === "number") return l.layerPosition;
+      if (l.name === "Background") return -1;
+      if (l.name === "Foreground") return 0;
+      return nextPosition++;
+    });
+  }
+
   function applyMapData(data) {
     mapWidth = data.mapWidth;
     mapHeight = data.mapHeight;
-    layers = data.layers.map((l) => ({
+    const positions = migrateLayerPositions(data.layers);
+    layers = data.layers.map((l, i) => ({
       name: l.name,
       visible: l.visible !== false,
       opacity: typeof l.opacity === "number" ? l.opacity : 1,
       // File v1 lama tidak punya tilesetType per layer — fallback ke default
       // (Base) drpd gagal/crash, dianggap paling masuk akal sbg tebakan.
       tilesetType: TILESET_TYPES.some((t) => t.key === l.tilesetType) ? l.tilesetType : DEFAULT_TILESET_TYPE,
+      layerPosition: positions[i],
       tiles: l.tiles.slice(),
     }));
+    // Jaga-jaga file hasil edit manual/rusak urutannya — render & kunci-mengunci
+    // (moveLayerUpBtn/moveLayerDownBtn) berasumsi layers[] SELALU terurut
+    // menaik by layerPosition.
+    layers.sort((a, b) => a.layerPosition - b.layerPosition);
     activeLayerIndex = 0;
     undoStack = [];
     redoStack = [];

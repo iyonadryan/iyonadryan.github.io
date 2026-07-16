@@ -60,6 +60,16 @@
           <label class="checkbox-label"><input type="checkbox" id="showGridCheckbox" checked> Show Grid</label>
         </div>
         <div class="tool-group">
+          <span class="field-label">Background:</span>
+          <div class="bg-swatches" id="bgSwatches">
+            <button type="button" class="bg-swatch active" data-var="--preview-bg-black" title="Hitam"></button>
+            <button type="button" class="bg-swatch" data-var="--preview-bg-white" title="Putih"></button>
+            <button type="button" class="bg-swatch" data-var="--preview-bg-green" title="Hijau"></button>
+            <button type="button" class="bg-swatch" data-var="--preview-bg-blue" title="Biru"></button>
+            <button type="button" class="bg-swatch" data-var="--preview-bg-red" title="Merah"></button>
+          </div>
+        </div>
+        <div class="tool-group">
           <label class="field-label">Lebar <input type="number" id="mapWidthInput" min="1" max="200" value="25"></label>
           <label class="field-label">Tinggi <input type="number" id="mapHeightInput" min="1" max="200" value="19"></label>
           <button type="button" id="resizeMapBtn">Resize</button>

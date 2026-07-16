@@ -14,6 +14,17 @@
   --danger: #dc4c56;
   --danger-hover: #c53a44;
   --success: #34d399;
+
+  /* Background di belakang kanvas map & preview tileset (bukan warna UI
+     panel) — berguna spy tile transparan/semi-transparan (mis. Light Shadow)
+     tetap kelihatan jelas dgn latar yang kontras. Ubah nilai warna di sini
+     kalau mau tweak — 5 pilihan ini yang muncul sbg lingkaran di toolbar. */
+  --preview-bg-black: #000000;
+  --preview-bg-white: #ffffff;
+  --preview-bg-green: #16a34a;
+  --preview-bg-blue: #0284c7;
+  --preview-bg-red: #dc2626;
+  --preview-bg-current: var(--preview-bg-black); /* default aktif */
 }
 
 * {
@@ -127,6 +138,16 @@ select {
   border-color: var(--accent);
 }
 
+/* Generik utk semua tombol native-disabled (Undo/Redo tanpa riwayat, Hapus/
+   Naik/Turun layer terkunci, dst.) — dipisah dari .tileset-tab:disabled
+   (warna beda) krn butuh menang atas :hover di atas jg. */
+button:disabled,
+button:disabled:hover {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: var(--border);
+}
+
 .tool-btn.active {
   background: var(--accent);
   border-color: var(--accent);
@@ -207,6 +228,41 @@ select {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Background & Foreground — permintaan eksplisit user, indikator visual
+   layer yg tidak bisa dihapus/dipindah urutan (lihat isLayerLocked() di
+   tilemap-script.js). */
+.layer-lock-icon {
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+/* Ganti nama inline — ✏️ (edit) berubah jadi 💾 (save) begitu diklik, nama
+   jadi <input> di tempat yg sama persis dgn .layer-name (lihat renderLayerList()). */
+.layer-rename-btn {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 2px 4px;
+}
+
+.layer-rename-btn:hover {
+  color: var(--text);
+}
+
+.layer-name-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-input);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 2px 6px;
 }
 
 /* Permintaan eksplisit user — tampilkan tipe tileset yg dipakai tiap layer,
@@ -297,10 +353,48 @@ select {
   color: var(--text-muted);
 }
 
+/* Lingkaran pilih warna background kanvas map & preview tileset (lihat
+   --preview-bg-* di :root). Tiap lingkaran warnanya sendiri diisi lewat
+   attribute selector di bawah, bukan inline style — biar tetap 1 sumber
+   kebenaran (CSS var), gampang di-tweak tanpa sentuh JS/HTML sama sekali. */
+.bg-swatches {
+  display: flex;
+  gap: 6px;
+}
+
+.bg-swatch {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+}
+
+.bg-swatch.active {
+  border-color: #fff;
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.bg-swatch[data-var="--preview-bg-black"] {
+  background: var(--preview-bg-black);
+}
+.bg-swatch[data-var="--preview-bg-white"] {
+  background: var(--preview-bg-white);
+}
+.bg-swatch[data-var="--preview-bg-green"] {
+  background: var(--preview-bg-green);
+}
+.bg-swatch[data-var="--preview-bg-blue"] {
+  background: var(--preview-bg-blue);
+}
+.bg-swatch[data-var="--preview-bg-red"] {
+  background: var(--preview-bg-red);
+}
+
 .canvas-scroll {
   flex: 1;
   overflow: auto;
-  background: #10141f;
+  background: var(--preview-bg-current);
   border-radius: 6px;
   border: 1px solid var(--border);
 }
@@ -404,7 +498,7 @@ select {
 .tileset-scroll {
   flex: 1;
   overflow: auto;
-  background: #10141f;
+  background: var(--preview-bg-current);
   border-radius: 6px;
   border: 1px solid var(--border);
 }
