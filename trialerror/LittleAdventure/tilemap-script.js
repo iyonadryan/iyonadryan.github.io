@@ -32,14 +32,64 @@
   function tilesetTypeDef(key) {
     return TILESET_TYPES.find((t) => t.key === key) || TILESET_TYPES[0];
   }
-  function tilesetLabel(key) {
-    return tilesetTypeDef(key).label;
-  }
   function tilesetFile(key) {
     return TILESET_DIR + tilesetTypeDef(key).file;
   }
+
+  // ================= Block Layer (layer khusus, bukan tileset gambar) =================
+  // Satu layer SINGLETON tambahan, TIDAK dibuat lewat modal Layer Baru spt
+  // layer biasa — dibuat sekali di initDefaultLayers(), permanen terkunci
+  // (isLayerLocked()) & selalu PALING ATAS (layerPosition tertinggi).
+  const BLOCK_TILESET_KEY = "Block"; // bukan entry di TILESET_TYPES — sengaja BUKAN tileset gambar sama sekali
+  const BLOCK_LAYER_NAME = "Block Layer";
+  const BLOCK_LAYER_POSITION = 99; // selalu tertinggi — TILESET_MAX_POSITION user cuma sampai 98 (lihat nextUserLayerPosition())
+  const BLOCK_SUBDIVISION = 4; // grid Block Layer 4x lebih rapat per sisi drpd layer biasa (16x jumlah sel)
+  const BLOCK_TILE_SIZE = TILE_SIZE / BLOCK_SUBDIVISION; // 8px/sel — 4x lebih kecil, jadi luas PIKSEL totalnya tetap sama persis dgn layer biasa (mapWidth*TILE_SIZE x mapHeight*TILE_SIZE)
+  const BLOCK_TILE_VALUE = 0; // satu-satunya nilai "terisi" di layer ini — bukan index tileset asli, cuma penanda
+  const BLOCK_COLOR = "rgba(220, 38, 38, 0.5)"; // merah, opacity 50% baked-in (permintaan eksplisit user)
+
+  function isBlockLayer(layer) {
+    return layer.tilesetType === BLOCK_TILESET_KEY;
+  }
+
+  // Label/warna badge "Tileset: ..." di panel Layers — Block Layer bukan
+  // bagian dari TILESET_TYPES, jadi di-intercept duluan sebelum fallback ke
+  // tilesetTypeDef() (yg cuma tau 8 tileset gambar asli).
+  function tilesetLabel(key) {
+    if (key === BLOCK_TILESET_KEY) return "Red Block";
+    return tilesetTypeDef(key).label;
+  }
   function tilesetColor(key) {
+    if (key === BLOCK_TILESET_KEY) return "#dc2626";
     return tilesetTypeDef(key).color;
+  }
+
+  // Ukuran grid efektif 1 layer — beda utk Block Layer (lebih rapat, sel
+  // lebih kecil) drpd layer biasa (grid = mapWidth x mapHeight, sel = TILE_SIZE).
+  // Dipakai di mana pun perlu tau "berapa kolom/baris/piksel per sel" tanpa
+  // peduli lagi ngerender layer biasa atau Block Layer.
+  // Versi `...For(layer, w, h)` menerima w/h eksplisit (dipakai `resizeMapTo`
+  // yg butuh dimensi LAMA & BARU sekaligus, sebelum `mapWidth`/`mapHeight`
+  // global ke-update) — `layerGridDims(layer)` (tanpa `For`) pakai `mapWidth`/
+  // `mapHeight` yg sedang berlaku, dipakai di semua tempat lain.
+  function layerGridDimsFor(layer, w, h) {
+    return isBlockLayer(layer) ? { cols: w * BLOCK_SUBDIVISION, rows: h * BLOCK_SUBDIVISION } : { cols: w, rows: h };
+  }
+  function layerGridDims(layer) {
+    return { ...layerGridDimsFor(layer, mapWidth, mapHeight), cellSize: isBlockLayer(layer) ? BLOCK_TILE_SIZE : TILE_SIZE };
+  }
+
+  function createBlockLayer() {
+    const cols = mapWidth * BLOCK_SUBDIVISION;
+    const rows = mapHeight * BLOCK_SUBDIVISION;
+    return {
+      name: BLOCK_LAYER_NAME,
+      visible: true,
+      opacity: 1,
+      tilesetType: BLOCK_TILESET_KEY,
+      layerPosition: BLOCK_LAYER_POSITION,
+      tiles: new Array(cols * rows).fill(EMPTY),
+    };
   }
 
   // ================= DOM refs =================
@@ -170,7 +220,7 @@
   const USER_LAYER_MAX_POSITION = 98;
 
   function isLayerLocked(layer) {
-    return layer.layerPosition <= LOCKED_MAX_POSITION;
+    return layer.layerPosition <= LOCKED_MAX_POSITION || layer.layerPosition === BLOCK_LAYER_POSITION;
   }
 
   function createLayer(name, tilesetType, layerPosition) {
@@ -185,16 +235,19 @@
   }
 
   function initDefaultLayers() {
-    layers = [createLayer("Background", "Base", -1), createLayer("Foreground", "Base", 0)];
+    layers = [createLayer("Background", "Base", -1), createLayer("Foreground", "Base", 0), createBlockLayer()];
     activeLayerIndex = 0;
   }
 
   // Posisi user-layer berikutnya = posisi tertinggi yg sudah dipakai + 1
-  // (mulai dari 1 kalau belum ada layer buatan user sama sekali).
+  // (mulai dari 1 kalau belum ada layer buatan user sama sekali). Block Layer
+  // (posisi 99) SENGAJA DIKECUALIKAN dari perhitungan max — kalau ikut
+  // kehitung, layer user pertama bakal dapet posisi 100 & langsung ketolak
+  // sbg "sudah maks 98 layer" padahal belum ada satu pun layer user.
   function nextUserLayerPosition() {
     let max = 0;
     layers.forEach((l) => {
-      if (l.layerPosition > max) max = l.layerPosition;
+      if (l.layerPosition > max && l.layerPosition < BLOCK_LAYER_POSITION) max = l.layerPosition;
     });
     return max + 1;
   }
@@ -234,10 +287,30 @@
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (!layer.visible) return;
-    const cache = tilesetCache[layer.tilesetType];
-    if (!cache || !cache.loaded) return; // belum selesai preload, akan di-render ulang stlh siap
     ctx.globalAlpha = layer.opacity;
     ctx.imageSmoothingEnabled = false;
+
+    // Block Layer bukan gambar tileset — digambar sbg kotak merah solid
+    // (BLOCK_COLOR, sudah termasuk opacity 50% bakuannya) di grid yg lebih
+    // rapat (BLOCK_TILE_SIZE), bukan drawImage spt layer biasa.
+    if (isBlockLayer(layer)) {
+      const { cols, rows, cellSize } = layerGridDims(layer);
+      ctx.fillStyle = BLOCK_COLOR;
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          if (layer.tiles[row * cols + col] === EMPTY) continue;
+          ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+        }
+      }
+      ctx.globalAlpha = 1;
+      return;
+    }
+
+    const cache = tilesetCache[layer.tilesetType];
+    if (!cache || !cache.loaded) {
+      ctx.globalAlpha = 1;
+      return; // belum selesai preload, akan di-render ulang stlh siap
+    }
     for (let row = 0; row < mapHeight; row++) {
       for (let col = 0; col < mapWidth; col++) {
         const tile = layer.tiles[row * mapWidth + col];
@@ -304,12 +377,17 @@
     const oldWidth = mapWidth;
     const oldHeight = mapHeight;
     layers.forEach((layer) => {
-      const newTiles = new Array(newWidth * newHeight).fill(EMPTY);
-      const copyW = Math.min(oldWidth, newWidth);
-      const copyH = Math.min(oldHeight, newHeight);
+      // Block Layer punya grid 4x lebih rapat (lihat layerGridDimsFor) —
+      // dimensi lama & baru dihitung PER LAYER, bukan cuma pakai mapWidth/
+      // mapHeight mentah spt sebelum Block Layer ada.
+      const oldDims = layerGridDimsFor(layer, oldWidth, oldHeight);
+      const newDims = layerGridDimsFor(layer, newWidth, newHeight);
+      const newTiles = new Array(newDims.cols * newDims.rows).fill(EMPTY);
+      const copyW = Math.min(oldDims.cols, newDims.cols);
+      const copyH = Math.min(oldDims.rows, newDims.rows);
       for (let row = 0; row < copyH; row++) {
         for (let col = 0; col < copyW; col++) {
-          newTiles[row * newWidth + col] = layer.tiles[row * oldWidth + col];
+          newTiles[row * newDims.cols + col] = layer.tiles[row * oldDims.cols + col];
         }
       }
       layer.tiles = newTiles;
@@ -337,39 +415,44 @@
     const rect = canvasWrapper.getBoundingClientRect();
     const xRatio = (e.clientX - rect.left) / rect.width;
     const yRatio = (e.clientY - rect.top) / rect.height;
-    const col = Math.floor(xRatio * mapWidth);
-    const row = Math.floor(yRatio * mapHeight);
-    if (col < 0 || col >= mapWidth || row < 0 || row >= mapHeight) return null;
+    const { cols, rows } = layerGridDims(layers[activeLayerIndex]);
+    const col = Math.floor(xRatio * cols);
+    const row = Math.floor(yRatio * rows);
+    if (col < 0 || col >= cols || row < 0 || row >= rows) return null;
     return { col, row };
   }
 
   function setCellIncremental(layerIndex, col, row, value) {
     const layer = layers[layerIndex];
-    layer.tiles[row * mapWidth + col] = value;
+    const { cols, cellSize } = layerGridDims(layer);
+    layer.tiles[row * cols + col] = value;
     const ctx = layerCanvases[layerIndex].getContext("2d");
-    ctx.clearRect(col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-    if (value !== EMPTY && layer.visible) {
+    ctx.clearRect(col * cellSize, row * cellSize, cellSize, cellSize);
+    if (value === EMPTY || !layer.visible) return;
+    ctx.globalAlpha = layer.opacity;
+    if (isBlockLayer(layer)) {
+      ctx.fillStyle = BLOCK_COLOR;
+      ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+    } else {
       const cache = tilesetCache[layer.tilesetType];
-      if (cache && cache.loaded) {
-        ctx.globalAlpha = layer.opacity;
-        drawTileOnCtx(ctx, cache, value, col, row);
-        ctx.globalAlpha = 1;
-      }
+      if (cache && cache.loaded) drawTileOnCtx(ctx, cache, value, col, row);
     }
+    ctx.globalAlpha = 1;
   }
 
   // BFS 4-arah, ganti semua sel bersambung yg nilainya sama persis dgn sel yg
   // diklik menjadi `newValue` — pola flood-fill standar (mis. Paint Bucket).
   function floodFill(layerIndex, startCol, startRow, newValue) {
     const layer = layers[layerIndex];
-    const idx0 = startRow * mapWidth + startCol;
+    const { cols, rows } = layerGridDims(layer);
+    const idx0 = startRow * cols + startCol;
     const target = layer.tiles[idx0];
     if (target === newValue) return;
     const stack = [[startCol, startRow]];
     while (stack.length) {
       const [col, row] = stack.pop();
-      if (col < 0 || col >= mapWidth || row < 0 || row >= mapHeight) continue;
-      const idx = row * mapWidth + col;
+      if (col < 0 || col >= cols || row < 0 || row >= rows) continue;
+      const idx = row * cols + col;
       if (layer.tiles[idx] !== target) continue;
       setCellIncremental(layerIndex, col, row, newValue);
       stack.push([col + 1, row], [col - 1, row], [col, row + 1], [col, row - 1]);
@@ -377,13 +460,16 @@
   }
 
   function paintAt(col, row) {
+    const layer = layers[activeLayerIndex];
+    const tileValue = isBlockLayer(layer) ? BLOCK_TILE_VALUE : selectedTile;
     if (currentTool === "fill") {
-      floodFill(activeLayerIndex, col, row, selectedTile);
+      floodFill(activeLayerIndex, col, row, tileValue);
       return;
     }
-    const newValue = currentTool === "erase" ? EMPTY : selectedTile;
-    const idx = row * mapWidth + col;
-    if (layers[activeLayerIndex].tiles[idx] === newValue) return;
+    const newValue = currentTool === "erase" ? EMPTY : tileValue;
+    const { cols } = layerGridDims(layer);
+    const idx = row * cols + col;
+    if (layer.tiles[idx] === newValue) return;
     setCellIncremental(activeLayerIndex, col, row, newValue);
   }
 
@@ -501,13 +587,28 @@
   // Panel kanan SELALU menampilkan tileset milik layer yang lagi aktif —
   // bukan pilihan bebas, krn 1 layer cuma boleh pakai 1 tipe tileset.
   function showTilesetForActiveLayer() {
-    const type = layers[activeLayerIndex].tilesetType;
+    const layer = layers[activeLayerIndex];
+    const type = layer.tilesetType;
+    selectedTile = 0; // index tile tidak nyambung antar tileset beda, reset tiap ganti
+    updateTilesetTabsActive(type);
+
+    if (isBlockLayer(layer)) {
+      // Block Layer bukan tileset gambar — sembunyikan preview & highlight,
+      // isi info statis "Red Block" (tidak ada apa2 utk dipilih user).
+      tilesetImg.removeAttribute("src");
+      tilesetImg.style.display = "none";
+      tileHighlight.style.display = "none";
+      tilesetInfo.textContent = `${tilesetLabel(type)} — otomatis, tidak pakai tileset`;
+      statusSelectedTile.textContent = tilesetLabel(type);
+      return;
+    }
+
+    tilesetImg.style.display = "";
+    tileHighlight.style.display = "";
     const cache = tilesetCache[type];
     tilesetCols = cache.cols;
     tilesetRows = cache.rows;
-    selectedTile = 0; // index tile tidak nyambung antar tileset beda, reset tiap ganti
     tilesetImg.src = tilesetFile(type);
-    updateTilesetTabsActive(type);
     updateTilesetDisplaySize();
     updateTileHighlight();
     updateTilesetInfo();
@@ -743,7 +844,12 @@
     const activeLayer = layers[activeLayerIndex];
     const locked = isLayerLocked(activeLayer);
     removeLayerBtn.disabled = locked;
-    moveLayerUpBtn.disabled = locked || activeLayerIndex >= layers.length - 1;
+    // Sebelumnya Naik cuma dicek "activeLayerIndex >= layers.length-1" (asumsi
+    // implisit: tidak pernah ada layer terkunci DI ATAS layer user, cuma
+    // benar sblm Block Layer ada). Sejak Block Layer (posisi 99, SELALU
+    // elemen terakhir) ada, tetangga di atas jg bisa terkunci — jadi dicek
+    // simetris dgn Turun (isLayerLocked tetangga), bukan cuma posisi array.
+    moveLayerUpBtn.disabled = locked || activeLayerIndex >= layers.length - 1 || isLayerLocked(layers[activeLayerIndex + 1]);
     moveLayerDownBtn.disabled = locked || activeLayerIndex <= 0 || isLayerLocked(layers[activeLayerIndex - 1]);
   }
 
@@ -796,8 +902,13 @@
       alert(`Sudah mencapai maksimal ${USER_LAYER_MAX_POSITION} layer tambahan.`);
       return;
     }
-    layers.push(createLayer(name, newLayerSelectedType, position));
-    activeLayerIndex = layers.length - 1;
+    // BUKAN push() ke ujung array — Block Layer (posisi 99) HARUS selalu jadi
+    // elemen TERAKHIR (invariant "layers[] terurut menaik by layerPosition",
+    // lihat "Layer terkunci"/"Block Layer" di CLAUDE.md). Layer baru selalu
+    // disisipkan TEPAT SEBELUM Block Layer, bukan sesudahnya.
+    const blockIdx = layers.findIndex((l) => l.layerPosition === BLOCK_LAYER_POSITION);
+    layers.splice(blockIdx, 0, createLayer(name, newLayerSelectedType, position));
+    activeLayerIndex = blockIdx;
     rebuildLayerCanvases();
     renderLayerList();
     showTilesetForActiveLayer();
@@ -934,10 +1045,22 @@
       opacity: typeof l.opacity === "number" ? l.opacity : 1,
       // File v1 lama tidak punya tilesetType per layer — fallback ke default
       // (Base) drpd gagal/crash, dianggap paling masuk akal sbg tebakan.
-      tilesetType: TILESET_TYPES.some((t) => t.key === l.tilesetType) ? l.tilesetType : DEFAULT_TILESET_TYPE,
+      // BLOCK_TILESET_KEY diterima jg krn valid (bukan entry TILESET_TYPES,
+      // sengaja bukan tileset gambar — lihat isBlockLayer()).
+      tilesetType:
+        l.tilesetType === BLOCK_TILESET_KEY || TILESET_TYPES.some((t) => t.key === l.tilesetType)
+          ? l.tilesetType
+          : DEFAULT_TILESET_TYPE,
       layerPosition: positions[i],
       tiles: l.tiles.slice(),
     }));
+    // File lama (dibuat sblm fitur Block Layer ada) tidak akan punya layer
+    // posisi 99 sama sekali — tambahkan singleton-nya drpd map jd selamanya
+    // tanpa Block Layer (tidak ada UI utk bikin ulang scr manual, beda dgn
+    // layer biasa yg bisa dibuat lewat modal Layer Baru kapan saja).
+    if (!layers.some((l) => l.layerPosition === BLOCK_LAYER_POSITION)) {
+      layers.push(createBlockLayer());
+    }
     // Jaga-jaga file hasil edit manual/rusak urutannya — render & kunci-mengunci
     // (moveLayerUpBtn/moveLayerDownBtn) berasumsi layers[] SELALU terurut
     // menaik by layerPosition.
