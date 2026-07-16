@@ -705,7 +705,15 @@
     for (let i = layers.length - 1; i >= 0; i--) {
       const layer = layers[i];
       const row = document.createElement("div");
-      row.className = "layer-row" + (i === activeLayerIndex ? " active" : "");
+      // Warna card khusus buat layer terkunci bawaan (permintaan eksplisit
+      // user) — Block Layer (paling atas) merah, Background/Foreground
+      // (2 paling bawah) coklat. Ditentukan dari `layerPosition`, bukan
+      // nama, konsisten dgn `isLayerLocked()` (nama bisa diganti user,
+      // posisi tidak).
+      let variantClass = "";
+      if (layer.layerPosition === BLOCK_LAYER_POSITION) variantClass = " layer-row--block";
+      else if (layer.layerPosition <= LOCKED_MAX_POSITION) variantClass = " layer-row--basefg";
+      row.className = "layer-row" + variantClass + (i === activeLayerIndex ? " active" : "");
 
       const top = document.createElement("div");
       top.className = "layer-row-top";
@@ -895,6 +903,14 @@
     const name = newLayerNameInput.value.trim();
     if (!name) {
       alert("Nama layer tidak boleh kosong.");
+      return;
+    }
+    // Nama layer harus unik — termasuk terhadap Block Layer/Background/
+    // Foreground yg sudah ada & terkunci (permintaan eksplisit user).
+    // Case-insensitive spy "background" & "Background" dianggap tabrakan
+    // jg, bukan cuma exact match.
+    if (layers.some((l) => l.name.toLowerCase() === name.toLowerCase())) {
+      alert(`Sudah ada layer dgn nama "${name}". Pilih nama lain.`);
       return;
     }
     const position = nextUserLayerPosition();
