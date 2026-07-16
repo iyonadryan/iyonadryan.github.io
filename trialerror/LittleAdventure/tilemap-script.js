@@ -94,6 +94,7 @@
 
   // ================= DOM refs =================
   const layerList = document.getElementById("layerList");
+  const activeLayerNameLabel = document.getElementById("activeLayerNameLabel");
   const addLayerBtn = document.getElementById("addLayerBtn");
   const removeLayerBtn = document.getElementById("removeLayerBtn");
   const moveLayerUpBtn = document.getElementById("moveLayerUpBtn");
@@ -702,6 +703,7 @@
 
   function renderLayerList() {
     layerList.innerHTML = "";
+    activeLayerNameLabel.textContent = layers[activeLayerIndex] ? layers[activeLayerIndex].name : "";
     for (let i = layers.length - 1; i >= 0; i--) {
       const layer = layers[i];
       const row = document.createElement("div");
