@@ -17,14 +17,20 @@ Prototype game petualangan 2D pixel-art di `trialerror/LittleAdventure/`. Tahap 
 
 ```
 LittleAdventure/
-  index.html         # halaman GAME — .game-header (judul, hint kontrol, tombol Ganti Karakter — absolute,
-                     # nempel atas, lihat "Layout: header vs #gameWorld"), .game-stage (#gameWorld/kamera >
-                     # #worldLayer/dunia > #character > #speechBubble, PLUS #chatInput ngomong — absolute,
-                     # nempel di BAWAH #gameWorld, lihat "Layout"), overlay #characterPickerOverlay
-                     # (picker Male/Female), & link ke tilemap.html
+  index.html         # halaman GAME — <head> py Firebase SDK+config (SAMA dgn tilemap.html, lihat "Dunia
+                     # dari Tilemap Editor") krn dunia game sekarang dimuat dari map hasil Tilemap Editor.
+                     # .game-header (judul, hint kontrol, tombol Ganti Karakter — absolute, nempel atas,
+                     # lihat "Layout: header vs #gameWorld"), .game-stage (#gameWorld/kamera > #worldLayer/
+                     # dunia > beberapa <canvas class="world-layer-canvas"> (layer map, dibuat JS) DIBAGI
+                     # 2: sebagian sblm #character (Background/Foreground, di belakang), sebagian sesudahnya
+                     # (layer lain, di depan) > #character > #speechBubble, PLUS #chatInput ngomong —
+                     # absolute, nempel di BAWAH #gameWorld, lihat "Layout"), overlay
+                     # #characterPickerOverlay (picker Male/Female), & link ke tilemap.html
   style.css          # styling khusus index.html (di atas)
   script.js          # logic khusus index.html: sprite stepping, animasi jalan, kontrol keyboard, kamera
-                     # mengikuti karakter, picker ganti karakter, fitur ngomong (chat bubble)
+                     # mengikuti karakter, picker ganti karakter, fitur ngomong (chat bubble), load+render
+                     # dunia dari Tilemap Editor via Firebase + collision Block Layer (lihat "Dunia dari
+                     # Tilemap Editor")
   tilemap.html       # halaman TERPISAH — editor tile map (lihat "Tilemap Editor"), tema gelap sendiri,
                      # TIDAK menggunakan style.css/script.js milik index.html
   tilemap-style.css  # styling khusus tilemap.html
@@ -106,14 +112,53 @@ Default saat load pertama: `img/character/Male/Male 01-1.png` (`currentGender`/`
 - **Guard `isJumping`**: menekan Space lagi selagi masih di tengah animasi lompat diabaikan (tidak restart/menumpuk animasi) sampai lompatan sebelumnya selesai.
 - **Class `.jumping` dilepas via event `animationend`** (bukan `setTimeout` durasi hardcoded) — supaya kalau durasi di `@keyframes jump` diubah nanti, JS otomatis ikut tanpa perlu disinkronkan manual di dua tempat.
 - Guard `document.activeElement === chatInput` sama spt Shift/tombol arah — spasi dipakai buat ngetik spasi normal di pesan chat, bukan trigger lompat, selama fokus di `#chatInput`.
-- **`#speechBubble` ikut naik-turun bareng saat lompat** (bukan bug) — krn dia child `#character`, & animasi hop-nya nempel di `#character` itu sendiri.
+- **`#speechBubble` TIDAK LAGI ikut naik-turun saat lompat** — sebelumnya ikut krn dulu jadi child `#character` (animasi hop nempel di `#character` itu sendiri), tapi sejak dipindah jadi sibling `#character` (lihat "Ngomong / chat bubble" soal kenapa) bubble tidak lagi otomatis kena animasi itu. Trade-off yg disadari & diterima demi perbaikan bug bubble ketutup layer map.
 
-## Map dunia (`img/samplemap.png`, `#worldLayer`)
+## Map dunia — fallback statis (`img/samplemap.png`, `#worldLayer`)
+
+**Ini SEKARANG jalur fallback**, bukan sumber utama dunia lagi — jalur utamanya memuat map dari Tilemap Editor via Firebase (lihat "Dunia dari Tilemap Editor" di bawah). Jalur ini cuma dipakai `buildWorldFallback()` kalau load dari Firebase gagal (map belum ada/rules blm keset/network error) — permintaan implisit supaya game tidak pernah blank walau map dari editor gagal dimuat.
 
 - `#worldLayer` pakai `img/samplemap.png` (1920×1920px) sbg `background-image`, bukan lagi motif rumput CSS (`repeating-linear-gradient`) yang dipakai di versi sebelumnya.
-- **Skala map = skala karakter** (`WORLD_WIDTH`/`WORLD_HEIGHT` = `MAP_SRC_SIZE * SCALE` di `script.js`) — permintaan eksplisit user supaya rasio ukuran karakter thd map konsisten (bukan angka dunia yang arbitrer spt sebelumnya). Karena `SCALE` sama persis dgn konstanta yang dipakai sprite karakter, ubah `SCALE` sekali otomatis mengubah skala keduanya bersamaan.
-- `background-size` di-set ke `WORLD_WIDTH`×`WORLD_HEIGHT` (ukuran map setelah discale) via JS di `init()` — konsisten dgn pola `.character` yang skalanya jg diatur lewat `background-size`.
+- **Skala map = skala karakter** (`WORLD_WIDTH`/`WORLD_HEIGHT` = `FALLBACK_MAP_SRC_SIZE * SCALE` di `buildWorldFallback()`, `script.js`) — permintaan eksplisit user supaya rasio ukuran karakter thd map konsisten (bukan angka dunia yang arbitrer spt sebelumnya). Karena `SCALE` sama persis dgn konstanta yang dipakai sprite karakter, ubah `SCALE` sekali otomatis mengubah skala keduanya bersamaan. `WORLD_WIDTH`/`WORLD_HEIGHT` sekarang `let` (bukan `const` lagi) krn diisi belakangan oleh `loadWorldMap()` (bisa dari map Firebase ATAU dari fallback ini, ukurannya beda-beda tergantung mana yg berhasil).
+- `background-size` di-set ke `WORLD_WIDTH`×`WORLD_HEIGHT` (ukuran map setelah discale) via JS — konsisten dgn pola `.character` yang skalanya jg diatur lewat `background-size`.
 - `image-rendering: pixelated` juga dipasang di `#worldLayer` (bukan cuma `.character`) supaya map ikut tegas/tidak blur setelah di-scale.
+
+## Dunia dari Tilemap Editor (`loadWorldMap`, `buildWorldFromMapData`, Firebase)
+
+**Jalur UTAMA dunia game** (permintaan eksplisit user) — `index.html` sekarang memuat map yg dibuat & disimpan lewat Tilemap Editor (lihat "Tilemap Editor" di atas), bukan lagi gambar statis. Nama map yg dipakai **hardcode** `WORLD_MAP_NAME = "map_iyon"` (`script.js`) — belum ada UI pilih map lain di game, ganti map = ganti konstanta ini manual.
+
+### Alur load (`init()` → `loadWorldMap()`)
+
+- `init()` sekarang `async` — `await loadWorldMap()` HARUS selesai dulu sblm posisi awal karakter/kamera dihitung (keduanya butuh `WORLD_WIDTH`/`WORLD_HEIGHT` yg baru terisi setelah map selesai dimuat/gagal-lalu-fallback).
+- `loadWorldMap()`: `db.ref("trial-error/littleAdventure/tilemaps/map_iyon").once("value")` (path & project Firebase SAMA PERSIS dgn `tilemap.html`, lihat "Simpan/muat ke Firebase") → kalau data kosong/tidak valid/gagal (network error, dll.) → `catch` → `console.warn()` + `buildWorldFallback()` (lihat "Map dunia — fallback statis" di atas). Game **tidak pernah** stuck/blank krn kegagalan ini — sudah diuji eksplisit (ganti `WORLD_MAP_NAME` ke nama yg sengaja tidak ada, konfirmasi fallback ke `samplemap.png` jalan mulus + warning muncul di console).
+- Kalau berhasil → `buildWorldFromMapData(data)`.
+
+### Render per-layer (`buildWorldFromMapData`)
+
+- `WORLD_WIDTH`/`WORLD_HEIGHT` dihitung dari `mapWidth`/`mapHeight` map itu sendiri (`* TILE_SRC * SCALE`) — BUKAN lagi angka tetap kotak 1920×1920 spt fallback, jadi ukuran dunia beda-beda tergantung map yg dimuat (map `map_iyon`: 15×10 tile → dunia 720×480px).
+- **Cuma preload tileset yg BENERAN dipakai** layer yg `visible` (bukan semua 8 spt di `tilemap-script.js` — di game tidak ada UI ganti tileset jadi tidak perlu preload yg tidak kepakai): `neededTypes` dikumpulin dari `tilesetType` unik semua layer visible (selain Block Layer, lihat di bawah), lalu di-`Promise.all` lewat `loadImage()` (helper `new Image()` + Promise, bukan callback spt `preloadTilesetType` di editor — lebih cocok dipakai bareng `async/await` di sini).
+- **`TILESET_DIR`/`TILESET_FILES`/`TILE_SRC`/`BLOCK_TILESET_KEY`/`BLOCK_SUBDIVISION`/`LOCKED_MAX_POSITION` di `script.js` adalah DUPLIKAT manual** dari `TILESET_TYPES`/`TILE_SIZE`/dst. di `tilemap-script.js` — TIDAK ada modul/import di project ini (semua inline `<script>`, lihat "Tech Stack"), jadi kalau daftar tileset atau konstanta itu berubah di editor, **file ini WAJIB disinkron manual** juga (pola yg sama persis dgn kenapa `CHARACTER_FILES` py catatan serupa).
+- **1 `<canvas>` per layer** (`makeWorldLayerCanvas()`) — native resolution `mapWidth*TILE_SRC` × `mapHeight*TILE_SRC` (BUKAN native × `SCALE`), lalu discale ke ukuran WORLD murni lewat CSS (`canvas.style.width/height`), sama persis pola scaling `.character`/`#worldLayer` yg sudah ada (`image-rendering:pixelated` di `.world-layer-canvas`, lihat `style.css`) — drawImage per-tile (skip `-1`/`null`) dari tileset image yg sesuai `layer.tilesetType`, hormati `layer.opacity` (`ctx.globalAlpha`).
+- **Urutan Background/Foreground vs karakter (permintaan eksplisit user)**: HANYA layer dgn `layerPosition <= LOCKED_MAX_POSITION` (Background=-1, Foreground=0) yg dirender **DI BAWAH** karakter — SEMUA layer lain (layer user apa pun + Block Layer, walau Block Layer sendiri tidak pernah digambar, lihat di bawah) dirender **DI ATAS** karakter. Dicapai murni lewat urutan DOM, BUKAN `z-index`: `#worldLayer`/`.character`/`.world-layer-canvas` semua `position:absolute` tanpa `z-index` sama sekali, jadi urutan tumpuk = urutan DOM apa adanya. `belowLayers` (diurutkan ascending by `layerPosition`) di-`insertBefore(canvas, character)`, `aboveLayers` (jg ascending) di-`appendChild` — krn `#character` SUDAH ada di HTML sbg child `#worldLayer` sblm JS jalan, `insertBefore` menaruh kanvas SEBELUM-nya (di belakang), `appendChild` menaruh SESUDAH-nya (di depan).
+- **Layer yg `visible:false` di map SAMA SEKALI tidak dibikin kanvasnya** (bukan dibikin lalu disembunyikan) — di game tidak ada toggle visibility live spt di editor, jadi tidak ada gunanya bikin kanvas yg tidak pernah ditampilkan.
+
+### Block Layer jadi collision, TIDAK PERNAH digambar (permintaan eksplisit user: "opacity 0%")
+
+- Block Layer (`tilesetType === "Block"`) **dikeluarkan total** dari kedua grup `belowLayers`/`aboveLayers` (filter `l.tilesetType !== BLOCK_TILESET_KEY`) — beda dari Tilemap Editor yg menggambarnya merah 50% opacity, di GAME layer ini **sepenuhnya tak kelihatan** (bukan cuma opacity kecil — memang tidak pernah ada `drawImage`/`fillRect` apa pun buat layer ini). Datanya cuma dipakai buat `blockLayerData` (collision), bukan visual.
+- Kalau Block Layer di map disembunyikan lewat toggle 👁️ di editor (`visible:false`), **collision-nya JUGA nonaktif** (`blockLayer` dicari dgn filter `visible !== false`) — cara pembuat map "matiin" blok tertentu tanpa hapus datanya (mis. buat testing).
+- **`blockLayerData`**: `{ cols: mapWidth*4, rows: mapHeight*4, cellSize: (TILE_SRC/4)*SCALE, tiles }` — `cellSize` sudah dikali `SCALE` (beda dari grid internal Block Layer di editor yg satuannya native/`TILE_SIZE` blm di-scale) krn dipakai LANGSUNG dibandingkan dgn posisi karakter (`x`/`y`) yg jg sudah dlm satuan WORLD (ter-`SCALE`). Kalau tidak ada Block Layer sama sekali di map (atau map lagi fallback) → `blockLayerData = null` → `isAreaBlocked()` selalu `false` (tidak ada tabrakan sama sekali, aman).
+
+### Tabrakan (`isAreaBlocked`, dipanggil dari `updateMovement`)
+
+- Cek kotak penuh karakter (`FRAME`×`FRAME` = 48×48px) di posisi tujuan thd SEMUA sel Block Layer yg overlap (`colStart..colEnd` × `rowStart..rowEnd`, di-scan penuh bukan cuma 4 pojok) — sengaja BUKAN cuma cek 4 pojok kotak krn grid Block Layer jauh lebih rapat drpd `FRAME` (`cellSize`=12px vs `FRAME`=48px, rasio 4:1 sama persis dgn `BLOCK_SUBDIVISION`), jadi 1 sel yg diblok bisa jatuh tepat di TENGAH salah satu sisi kotak tanpa kena pojok manapun kalau dicek pojok doang — potensi bug tabrakan "bocor" yg disadari sejak awal makanya langsung di-scan penuh.
+- **Gerakan dibatalkan SELURUHNYA (bukan di-slide/digeser)** kalau posisi baru menabrak — `updateMovement()` hitung `newX`/`newY` dulu (+ clamp ke batas dunia spt biasa), baru cek `isAreaBlocked(newX, newY)`: kalau `true`, `x`/`y` TIDAK di-update sama sekali frame ini (karakter diam di posisi lama walau tombol arah masih ditahan). Cukup krn cuma 1 sumbu yg berubah per frame (`heldDirections` cuma py 1 arah "menang" sekaligus, lihat komentarnya) — TIDAK butuh resolusi per-sumbu terpisah (mis. gerak differensial X lalu Y) spt yg biasanya perlu utk gerakan diagonal.
+- **Diuji eksplisit** (Playwright + Edge headless, pola sama spt fitur lain di project ini): `isAreaBlocked()` dicek langsung lewat hook debug sementara utk beberapa titik presisi (tepat di sel terblok vs sedikit di luar), LALU diuji ulang lewat gerakan keyboard sungguhan (tahan ↑/←) — karakter berhenti PERSIS di tepi sel terblok & tetap nempel di situ walau tombol terus ditahan (tidak "bocor"/nembus).
+
+### Batasan yg disadari
+
+- **Hardcode 1 nama map** (`WORLD_MAP_NAME`) — belum ada mekanisme pilih map lain dari dalam game (mis. lewat query string/menu), ganti map = edit konstanta ini manual di `script.js`.
+- **Belum ada loading indicator** — selagi `await loadWorldMap()` jalan (biasanya cepat, tapi tergantung network), karakter/map belum kelihatan sama sekali (elemen kosong) tanpa pesan "Loading..." apa pun.
+- **Duplikasi konstanta tileset** (lihat di atas) — resiko drift kalau `tilemap-script.js` berubah tapi `script.js` lupa disinkron, krn tidak ada modul/shared source di project ini.
 
 ## Kamera mengikuti karakter (`updateCamera`, `#gameWorld` vs `#worldLayer`)
 
@@ -142,7 +187,9 @@ Dua layer terpisah — dipisah krn kamera & dunia butuh digeser independen dari 
 - **Tekan Enter** (kapan pun, selama fokus **bukan** di `#chatInput`) → buka `#chatInput` (`openChatInput()`: `hidden = false`, kosongkan value, `.focus()`). Input ini diposisikan **absolute nempel di bawah `#gameWorld`** (lihat "Layout" — sengaja bukan bagian alur normal, biar muncul/hilangnya tidak menggeser posisi kotak game).
 - **Tekan Enter lagi** (kali ini fokus **di dalam** `#chatInput`) → submit: input ditutup (`closeChatInput()`), lalu kalau teksnya tidak kosong, tampilkan `#speechBubble` berisi teks itu (`showSpeechBubble()`). Submit dgn input kosong = batal diam-diam (bubble tidak muncul).
 - **Satu listener `keydown` di `window`** menangani kedua kasus (buka vs submit) dgn cek `document.activeElement === chatInput` — bukan dua listener terpisah (satu di `window` utk buka, satu di `#chatInput` utk submit), krn kalau dipisah, event `keydown` Enter yang sama akan bubbling dari `#chatInput` ke `window` dan bisa memicu KEDUANYA di satu kali tekan (submit lalu langsung ke-buka lagi). Satu listener dgn branching menghindari masalah itu sekaligus.
-- **Bubble jadi child dari `#character`** (bukan child `#worldLayer`/`#gameWorld` terpisah) — otomatis ikut posisi & transform karakter (gerak, kena geser kamera) tanpa perlu hitung posisi manual sama sekali. Posisi CSS `bottom: 100%` (nempel pas di atas kepala karakter) + `left: 50%` & `transform: translateX(-50%)` (center horizontal).
+- **Bubble SEKARANG sibling `#character`, anak TERAKHIR `#worldLayer`** (`worldLayer.appendChild(speechBubble)` di `init()`, `script.js`) — dulunya child `#character` (otomatis ikut posisi tanpa hitung manual), tapi berubah krn **bug nyata**: sejak dunia bisa py layer map yg posisinya di ATAS karakter (lihat "Dunia dari Tilemap Editor" — mis. layer "Tumbuhan"/semak), bubble yg masih nested di `.character` ikut ketutup layer2 itu (teksnya jadi tidak kebaca, ketutup semak). Krn `#character` sendiri py stacking context (posisi diatur lewat `translate`, yg jg memicu stacking context sama spt `transform`), z-index apa pun di bubble TIDAK BISA "kabur" dari subtree `.character` — satu2nya cara bubble selalu tergambar plaing depan adalah scr fisik jadi anak TERAKHIR `#worldLayer` (setelah semua `<canvas>` layer, lihat "Dunia dari Tilemap Editor"), bukan lewat z-index.
+  - **Konsekuensi**: posisi TIDAK lagi otomatis ikut karakter cuma via nesting — `updateSpeechBubblePosition()` (dipanggil tiap kali `x`/`y` karakter berubah, di `updateMovement()` & sekali di `init()`) nge-set `speechBubble.style.left/top` manual ke titik tengah-atas kotak karakter (`x + FRAME/2`, `y`). CSS `transform: translate(-50%, calc(-100% - 8px))` gantiin `left:50%; bottom:100%; transform:translateX(-50%) translateY(-8px)` versi lama (yg dulu dihitung relatif ke box `.character` 48×48px) — efek visual akhirnya SAMA (center horizontal, nempel di atas kepala + jarak 8px), cuma titik acuannya sekarang eksplisit dari JS, bukan implisit dari ukuran parent.
+  - **Efek samping yg disadari**: bubble **TIDAK LAGI** ikut naik-turun bareng animasi lompat (Space) — dulu ikut krn nested langsung di `.character` yg kena `transform` animasi jump, sekarang jadi sibling jadi tidak lagi otomatis ketimpa animasi itu. Dianggap trade-off yg wajar (kosmetik kecil) demi bug utama (bubble ketutup layer) yg jauh lebih penting diperbaiki.
 - **Auto-hilang** stlh `BUBBLE_DURATION` (4 detik, `setTimeout` + `clearTimeout` kalau ada bubble baru muncul sebelum yang lama hilang — jadi ngomong lagi sebelum 4 detik langsung reset timer-nya, bukan numpuk 2 timer). Disembunyikan lewat class `.visible` (`opacity`, ada transisi) — bukan `display`, spy bisa fade sederhana.
 - **Word-wrap manual maks 30 karakter/baris** (`BUBBLE_MAX_CHARS_PER_LINE`, fungsi `wrapText()`) — teks dipecah jadi array baris di JS (greedy, pecah di spasi selama muat; kata tunggal yg sendirinya udah lebih panjang dari 30 karakter dipaksa dipotong per 30 char) SEBELUM di-render, hasilnya digabung pakai `"\n"` lalu `speechBubble.textContent = ...`. CSS `.speech-bubble` diset `white-space: pre-line` (hormati `\n` manual ini) + `max-width: 32ch` (buffer dikit di atas 30 char, jaga-jaga variasi lebar karakter font). Sengaja **bukan** cuma andalkan CSS `max-width` + word-wrap otomatis browser — krn itu cuma "kira-kira" pas di lebar tertentu (tergantung lebar tiap huruf), sedangkan permintaan user spesifik "maks 30 karakter", bukan "kira-kira muat di sekian piksel".
   - **Bug yang sempat kejadian & fix-nya**: pas awal diimplementasi, bubble malah ke-wrap tiap ~2-3 karakter (jauh lebih agresif dari 30), khususnya kalau isinya satu "kata" tanpa spasi (mis. ngetik berulang tanpa spasi). Penyebabnya BUKAN di `wrapText()` (itu sudah benar), tapi krn `.speech-bubble` posisinya `position: absolute` dgn cuma `left: 50%` (tanpa `right`) & `width` dibiarkan `auto` — utk elemen begini, spec CSS menghitung lebar shrink-to-fit dari SISA RUANG containing block (`.character`, cuma lebar `FRAME`=48px!), bukan dari `max-width` yang di-set. Hasilnya lebar efektif yang dipakai buat wrap jadi jauh lebih sempit dari 32ch yang dimaksud. **Fix**: tambah `width: max-content` eksplisit — ini memaksa lebar dihitung dari kontennya sendiri (bukan dari sisa ruang containing block), `max-width: 32ch` tetap jadi batas atas seperti niat awal. Pelajaran: elemen `position:absolute` dgn cuma satu offset (`left` **atau** `right`, bukan dua-duanya) + `width:auto` itu jebakan umum — kalau containing block-nya kecil, WAJIB kasih `width: max-content` (atau `width` eksplisit) kalau maksudnya mau shrink-to-fit ke konten, bukan ke containing block.
@@ -288,7 +335,7 @@ Satu layer **singleton** tambahan (bukan dibuat lewat modal Layer Baru spt layer
 - **Simpan** (`saveFirebaseBtn`): `db.ref("trial-error/littleAdventure/tilemaps/"+key).set(buildMapData())` — timpa penuh kalau nama sudah ada (bukan merge), lalu refresh daftar dropdown.
 - **Muat** (`#firebaseMapSelect`, populated dari `db.ref("trial-error/littleAdventure/tilemaps").once("value")` — list semua key/nama map tersimpan): pilih dari dropdown langsung `applyMapData()` (tidak perlu tombol "Load" terpisah, ganti pilihan = langsung muat).
 - **Belum ada auth** — path ini publik readable/writable, sama seperti semua app lain di repo (lihat pola serupa di `app/.claude/*.md`).
-- **Rules Firebase console PERLU ditambahkan manual** sebelum fitur ini benar-benar jalan — path `trial-error` belum tentu otomatis dapat `.write:true` di rules Realtime Database (beda node top-level = beda entry di rules), kalau belum ada bakal muncul error `permission_denied` pas simpan/muat/refresh daftar. Cek console Firebase project `iyon-adryanlf-trialerror` kalau fitur cloud ini gagal — pola sama dgn app lain (lihat "Rencana / TODO ke depan" app-app di `app/.claude/*.md`).
+- **Rules Firebase console SUDAH dikonfirmasi jalan** (read & write) — dicek langsung via `curl` ke `https://iyon-adryanlf-trialerror.firebaseio.com/trial-error/littleAdventure/tilemaps/map_iyon.json` (berhasil, bukan `permission_denied`) & lewat `index.html` yg berhasil load map yg sama (lihat "Dunia dari Tilemap Editor"). Kalau ke depan tetap ketemu `permission_denied` di path lain, brt itu path BARU yg blm ke-cover rules yg sekarang, bukan masalah `trial-error` yg ini.
 
 ### Autosave lokal (`localStorage`)
 
@@ -302,9 +349,9 @@ Jaring pengaman **murni lokal**, bukan pengganti Save JSON/Firebase manual — t
 - Screenshot capture (kamera icon di referensi) tidak ada — export cuma lewat Save JSON/Firebase, bukan gambar PNG hasil render map.
 - **Import tileset bebas (`<input type="file">`) sempat ada, lalu DIHAPUS** — diganti 8 tab tileset tetap dari `img/tileset/SampleMap/`, permintaan eksplisit user (lihat "Tileset panel — 8 tipe tetap"). Beda dari referensi yg tetap punya tombol Import bebas.
 
-### Belum terhubung ke game (`index.html`) — masih tool berdiri sendiri
+### Sudah terhubung ke game (`index.html`) — lihat "Dunia dari Tilemap Editor"
 
-Map yg dibuat/disimpan di sini **belum otomatis dipakai** `index.html`/`script.js` (yang masih pakai `img/samplemap.png` statis, lihat "Map dunia") — tilemap.html murni alat bikin & simpan data map dulu. Menyambungkannya (render map JSON hasil editor ini jadi `#worldLayer` game, gantiin gambar statis) adalah pekerjaan terpisah ke depan (lihat "Rencana / TODO ke depan") krn butuh mengganti pendekatan render `#worldLayer` dari 1 `background-image` jadi tumpukan `<canvas>`/gambar per-tile spt di editor ini.
+Map yg dibuat/disimpan di sini **sudah dipakai** `index.html`/`script.js` sbg dunia game sesungguhnya (menggantikan `img/samplemap.png` statis, lihat "Map dunia" — sekarang jadi fallback, bukan sumber utama lagi) — detail lengkap penyambungannya (nama map yg dipakai, render per-layer, urutan Background/Foreground vs karakter, Block Layer jadi collision) ada di `CLAUDE.md` bagian **"Dunia dari Tilemap Editor"** di bawah "Map dunia".
 
 ## Kenapa bukan CSS `@keyframes` / sprite animation library
 
@@ -313,7 +360,7 @@ Animasi frame (ganti `background-position`) dan pergerakan (`transform: translat
 ## Rencana / TODO ke depan
 
 - **Pilih karakter**: sudah ada (lihat "Ganti karakter") — belum ada: pilihan tersimpan (reset ke Male 01-1 tiap reload), dan daftar file di `CHARACTER_FILES` harus diupdate manual kalau ada sprite baru ditambahkan.
-- **Map/level**: sudah pakai gambar map sungguhan (`img/samplemap.png`, lihat "Map dunia") & kamera mengikuti karakter **sudah ada** (lihat "Kamera mengikuti karakter") — tapi belum ada collision (karakter bisa jalan tembus sungai/rumah di gambar map), dan gambar map itu masih statis (bukan tile map berbasis data). **Tilemap Editor** (`tilemap.html`, lihat "Tilemap Editor") sudah bisa bikin & simpan map berbasis data (JSON/Firebase) pakai aset `img/tileset/`, tapi **belum disambungkan** ke `index.html` — game masih render `img/samplemap.png` statis, belum baca output editor ini.
+- **Map/level**: kamera mengikuti karakter **sudah ada** (lihat "Kamera mengikuti karakter"). Dunia game **sudah** pakai tile map berbasis data dari Tilemap Editor (map `"map_iyon"`, lihat "Dunia dari Tilemap Editor") dgn collision via Block Layer — gambar `img/samplemap.png` statis sekarang cuma fallback (lihat "Map dunia — fallback statis"). Belum ada: UI pilih map lain dari dalam game (nama map masih hardcode `WORLD_MAP_NAME`), loading indicator selagi map dimuat, dan kondisi non-collision lain (mis. air/sungai belum otomatis jadi penghalang kecuali sengaja digambar di Block Layer).
 - **Kontrol mobile**: kontrol saat ini keyboard-only (Arrow/WASD) — belum ada on-screen d-pad/joystick utk HP, walau prototype dibuka lewat browser mobile.
 - **Firebase**: `tilemap.html` sudah terhubung (simpan/muat map JSON ke `trial-error/littleAdventure/tilemaps/`, lihat "Tilemap Editor") — **rules Firebase console utk path `trial-error` perlu dicek/ditambahkan manual** (belum dikonfirmasi bisa tulis, lihat "Simpan/muat ke Firebase"). `index.html` (game-nya sendiri) masih murni client-side, tidak ada progres/save-game yang dipersist.
 - Belum ada testing otomatis — project murni HTML/CSS/JS statis, sama seperti trialerror lain.

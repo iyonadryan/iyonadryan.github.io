@@ -86,17 +86,48 @@
   const WALK_SLOW_FACTOR = 0.5; // dikali ke SPEED, dibagi ke FRAME_DURATION saat Shift ditahan (jalan pelan)
 
   // ================= Konfigurasi peta dunia =================
-  // Gambar peta (persegi, hasil tile map) — diskalakan pakai SCALE yang SAMA
-  // dgn karakter di atas, supaya rasio karakter thd peta tetap konsisten.
-  const MAP_SRC = "img/samplemap.png";
-  const MAP_SRC_SIZE = 1920; // px, ukuran asli map (persegi: 1920x1920)
+  // Dunia sekarang dimuat dari map hasil Tilemap Editor (tilemap.html),
+  // disimpan di Firebase — lihat "Dunia dari Tilemap Editor" di CLAUDE.md.
+  // Fallback ke gambar statis lama kalau load dari Firebase gagal (map belum
+  // ada/rules blm diset/network error) supaya game tidak pernah blank.
+  const WORLD_MAP_NAME = "map_iyon";
+  const WORLD_MAP_PATH = `trial-error/littleAdventure/tilemaps/${WORLD_MAP_NAME}`;
+  const FALLBACK_MAP_SRC = "img/samplemap.png";
+  const FALLBACK_MAP_SRC_SIZE = 1920; // px, ukuran asli map fallback (persegi: 1920x1920)
+
+  // Sama persis dgn TILE_SIZE/TILESET_TYPES di tilemap-script.js — WAJIB
+  // disinkron manual kalau daftar tileset di sana berubah (tidak ada modul/
+  // import di project ini, lihat catatan serupa di CHARACTER_FILES).
+  const TILE_SRC = 32;
+  const TILESET_DIR = "img/tileset/SampleMap/";
+  const TILESET_FILES = {
+    Base: "[Base]BaseChip_pipo.png",
+    LightShadow: "LightShadow_pipo.png",
+    Dirt: "[A]Dirt_pipo.png",
+    Flower: "[A]Flower_pipo.png",
+    Grass: "[A]Grass_pipo.png",
+    WallUp: "[A]Wall-Up_pipo.png",
+    Water: "[A]Water_pipo.png",
+    WaterFall: "[A]WaterFall_pipo.png",
+  };
+  // "Block Layer" (tilesetType khusus, bukan gambar tileset — lihat
+  // CLAUDE.md Tilemap Editor) & batas posisi Background/Foreground, sama
+  // persis dgn BLOCK_TILESET_KEY/BLOCK_SUBDIVISION/LOCKED_MAX_POSITION di
+  // tilemap-script.js.
+  const BLOCK_TILESET_KEY = "Block";
+  const BLOCK_SUBDIVISION = 4;
+  const LOCKED_MAX_POSITION = 0;
 
   // Dunia (#worldLayer) jauh lebih besar dari jendela kamera (#gameWorld)
   // supaya ada ruang buat karakter jalan-jalan & kameranya kelihatan geser.
-  // Ukurannya sekarang mengikuti ukuran peta setelah discale (bukan lagi
-  // angka arbitrer) — karakter dibatasi persis ke tepi gambar peta.
-  const WORLD_WIDTH = MAP_SRC_SIZE * SCALE;
-  const WORLD_HEIGHT = MAP_SRC_SIZE * SCALE;
+  // Diisi (bareng karakter dibatasi persis ke tepi peta) begitu peta selesai
+  // dimuat (lihat loadWorldMap()) — makanya `let`, bukan `const` lagi.
+  let WORLD_WIDTH = 0;
+  let WORLD_HEIGHT = 0;
+  // Data Block Layer (kalau ada di map) buat cek tabrakan — null kalau map
+  // tidak py Block Layer sama sekali/disembunyikan di editor/masih fallback.
+  // Koordinat sudah dlm satuan WORLD (dikali SCALE), lihat isAreaBlocked().
+  let blockLayerData = null;
   // 0-1: seberapa cepat kamera "mengejar" posisi target (karakter di tengah).
   // Makin kecil, makin nge-lag/lambat & smooth; makin besar, makin ketat
   // nempel ke karakter (1 = langsung nempel tanpa jeda sama sekali).
@@ -218,6 +249,150 @@
     character.style.backgroundPosition = `-${col * FRAME}px -${row * FRAME}px`;
   }
 
+  // ================= Dunia dari Tilemap Editor (Firebase) =================
+  function tilesetImageSrc(type) {
+    return TILESET_DIR + TILESET_FILES[type];
+  }
+
+  function loadImage(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(`Gagal memuat gambar: ${src}`));
+      img.src = src;
+    });
+  }
+
+  // Fallback murni gambar statis (perilaku lama, sebelum ada Tilemap Editor)
+  // — dipakai kalau load dari Firebase gagal, spy game tidak pernah blank.
+  function buildWorldFallback() {
+    WORLD_WIDTH = FALLBACK_MAP_SRC_SIZE * SCALE;
+    WORLD_HEIGHT = FALLBACK_MAP_SRC_SIZE * SCALE;
+    worldLayer.style.backgroundImage = `url("${FALLBACK_MAP_SRC}")`;
+    worldLayer.style.backgroundSize = `${WORLD_WIDTH}px ${WORLD_HEIGHT}px`;
+    blockLayerData = null;
+  }
+
+  // Gambar 1 layer (bukan Block Layer) ke <canvas> native resolution
+  // (mapWidth/mapHeight * TILE_SRC) — sama persis pola drawImage per-tile
+  // spt renderLayer() di tilemap-script.js. Diskalakan ke ukuran WORLD murni
+  // lewat CSS (canvas.style.width/height), bukan drawImage berskala, spy
+  // hasil pixel-art tetap tegas (`image-rendering: pixelated`, lihat style.css).
+  function makeWorldLayerCanvas(layer, mapWidth, mapHeight, imageCache) {
+    const canvas = document.createElement("canvas");
+    canvas.className = "world-layer-canvas";
+    canvas.width = mapWidth * TILE_SRC;
+    canvas.height = mapHeight * TILE_SRC;
+    canvas.style.width = `${WORLD_WIDTH}px`;
+    canvas.style.height = `${WORLD_HEIGHT}px`;
+
+    const img = imageCache[layer.tilesetType];
+    if (img) {
+      const ctx = canvas.getContext("2d");
+      const cols = Math.floor(img.naturalWidth / TILE_SRC);
+      ctx.imageSmoothingEnabled = false;
+      ctx.globalAlpha = typeof layer.opacity === "number" ? layer.opacity : 1;
+      for (let row = 0; row < mapHeight; row++) {
+        for (let col = 0; col < mapWidth; col++) {
+          const tile = layer.tiles[row * mapWidth + col];
+          if (tile === -1 || tile == null) continue;
+          const srcCol = tile % cols;
+          const srcRow = Math.floor(tile / cols);
+          ctx.drawImage(img, srcCol * TILE_SRC, srcRow * TILE_SRC, TILE_SRC, TILE_SRC, col * TILE_SRC, row * TILE_SRC, TILE_SRC, TILE_SRC);
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+    return canvas;
+  }
+
+  // Bangun dunia dari map hasil Tilemap Editor. Urutan render (permintaan
+  // eksplisit user): Background & Foreground (layerPosition <= 0) SELALU di
+  // BAWAH karakter, SEMUA layer lain (layer user + Block Layer) di ATAS
+  // karakter — dicapai murni lewat urutan DOM (insertBefore vs appendChild),
+  // krn #worldLayer/.character/canvas semua `position:absolute` TANPA
+  // z-index, jadi urutan DOM = urutan tumpuk (lihat CLAUDE.md).
+  async function buildWorldFromMapData(data) {
+    const mapWidth = data.mapWidth;
+    const mapHeight = data.mapHeight;
+    WORLD_WIDTH = mapWidth * TILE_SRC * SCALE;
+    WORLD_HEIGHT = mapHeight * TILE_SRC * SCALE;
+
+    const layers = Array.isArray(data.layers) ? data.layers : [];
+    const visibleLayers = layers.filter((l) => l.visible !== false && l.tilesetType !== BLOCK_TILESET_KEY);
+
+    // Cuma preload tileset yg beneran dipakai layer yg keliatan (bukan semua
+    // 8 spt di editor — di sini tidak ada UI ganti-ganti tileset, jadi tidak
+    // perlu preload yg tidak kepakai).
+    const neededTypes = [...new Set(visibleLayers.map((l) => l.tilesetType).filter((t) => TILESET_FILES[t]))];
+    const imageCache = {};
+    await Promise.all(
+      neededTypes.map(async (type) => {
+        imageCache[type] = await loadImage(tilesetImageSrc(type));
+      })
+    );
+
+    worldLayer.style.backgroundImage = "none";
+    worldLayer.querySelectorAll(".world-layer-canvas").forEach((c) => c.remove());
+
+    const belowLayers = visibleLayers.filter((l) => l.layerPosition <= LOCKED_MAX_POSITION).sort((a, b) => a.layerPosition - b.layerPosition);
+    const aboveLayers = visibleLayers.filter((l) => l.layerPosition > LOCKED_MAX_POSITION).sort((a, b) => a.layerPosition - b.layerPosition);
+
+    belowLayers.forEach((layer) => {
+      worldLayer.insertBefore(makeWorldLayerCanvas(layer, mapWidth, mapHeight, imageCache), character);
+    });
+    aboveLayers.forEach((layer) => {
+      worldLayer.appendChild(makeWorldLayerCanvas(layer, mapWidth, mapHeight, imageCache));
+    });
+
+    // Block Layer TIDAK PERNAH digambar (opacity 0%/sepenuhnya tak
+    // kelihatan, permintaan eksplisit user) — cuma datanya yg dipakai buat
+    // tabrakan (lihat isAreaBlocked()). Kalau layer ini disembunyikan di
+    // editor (visible:false), dianggap tabrakannya jg dimatikan (cara
+    // pembuat map "nonaktifkan" blok tanpa hapus datanya).
+    const blockLayer = layers.find((l) => l.tilesetType === BLOCK_TILESET_KEY && l.visible !== false);
+    blockLayerData = blockLayer
+      ? {
+          cols: mapWidth * BLOCK_SUBDIVISION,
+          rows: mapHeight * BLOCK_SUBDIVISION,
+          cellSize: (TILE_SRC / BLOCK_SUBDIVISION) * SCALE, // px, satuan WORLD (sudah dikali SCALE)
+          tiles: blockLayer.tiles,
+        }
+      : null;
+  }
+
+  async function loadWorldMap() {
+    try {
+      const snapshot = await db.ref(WORLD_MAP_PATH).once("value");
+      const data = snapshot.val();
+      if (!data || !Array.isArray(data.layers)) throw new Error(`Map "${WORLD_MAP_NAME}" kosong/tidak ditemukan di Firebase`);
+      await buildWorldFromMapData(data);
+    } catch (err) {
+      console.warn("Gagal memuat dunia dari Tilemap Editor, pakai fallback samplemap.png:", err);
+      buildWorldFallback();
+    }
+  }
+
+  // Cek apakah kotak karakter (FRAME x FRAME) di posisi (px, py) menabrak
+  // sel Block Layer manapun — di-scan per-sel (bukan cuma 4 pojok) krn grid
+  // Block Layer jauh lebih rapat drpd FRAME (lihat BLOCK_SUBDIVISION di
+  // CLAUDE.md), jadi 1 sel yg diblok bisa jatuh di TENGAH salah satu sisi
+  // kotak tanpa kena pojok manapun kalau cuma dicek 4 pojoknya saja.
+  function isAreaBlocked(px, py) {
+    if (!blockLayerData) return false;
+    const { cols, rows, cellSize, tiles } = blockLayerData;
+    const colStart = Math.max(0, Math.floor(px / cellSize));
+    const colEnd = Math.min(cols - 1, Math.floor((px + FRAME - 1) / cellSize));
+    const rowStart = Math.max(0, Math.floor(py / cellSize));
+    const rowEnd = Math.min(rows - 1, Math.floor((py + FRAME - 1) / cellSize));
+    for (let row = rowStart; row <= rowEnd; row++) {
+      for (let col = colStart; col <= colEnd; col++) {
+        if (tiles[row * cols + col] !== -1 && tiles[row * cols + col] != null) return true;
+      }
+    }
+    return false;
+  }
+
   function updateMovement(dt) {
     const dir = heldDirections[heldDirections.length - 1];
     moving = !!dir;
@@ -226,19 +401,45 @@
     facing = dir;
     const speed = shiftHeld ? SPEED * WALK_SLOW_FACTOR : SPEED;
     const dist = speed * dt;
-    if (dir === "up") y -= dist;
-    if (dir === "down") y += dist;
-    if (dir === "left") x -= dist;
-    if (dir === "right") x += dist;
+    let newX = x;
+    let newY = y;
+    if (dir === "up") newY -= dist;
+    if (dir === "down") newY += dist;
+    if (dir === "left") newX -= dist;
+    if (dir === "right") newX += dist;
 
     // Karakter dibatasi ke batas DUNIA (bukan lagi batas jendela kamera).
-    x = clamp(x, 0, WORLD_WIDTH - FRAME);
-    y = clamp(y, 0, WORLD_HEIGHT - FRAME);
+    newX = clamp(newX, 0, WORLD_WIDTH - FRAME);
+    newY = clamp(newY, 0, WORLD_HEIGHT - FRAME);
+
+    // Tabrakan Block Layer (permintaan eksplisit user, lihat "Dunia dari
+    // Tilemap Editor" di CLAUDE.md) — gerakan dibatalkan SELURUHNYA (bukan
+    // digeser/di-slide) kalau posisi baru menabrak, karakter tetap di posisi
+    // lama frame ini. Cukup krn cuma 1 sumbu yg berubah per frame
+    // (heldDirections cuma py 1 arah "menang" tiap saat, lihat komentar di
+    // deklarasinya), jadi tidak perlu resolusi per-sumbu terpisah.
+    if (!isAreaBlocked(newX, newY)) {
+      x = newX;
+      y = newY;
+    }
 
     // Pakai properti CSS "translate" (bukan "transform") buat posisi — biar
     // "transform" tetap bebas dipakai animasi CSS "jump" (lihat "Lompat
     // (Space)") tanpa keduanya rebutan/saling timpa di properti yang sama.
     character.style.translate = `${x}px ${y}px`;
+    updateSpeechBubblePosition();
+  }
+
+  // #speechBubble sekarang sibling #character (anak TERAKHIR #worldLayer,
+  // lihat init() & style.css) supaya selalu tergambar di atas SEMUA layer
+  // map, termasuk yg posisinya di depan karakter — jadi posisinya harus
+  // di-set manual tiap kali karakter bergerak (dulu otomatis ikut krn nested
+  // di dalam .character). Titik anchor = tengah-atas kotak karakter (sama
+  // persis titik yg dulu dipakai `left:50%; bottom:100%` relatif ke
+  // .character), offset visual (center + naik ke atas kepala) tetap di CSS.
+  function updateSpeechBubblePosition() {
+    speechBubble.style.left = `${x + FRAME / 2}px`;
+    speechBubble.style.top = `${y}px`;
   }
 
   // Kamera "mengejar" titik yang bikin karakter tepat di tengah jendela,
@@ -422,21 +623,32 @@
     requestAnimationFrame(loop);
   }
 
-  function init() {
+  async function init() {
     character.style.width = `${FRAME}px`;
     character.style.height = `${FRAME}px`;
     character.style.backgroundImage = `url("${characterPath(currentGender, currentFile)}")`;
     character.style.backgroundSize = `${FRAME * SHEET_COLS}px ${FRAME * SHEET_ROWS}px`;
 
+    // Isi WORLD_WIDTH/HEIGHT & render layer dunia (atau fallback kalau
+    // gagal) — HARUS selesai dulu sblm hitung posisi awal karakter/kamera
+    // di bawah, krn keduanya bergantung pada ukuran dunia yg sebenarnya.
+    await loadWorldMap();
     worldLayer.style.width = `${WORLD_WIDTH}px`;
     worldLayer.style.height = `${WORLD_HEIGHT}px`;
-    worldLayer.style.backgroundImage = `url("${MAP_SRC}")`;
-    worldLayer.style.backgroundSize = `${WORLD_WIDTH}px ${WORLD_HEIGHT}px`;
+
+    // Pindahkan #speechBubble jadi anak TERAKHIR #worldLayer (setelah semua
+    // <canvas> layer map selesai dibuat di atas) — supaya bubble SELALU
+    // tergambar paling depan, tidak ketutup layer map yg posisinya di atas
+    // karakter (lihat komentar panjang di style.css utk alasan lengkapnya).
+    // appendChild() pada elemen yg sudah ada di DOM otomatis MEMINDAHKAN-nya
+    // (bukan menduplikasi), jadi ini aman dipanggil dari .character ke sini.
+    worldLayer.appendChild(speechBubble);
 
     // Mulai di tengah dunia, menghadap bawah, pose idle.
     x = (WORLD_WIDTH - FRAME) / 2;
     y = (WORLD_HEIGHT - FRAME) / 2;
     character.style.translate = `${x}px ${y}px`;
+    updateSpeechBubblePosition();
     setSpriteFrame(ROW.down, IDLE_FRAME);
 
     // Kamera langsung pas di tengah karakter sejak awal (tanpa animasi

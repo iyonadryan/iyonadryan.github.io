@@ -180,6 +180,21 @@ h1 {
   will-change: transform;
 }
 
+/* 1 <canvas> per layer map hasil Tilemap Editor (dibuat JS, lihat
+   buildWorldFromMapData() di script.js) — urutannya thd #character DI DOM
+   yang nentuin Background/Foreground di belakang vs layer lain di depan
+   karakter (position:absolute tanpa z-index = urutan DOM = urutan tumpuk),
+   BUKAN properti CSS statis apa pun di sini. `pointer-events:none` krn
+   kanvas ini murni visual, tidak ada interaksi klik di dunia. */
+.world-layer-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  pointer-events: none;
+}
+
 /* Ukuran & background-size diisi lewat JS (sesuai skala sprite sheet),
    di sini cuma properti yang statis. Posisi (gerak) diisi JS lewat properti
    CSS "translate" (bukan "transform") — dgn begitu "transform" tetap bebas
@@ -210,15 +225,22 @@ h1 {
   }
 }
 
-/* Bubble chat — child dari .character, jadi otomatis ikut posisi karakter
-   (gerak & kena geser kamera bareng) tanpa perlu hitung posisi manual.
-   Disembunyikan lewat opacity (bukan display:none) supaya bisa di-transisi
-   smooth saat muncul/hilang. */
+/* Bubble chat — SEKARANG sibling #character (anak terakhir #worldLayer,
+   dipindah scr JS lewat worldLayer.appendChild(speechBubble) di init()),
+   BUKAN lagi child .character. Alasan: sejak ada layer di ATAS karakter
+   (lihat "Dunia dari Tilemap Editor" di CLAUDE.md — mis. layer "Tumbuhan"),
+   kalau bubble masih anak .character dia ikut ke-timpa/ketutup layer2 itu
+   (bug nyata yg ketemu: teks bubble ketutup semak). Jadi anak TERAKHIR
+   #worldLayer dijamin selalu tergambar PALING ATAS, apa pun urutan layer
+   map-nya. Konsekuensinya posisi TIDAK lagi otomatis ikut karakter cuma via
+   nesting — `left`/`top` diisi manual tiap frame oleh
+   updateSpeechBubblePosition() (script.js) mengikuti x/y karakter; `transform`
+   di sini cuma buat offset statis (center horizontal + naik ke atas kepala)
+   dari titik anchor itu, gantiin `left:50%; bottom:100%` versi lama yg
+   dulu dihitung relatif ke box .character (48x48px). */
 .speech-bubble {
   position: absolute;
-  left: 50%;
-  bottom: 100%;
-  transform: translateX(-50%) translateY(-8px);
+  transform: translate(-50%, calc(-100% - 8px));
   /* width: max-content WAJIB ada — tanpa ini, elemen absolute dgn cuma
      "left" (tanpa "right") & width:auto menghitung shrink-to-fit dari sisa
      ruang containing block (.character, cuma 48px lebar) sbg "lebar
