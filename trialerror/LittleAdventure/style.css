@@ -299,6 +299,19 @@ h1 {
   font-size: 26px;
 }
 
+/* Label "Map : <nama>" di atas pinggir KIRI #gameWorld (permintaan eksplisit
+   user — sebelumnya kapsul hijau+teks putih di tengah, DIHAPUS/disederhanakan
+   jadi teks polos rata kiri). .map-label-wrap selebar .game-stage (sama
+   dgn #gameWorld persis, krn keduanya anak normal-flow .game-stage yg
+   lebarnya ngikutin child terlebar), `text-align:left` otomatis nempel
+   sejajar pinggir kiri kotak map di bawahnya tanpa perlu hitung posisi manual. */
+.map-label-wrap {
+  text-align: left;
+  color: var(--text-dark);
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
 /* "Jendela" kamera — ukuran tetap, cuma menampilkan sepotong #worldLayer
    yang jauh lebih besar. Isinya sendiri (rumput dkk.) ada di #worldLayer,
    supaya bisa digeser (translate) tanpa ikut menggeser border/shadow ini. */

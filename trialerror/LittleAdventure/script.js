@@ -143,6 +143,7 @@
   const character = document.getElementById("character");
   const viewport = document.getElementById("gameWorld");
   const worldLayer = document.getElementById("worldLayer");
+  const mapLabelName = document.getElementById("mapLabelName");
 
   const changeCharacterBtn = document.getElementById("changeCharacterBtn");
   const characterPickerOverlay = document.getElementById("characterPickerOverlay");
@@ -874,6 +875,7 @@
     await loadWorldMap();
     worldLayer.style.width = `${WORLD_WIDTH}px`;
     worldLayer.style.height = `${WORLD_HEIGHT}px`;
+    mapLabelName.textContent = WORLD_MAP_NAME;
 
     // Pindahkan #speechBubble jadi anak TERAKHIR #worldLayer (setelah semua
     // <canvas> layer map selesai dibuat di atas) — supaya bubble SELALU

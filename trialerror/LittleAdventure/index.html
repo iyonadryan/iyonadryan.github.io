@@ -46,6 +46,10 @@
        toggle show/hide via Enter, lihat "Ngomong" di CLAUDE.md), jadi tidak
        pernah menggeser posisi kotak game apa pun kondisinya. -->
   <div class="game-stage">
+    <!-- Nama map yg lagi dipilih (permintaan eksplisit user) — diisi/di-
+         update JS (lihat loadAndSetupWorld() di script.js) tiap kali dunia
+         dimuat/diganti lewat popup "Pilih Map". -->
+    <div class="map-label-wrap">Map : <span id="mapLabelName"></span></div>
     <div id="gameWorld">
       <div id="worldLayer">
         <div class="character" id="character">
