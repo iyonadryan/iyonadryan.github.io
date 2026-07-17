@@ -55,28 +55,19 @@ h1 {
   font-size: 22px;
 }
 
-/* 2 kolom (auto-fill row-major dari urutan DOM: baris 1 = item 1&2, baris
-   2 = item 3&4, dst.) — justify-content:center biar grid-nya sendiri tetap
-   center di dalam .game-header, walau tiap baris teksnya rata kiri. */
-.hint {
-  display: grid;
-  grid-template-columns: repeat(2, auto);
-  gap: 4px 24px;
-  justify-content: center;
-  font-size: 14px;
-  opacity: 0.75;
-}
-
-.hint p {
-  margin: 0;
-  text-align: left;
-  white-space: nowrap;
-}
-
 .header-actions {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+/* Di HP, 3 tombol header ditumpuk vertikal (permintaan eksplisit user,
+   gantiin sebaris horizontal) — muat lebih baik di layar sempit & jempol
+   lebih gampang jangkau tiap tombolnya satu-satu drpd berdesakan sebaris. */
+@media (pointer: coarse) {
+  .header-actions {
+    flex-direction: column;
+  }
 }
 
 .change-character-btn {
@@ -95,24 +86,30 @@ h1 {
   filter: brightness(1.08);
 }
 
-/* Sengaja outline (bukan solid spt .change-character-btn) — biar dua-duanya
-   sama-sama keliatan jelas sbg tombol berdampingan, tapi "Ganti Karakter"
-   (aksi utama saat main) tetap menonjol drpd "Tilemap Editor" (tool terpisah). */
+/* Sengaja outline (bukan solid spt .change-character-btn) — biar tombol2 ini
+   sama-sama keliatan jelas berdampingan, tapi "Karakter" (aksi utama saat
+   main) tetap menonjol drpd "Map"/"Editor" (tool terpisah). Dipakai bareng
+   utk tombol "Map" (buka popup pilih map) & link "Editor" (permintaan
+   eksplisit user — 2 tombol ini "sama kayak Editor") — warnanya HITAM-PUTIH
+   (permintaan eksplisit user, sebelumnya hijau-putih pakai var(--accent)),
+   bukan warna aksen hijau lagi krn dua2nya tool/navigasi sekunder, bukan
+   aksi utama gameplay. */
 .tilemap-link {
   display: inline-flex;
   align-items: center;
-  border: 2px solid var(--accent);
+  border: 2px solid var(--text-dark);
   border-radius: 999px;
   padding: 6px 16px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--accent);
+  color: var(--text-dark);
   background: var(--surface);
   text-decoration: none;
+  cursor: pointer;
 }
 
 .tilemap-link:hover {
-  background: var(--accent);
+  background: var(--text-dark);
   color: #fff;
 }
 
@@ -123,13 +120,16 @@ h1 {
    dikeluarkan dari alur — lihat komentar di situ). */
 .game-stage {
   position: relative;
+  max-width: 100%;
 }
 
 /* Absolute nempel di BAWAH #gameWorld (bukan child #gameWorld — sengaja di
    luar, krn #gameWorld pakai overflow:hidden yang bakal motong apa pun yg
-   nongol di luar batas kotaknya). Muncul/hilangnya (toggle "hidden" via JS)
-   TIDAK menggeser posisi #gameWorld sama sekali krn tetap di luar alur. */
-.chat-input {
+   nongol di luar batas kotaknya). PERMANEN kelihatan (bukan lagi toggle
+   show/hide via Enter, lihat "Ngomong" di CLAUDE.md) — jadi TIDAK PERNAH
+   menggeser posisi #gameWorld krn tetap di luar alur normal apa pun
+   kondisinya (bukan krn toggle-nya, murni krn posisi absolute ini). */
+.chat-input-bar {
   position: absolute;
   top: 100%;
   left: 50%;
@@ -137,6 +137,13 @@ h1 {
   margin-top: 12px;
   width: 100%;
   max-width: 480px;
+  display: flex;
+  gap: 8px;
+}
+
+.chat-input {
+  flex: 1;
+  min-width: 0;
   padding: 8px 14px;
   border: 2px solid var(--accent);
   border-radius: 999px;
@@ -151,14 +158,165 @@ h1 {
   box-shadow: 0 0 0 2px var(--accent);
 }
 
+.chat-send-btn {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chat-send-btn:hover {
+  filter: brightness(1.08);
+}
+
+/* Kontrol layar sentuh (permintaan eksplisit user, khusus HP) — `position:
+   fixed` thd VIEWPORT (bukan relatif ke #gameWorld/.game-stage), krn di HP
+   jempol menjangkau pojok LAYAR, bukan pojok kotak game yg cuma 480x320 &
+   bisa kelihatan kecil di tengah layar HP. Disembunyikan default & CUMA
+   ditampilkan di device `pointer: coarse` (sentuh) — di desktop/mouse tetap
+   pakai keyboard spt biasa, tidak perlu tombol on-screen ini nongol/
+   menghalangi. */
+.touch-joystick,
+.touch-actions {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .touch-joystick {
+    display: block;
+  }
+  .touch-actions {
+    display: flex;
+  }
+  /* Sisain ruang kosong di ATAS jg (tinggi `.game-header` ~top:24px + judul +
+     3 tombol Karakter/Map/Editor DITUMPUK vertikal, lihat CLAUDE.md) —
+     `.game-header` posisinya `position: absolute` (dikeluarkan dari alur,
+     lihat "Layout"), jadi TIDAK ikut dihitung `body`'s flex
+     `justify-content:center`. Di layar HP yg pendek (apalagi setelah
+     `padding-bottom` di bawah ini nyisain sedikit ruang vertikal),
+     `.game-stage` yg di-center bisa kegeser naik sampai NEMPEL/numpuk
+     `.game-header` — bug nyata yg ketemu (screenshot user: tombol
+     "Ganti Karakter" nyentuh kotak map). `padding-top` di sini nge-geser
+     ZONA CENTERING-nya turun, jaminan jarak minimum ke header apa pun
+     tinggi viewport-nya (beda dari `justify-content:center` doang yg sama
+     sekali tidak tau header itu ada). Dinaikkan dari 130px ke 200px pas
+     header berubah dari 1 baris tombol (~77px tinggi) jadi 3 baris
+     ditumpuk (~167px, permintaan eksplisit user) — nilai lama nyaris
+     nempel lagi di layar sependek iPhone SE (667px, gap cuma nyisa ~2px).
+     Sisain ruang kosong di BAWAH jg spy #chatInputBar tidak ketiban/ketutup
+     kontrol layar sentuh yg posisinya fixed thd viewport — bug nyata yg
+     ketemu jg (screenshot user sebelumnya: tombol W numpuk di atas kolom
+     chat). Dihitung dari yg PALING TINGGI di antara analog stick (120px) &
+     `.touch-actions` (skrg `column` 2 tombol lagi = 64+10+64=138px, lebih
+     tinggi drpd stick) + margin `bottom:16px` + buffer. */
+  body {
+    padding-top: 200px;
+    padding-bottom: 172px;
+  }
+}
+
+/* Analog stick (permintaan eksplisit user, gantiin 4 tombol W/A/S/D persegi
+   versi awal) — 1 lingkaran dasar diam (`.touch-joystick`) + 1 lingkaran
+   knob yg bisa diseret di dalamnya (`.joystick-knob`, digeser scr JS via
+   `transform: translate()` selagi diseret, balik ke tengah pas dilepas).
+   Arah ditentukan dari SUDUT seretan (dikuantisasi ke salah satu dari 4 arah
+   W/A/S/D, bukan analog bebas 360°/8-arah) krn sistem gerak game ini emang
+   cuma kenal 4 arah kardinal (lihat `heldDirections`/`KEY_TO_DIR` di
+   script.js) — lihat "Kontrol layar sentuh" di CLAUDE.md utk detail
+   perhitungannya (`updateJoystick()`). */
+.touch-joystick {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: rgba(255, 255, 255, 0.55);
+  touch-action: none;
+  z-index: 5;
+}
+
+.joystick-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #fff;
+  /* Titik tengah knob HARUS pas di titik tengah base tanpa tergantung ukuran
+     knob itu sendiri — translate(-50%,-50%) dulu (self-centering), baru
+     ditambah offset seretan (--knob-x/--knob-y, diisi JS) di atasnya. */
+  translate: -50% -50%;
+  transform: translate(var(--knob-x, 0px), var(--knob-y, 0px));
+  pointer-events: none; /* seretan ditangani base-nya (.touch-joystick), bukan knob */
+}
+
+.action-btn {
+  border: 2px solid var(--accent);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text-dark);
+  font-weight: 700;
+  /* Cegah scroll/zoom bawaan browser pas disentuh & dites lama (long-press) —
+     tombol ini murni tap/hold utk gerak, bukan gesture halaman. */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: pointer;
+}
+
+.action-btn:active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Atas-bawah lagi (permintaan eksplisit user — sempat diganti row/sebelah-
+   sebelahan di turn sebelumnya, DIBALIK lagi ke column): 🚶 (jalan pelan)
+   di ATAS, ⤴️ (lompat) di BAWAH — urutannya ngikutin urutan elemen di HTML
+   apa adanya (`#touchShiftBtn` sblm `#touchJumpBtn`), `column` cukup tanpa
+   perlu `order` tambahan. */
+.touch-actions {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 5;
+}
+
+.action-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  font-size: 26px;
+}
+
 /* "Jendela" kamera — ukuran tetap, cuma menampilkan sepotong #worldLayer
    yang jauh lebih besar. Isinya sendiri (rumput dkk.) ada di #worldLayer,
    supaya bisa digeser (translate) tanpa ikut menggeser border/shadow ini. */
 #gameWorld {
   position: relative;
   width: 480px;
-  height: 320px;
   max-width: 100%;
+  /* `aspect-ratio` GANTI `height: 320px` yg dulu hardcode (bug ketemu: di
+     layar sempit `max-width: 100%` bikin LEBAR ikut menciut, tapi TINGGI
+     tetap kekunci 320px krn hardcode — box jadi gepeng/rasio berantakan,
+     kadang meleber dikit ke luar layar. `aspect-ratio: 3/2` = 480:320,
+     jadi tinggi SELALU ngikut lebar aktual yg dirender, rasio terjaga di
+     ukuran berapa pun). Ukuran border/isinya sendiri (kanvas map, karakter)
+     TETAP native piksel — cuma KOTAK KAMERA ini yg diciutkan scr visual,
+     `updateCamera()` (script.js) sudah baca `viewport.clientWidth/Height`
+     scr dinamis (bukan angka 480/320 hardcode), jadi otomatis nyesuaiin
+     tanpa perlu ubah JS sama sekali. */
+  aspect-ratio: 3 / 2;
   border: 6px solid var(--border-dark);
   border-radius: 8px;
   overflow: hidden;
@@ -278,9 +436,10 @@ h1 {
   opacity: 1;
 }
 
-/* ================= Overlay pilih karakter ================= */
+/* ================= Overlay popup (dipakai bareng: pilih karakter & pilih
+   map, lihat "Pilih Map" di CLAUDE.md) ================= */
 
-.character-picker-overlay {
+.picker-overlay {
   display: none;
   position: fixed;
   inset: 0;
@@ -291,11 +450,11 @@ h1 {
   z-index: 10;
 }
 
-.character-picker-overlay.open {
+.picker-overlay.open {
   display: flex;
 }
 
-.character-picker-sheet {
+.picker-sheet {
   width: 100%;
   max-width: 420px;
   max-height: 80vh;
@@ -330,6 +489,56 @@ h1 {
   cursor: pointer;
 }
 
+/* ================= Popup peringatan buka Editor di HP ================= */
+
+.editor-warning-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-dark);
+}
+
+.editor-warning-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.editor-warning-back-btn,
+.editor-warning-continue-btn {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* "Kembali" (batal, aksi aman/direkomendasikan) — netral/outline. */
+.editor-warning-back-btn {
+  border: 2px solid var(--text-dark);
+  background: var(--surface);
+  color: var(--text-dark);
+}
+
+.editor-warning-back-btn:hover {
+  background: var(--text-dark);
+  color: #fff;
+}
+
+/* "Lanjut" (tetap buka walau tidak direkomendasikan) — solid, sengaja
+   TIDAK pakai var(--accent) hijau biasa (kesannya "aksi baik") krn ini
+   aksi yg SEBALIKNYA dari rekomendasi — dibikin oranye biar terkesan
+   "hati-hati/lanjut atas risiko sendiri" tanpa perlu warna merah "bahaya". */
+.editor-warning-continue-btn {
+  border: 2px solid #d97706;
+  background: #d97706;
+  color: #fff;
+}
+
+.editor-warning-continue-btn:hover {
+  filter: brightness(1.08);
+}
+
 .gender-tabs {
   display: flex;
   gap: 8px;
@@ -362,6 +571,69 @@ h1 {
   max-height: 320px;
   overflow-y: auto;
   padding: 4px;
+}
+
+/* ================= Popup pilih map (Firebase) ================= */
+
+.map-search-input {
+  width: 100%;
+  padding: 8px 14px;
+  border: 2px solid var(--accent);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-dark);
+  background: var(--surface);
+}
+
+.map-search-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* Bisa sampai ~1000 baris (lihat "Pilih Map" di CLAUDE.md) — dibatasi
+   tinggi & discroll spt .character-grid, list rata sederhana (bukan grid)
+   krn isinya teks nama map, bukan thumbnail visual. */
+.map-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.map-list-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: var(--surface-alt);
+  color: var(--text-dark);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.map-list-item:hover {
+  background: #e4efdc;
+  color: var(--accent);
+}
+
+.map-list-item.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.map-list-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-dark);
+  opacity: 0.65;
+  font-size: 14px;
 }
 
 /* Ukuran, background-image/size/position (crop pose idle-bawah dari tiap

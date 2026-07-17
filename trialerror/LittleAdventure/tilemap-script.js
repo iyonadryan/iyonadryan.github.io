@@ -1133,17 +1133,17 @@
     db.ref(`${TILEMAP_PATH}/${key}`)
       .set(buildMapData())
       .then(() => {
-        showStatusMessage(`Tersimpan ke Firebase sbg "${key}".`);
+        showStatusMessage(`Tersimpan ke server sbg "${key}".`);
         refreshFirebaseList();
       })
-      .catch((err) => showStatusMessage(`Gagal simpan ke Firebase: ${err.message}`, true));
+      .catch((err) => showStatusMessage(`Gagal simpan ke server: ${err.message}`, true));
   });
 
   function refreshFirebaseList() {
     db.ref(TILEMAP_PATH)
       .once("value")
       .then((snap) => {
-        firebaseMapSelect.innerHTML = '<option value="">— Muat dari Firebase —</option>';
+        firebaseMapSelect.innerHTML = '<option value="">— Muat dari server —</option>';
         snap.forEach((child) => {
           const opt = document.createElement("option");
           opt.value = child.key;
@@ -1151,7 +1151,7 @@
           firebaseMapSelect.appendChild(opt);
         });
       })
-      .catch((err) => showStatusMessage(`Gagal ambil daftar Firebase: ${err.message}`, true));
+      .catch((err) => showStatusMessage(`Gagal ambil daftar dari server: ${err.message}`, true));
   }
 
   firebaseMapSelect.addEventListener("change", () => {
@@ -1164,9 +1164,9 @@
         if (!data) return;
         applyMapData(data);
         mapNameInput.value = key;
-        showStatusMessage(`Dimuat dari Firebase: "${key}".`);
+        showStatusMessage(`Dimuat dari server: "${key}".`);
       })
-      .catch((err) => showStatusMessage(`Gagal muat dari Firebase: ${err.message}`, true));
+      .catch((err) => showStatusMessage(`Gagal muat dari server: ${err.message}`, true));
   });
 
   refreshFirebaseListBtn.addEventListener("click", refreshFirebaseList);

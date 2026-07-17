@@ -90,8 +90,8 @@
   // disimpan di Firebase — lihat "Dunia dari Tilemap Editor" di CLAUDE.md.
   // Fallback ke gambar statis lama kalau load dari Firebase gagal (map belum
   // ada/rules blm diset/network error) supaya game tidak pernah blank.
-  const WORLD_MAP_NAME = "map_iyon";
-  const WORLD_MAP_PATH = `trial-error/littleAdventure/tilemaps/${WORLD_MAP_NAME}`;
+  const TILEMAPS_PATH = "trial-error/littleAdventure/tilemaps"; // node induk — dipakai jg utk listing nama map, lihat "Pilih Map"
+  let WORLD_MAP_NAME = "map_iyon"; // `let`, bisa diganti lewat popup "Pilih Map"
   const FALLBACK_MAP_SRC = "img/samplemap.png";
   const FALLBACK_MAP_SRC_SIZE = 1920; // px, ukuran asli map fallback (persegi: 1920x1920)
 
@@ -150,9 +150,27 @@
   const genderTabs = document.getElementById("genderTabs");
   const characterGrid = document.getElementById("characterGrid");
 
+  const openMapPickerBtn = document.getElementById("openMapPickerBtn");
+  const mapPickerOverlay = document.getElementById("mapPickerOverlay");
+  const closeMapPickerBtn = document.getElementById("closeMapPickerBtn");
+  const mapSearchInput = document.getElementById("mapSearchInput");
+  const mapList = document.getElementById("mapList");
+
+  const editorLink = document.getElementById("editorLink");
+  const editorWarningOverlay = document.getElementById("editorWarningOverlay");
+  const editorWarningBackBtn = document.getElementById("editorWarningBackBtn");
+  const editorWarningContinueBtn = document.getElementById("editorWarningContinueBtn");
+
   const chatInput = document.getElementById("chatInput");
   const speechBubble = document.getElementById("speechBubble");
   const BUBBLE_DURATION = 4000; // ms, bubble ilang otomatis stlh sekian lama
+
+  // Dipakai guard tombol gerak/Shift/Space — true kalau fokus lagi di input
+  // teks mana pun (chat ATAU search popup Pilih Map), supaya ngetik "w"/"a"/
+  // "s"/"d"/spasi di situ tidak ikut ke-anggap kontrol gerak karakter.
+  function isTypingInField() {
+    return document.activeElement === chatInput || document.activeElement === mapSearchInput;
+  }
 
   let x = 0; // posisi karakter dalam koordinat dunia (bukan koordinat layar)
   let y = 0;
@@ -190,7 +208,7 @@
   }
 
   window.addEventListener("keydown", (e) => {
-    if (document.activeElement === chatInput) return; // lagi ngetik chat, jangan dianggap tombol gerak
+    if (isTypingInField()) return; // lagi ngetik di input teks, jangan dianggap tombol gerak
     const dir = KEY_TO_DIR[e.key];
     if (!dir) return;
     e.preventDefault(); // tombol panah jangan sampai scroll halaman
@@ -204,7 +222,7 @@
   });
 
   window.addEventListener("keydown", (e) => {
-    if (document.activeElement === chatInput) return; // lagi ngetik chat, jangan dianggap tombol jalan-pelan
+    if (isTypingInField()) return; // lagi ngetik di input teks, jangan dianggap tombol jalan-pelan
     if (e.key === "Shift") shiftHeld = true;
   });
 
@@ -219,13 +237,20 @@
   // diam atau sambil jalan.
   let isJumping = false;
 
-  window.addEventListener("keydown", (e) => {
-    if (document.activeElement === chatInput) return; // lagi ngetik chat, spasi jadi karakter biasa
-    if (e.code !== "Space") return;
-    e.preventDefault(); // spasi jangan sampai scroll halaman
-    if (isJumping) return; // lagi lompat, abaikan spasi tambahan sampai selesai
+  // Dipakai keydown Space DAN tombol lompat di kontrol layar sentuh (lihat
+  // "Kontrol layar sentuh" di bawah) — logic-nya sama persis, jadi ditaruh
+  // di 1 fungsi drpd diduplikasi.
+  function triggerJump() {
+    if (isJumping) return; // lagi lompat, abaikan trigger tambahan sampai selesai
     isJumping = true;
     character.classList.add("jumping");
+  }
+
+  window.addEventListener("keydown", (e) => {
+    if (isTypingInField()) return; // lagi ngetik di input teks, spasi jadi karakter biasa
+    if (e.code !== "Space") return;
+    e.preventDefault(); // spasi jangan sampai scroll halaman
+    triggerJump();
   });
 
   // Lepas class "jumping" begitu animasi CSS-nya selesai, bukan pakai
@@ -243,6 +268,116 @@
   window.addEventListener("blur", () => {
     heldDirections = [];
     shiftHeld = false;
+  });
+
+  // ================= Kontrol layar sentuh (HP) =================
+  // Cuma KELIHATAN di device `pointer: coarse` (lihat style.css), tapi
+  // listener-nya tetap dipasang apa pun device-nya (murni CSS yg
+  // nyembunyiin, bukan JS) — cost-nya kecil & lebih sederhana drpd deteksi
+  // device di JS segala. Semua tombol manggil fungsi yg SAMA persis dgn
+  // keyboard (addDirection/removeDirection, shiftHeld, triggerJump()) biar
+  // perilakunya identik, bukan implementasi kedua yg terpisah.
+  //
+  // `setPointerCapture` dipasang tiap `pointerdown` supaya event `pointerup`
+  // tetap ditangkap elemen yg sama walau jari sempat geser sedikit keluar
+  // batas tombol sebelum diangkat (pola umum utk tombol touch "tahan") —
+  // tanpa ini, jari geser dikit bisa bikin `pointerup`/`pointerleave` tidak
+  // konsisten & tombol "nyangkut" dianggap masih ditekan.
+  function bindHoldButton(btn, onStart, onEnd) {
+    btn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      btn.setPointerCapture(e.pointerId);
+      onStart();
+    });
+    btn.addEventListener("pointerup", onEnd);
+    btn.addEventListener("pointercancel", onEnd);
+  }
+
+  // ---- Analog stick (kontrol arah, gantiin 4 tombol W/A/S/D persegi) ----
+  // Permintaan eksplisit user (referensi: analog stick controller fisik) —
+  // 1 lingkaran dasar diam (`#touchJoystick`) + 1 knob yg diseret di
+  // dalamnya (`#joystickKnob`). Sistem gerak game ini cuma kenal 4 arah
+  // kardinal (lihat `heldDirections`/`KEY_TO_DIR` di atas), jadi "analog"
+  // di sini murni VISUAL (knob bisa digeser bebas ke segala arah dlm
+  // lingkaran) — arah GERAKnya sendiri tetap dikuantisasi ke salah satu
+  // dari up/down/left/right via `angleToDirection()`, sama spt kalau pakai
+  // 4 tombol terpisah, cuma UX-nya lebih mirip stick asli.
+  const touchJoystick = document.getElementById("touchJoystick");
+  const joystickKnob = document.getElementById("joystickKnob");
+  const JOYSTICK_DEAD_ZONE = 12; // px — seretan di bawah ini dianggap netral (tidak ada arah aktif)
+
+  let joystickActiveDir = null; // arah yg lagi "ditekan" lewat joystick (null = netral)
+  let joystickPointerId = null; // cuma 1 jari yg dianggap aktif per waktu, dilacak via pointerId
+
+  function setJoystickDirection(dir) {
+    if (dir === joystickActiveDir) return;
+    if (joystickActiveDir) removeDirection(joystickActiveDir);
+    joystickActiveDir = dir;
+    if (dir) addDirection(dir);
+  }
+
+  // Kuantisasi sudut seretan (atan2 koordinat layar: sumbu-Y makin besar =
+  // makin ke BAWAH) ke 4 sektor 90° — 0°=kanan, 90°=bawah, ±180°=kiri, -90°=atas.
+  function angleToDirection(dx, dy) {
+    const deg = Math.atan2(dy, dx) * (180 / Math.PI);
+    if (deg >= -45 && deg < 45) return "right";
+    if (deg >= 45 && deg < 135) return "down";
+    if (deg >= 135 || deg < -135) return "left";
+    return "up";
+  }
+
+  function setKnobOffset(x, y) {
+    joystickKnob.style.setProperty("--knob-x", `${x}px`);
+    joystickKnob.style.setProperty("--knob-y", `${y}px`);
+  }
+
+  function handleJoystickMove(e) {
+    const rect = touchJoystick.getBoundingClientRect();
+    const dx = e.clientX - (rect.left + rect.width / 2);
+    const dy = e.clientY - (rect.top + rect.height / 2);
+    const radius = rect.width / 2;
+
+    // Knob dikunci maks ke tepi lingkaran dasar (tidak bisa diseret keluar
+    // secara visual), tapi ARAH tetap dihitung dari posisi jari SEBENARNYA
+    // (dx/dy asli, bukan yg sudah di-clamp) — bebas seberapa jauh jari
+    // geser di luar lingkaran, sudutnya tetap akurat.
+    const dist = Math.hypot(dx, dy);
+    const clampedDist = Math.min(dist, radius);
+    const angle = Math.atan2(dy, dx);
+    setKnobOffset(Math.cos(angle) * clampedDist, Math.sin(angle) * clampedDist);
+
+    setJoystickDirection(dist < JOYSTICK_DEAD_ZONE ? null : angleToDirection(dx, dy));
+  }
+
+  function endJoystick(e) {
+    if (e.pointerId !== joystickPointerId) return;
+    joystickPointerId = null;
+    setJoystickDirection(null);
+    setKnobOffset(0, 0);
+  }
+
+  touchJoystick.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    touchJoystick.setPointerCapture(e.pointerId);
+    joystickPointerId = e.pointerId;
+    handleJoystickMove(e);
+  });
+  touchJoystick.addEventListener("pointermove", (e) => {
+    if (e.pointerId !== joystickPointerId) return;
+    handleJoystickMove(e);
+  });
+  touchJoystick.addEventListener("pointerup", endJoystick);
+  touchJoystick.addEventListener("pointercancel", endJoystick);
+
+  bindHoldButton(
+    document.getElementById("touchShiftBtn"),
+    () => { shiftHeld = true; },
+    () => { shiftHeld = false; }
+  );
+
+  document.getElementById("touchJumpBtn").addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    triggerJump(); // tap sekali = 1 lompatan, tidak perlu logic "tahan" spt dpad/shift
   });
 
   function setSpriteFrame(row, col) {
@@ -270,6 +405,10 @@
     WORLD_HEIGHT = FALLBACK_MAP_SRC_SIZE * SCALE;
     worldLayer.style.backgroundImage = `url("${FALLBACK_MAP_SRC}")`;
     worldLayer.style.backgroundSize = `${WORLD_WIDTH}px ${WORLD_HEIGHT}px`;
+    // Bersihin sisa <canvas> layer dari map SEBELUMNYA (kalau ini terjadi
+    // krn ganti map lewat popup "Pilih Map", bukan cuma load pertama kali)
+    // — tanpa ini, kanvas map lama numpuk di atas gambar fallback ini.
+    worldLayer.querySelectorAll(".world-layer-canvas").forEach((c) => c.remove());
     blockLayerData = null;
   }
 
@@ -363,7 +502,7 @@
 
   async function loadWorldMap() {
     try {
-      const snapshot = await db.ref(WORLD_MAP_PATH).once("value");
+      const snapshot = await db.ref(`${TILEMAPS_PATH}/${WORLD_MAP_NAME}`).once("value");
       const data = snapshot.val();
       if (!data || !Array.isArray(data.layers)) throw new Error(`Map "${WORLD_MAP_NAME}" kosong/tidak ditemukan di Firebase`);
       await buildWorldFromMapData(data);
@@ -539,19 +678,122 @@
     });
   });
 
+  // ================= Pilih Map (popup, daftar dari Firebase) =================
+  // Permintaan eksplisit user — tombol "🗺️ Map" di header buka popup daftar
+  // SEMUA map tersimpan di Firebase (bisa sampai ~1000), py search, terurut
+  // abjad. Klik salah satu ganti dunia yg lagi jalan (switchWorldMap(),
+  // lihat dekat init()) TANPA reload halaman.
+  let allMapNames = []; // cache selagi popup terbuka — di-fetch ulang tiap dibuka (lihat openMapPicker)
+
+  // Shallow REST fetch (`?shallow=true`) — Firebase RTDB balikin CUMA nama
+  // key anak langsung (`{ "map_iyon": true, ... }`), BUKAN isi datanya
+  // (tiles per layer bisa ribuan angka per map) — jauh lebih ringan drpd
+  // `db.ref(...).once("value")` biasa yg bakal narik SEMUA data SEMUA map
+  // sekaligus cuma buat nampilin daftar nama. Krn ini format REST-only (SDK
+  // compat tidak expose opsi shallow), dipanggil lewat fetch() langsung ke
+  // `databaseURL` yg sama dgn `firebaseConfig` (lihat <head> index.html).
+  async function fetchMapNames() {
+    const res = await fetch(`${firebaseConfig.databaseURL}/${TILEMAPS_PATH}.json?shallow=true`);
+    if (!res.ok) throw new Error(`Gagal ambil daftar map (HTTP ${res.status})`);
+    const data = await res.json();
+    if (!data) return [];
+    return Object.keys(data).sort((a, b) => a.localeCompare(b));
+  }
+
+  function renderMapList(query) {
+    mapList.innerHTML = "";
+    const q = query.trim().toLowerCase();
+    const filtered = q ? allMapNames.filter((name) => name.toLowerCase().includes(q)) : allMapNames;
+
+    if (filtered.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "map-list-empty";
+      empty.textContent = allMapNames.length === 0 ? "Belum ada map tersimpan." : "Tidak ada map yg cocok.";
+      mapList.appendChild(empty);
+      return;
+    }
+
+    filtered.forEach((name) => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "map-list-item" + (name === WORLD_MAP_NAME ? " active" : "");
+      item.textContent = name;
+      item.addEventListener("click", () => {
+        closeMapPicker();
+        switchWorldMap(name);
+      });
+      mapList.appendChild(item);
+    });
+  }
+
+  async function openMapPicker() {
+    mapSearchInput.value = "";
+    mapPickerOverlay.classList.add("open");
+    mapList.innerHTML = '<div class="map-list-empty">Memuat daftar map…</div>';
+    try {
+      allMapNames = await fetchMapNames();
+    } catch (err) {
+      mapList.innerHTML = "";
+      const errEl = document.createElement("div");
+      errEl.className = "map-list-empty";
+      errEl.textContent = "Gagal memuat daftar map.";
+      mapList.appendChild(errEl);
+      console.warn("Gagal memuat daftar map dari Firebase:", err);
+      return;
+    }
+    renderMapList("");
+    mapSearchInput.focus();
+  }
+
+  function closeMapPicker() {
+    mapPickerOverlay.classList.remove("open");
+  }
+
+  openMapPickerBtn.addEventListener("click", openMapPicker);
+  closeMapPickerBtn.addEventListener("click", closeMapPicker);
+  mapPickerOverlay.addEventListener("click", (e) => {
+    if (e.target === mapPickerOverlay) closeMapPicker();
+  });
+  mapSearchInput.addEventListener("input", () => renderMapList(mapSearchInput.value));
+
+  // ================= Peringatan buka Editor di HP =================
+  // Permintaan eksplisit user — Tilemap Editor tidak dirancang responsif
+  // (lihat tilemap-style.css, tidak py breakpoint mobile sama sekali),
+  // jadi di device layar sentuh klik "Editor" ditahan dulu, ditawarin
+  // konfirmasi drpd langsung nyasar ke halaman yg berantakan di HP tanpa
+  // peringatan apa pun.
+  editorLink.addEventListener("click", (e) => {
+    if (!window.matchMedia("(pointer: coarse)").matches) return; // desktop/mouse — biarkan navigasi normal
+    e.preventDefault();
+    editorWarningOverlay.classList.add("open");
+  });
+
+  function closeEditorWarning() {
+    editorWarningOverlay.classList.remove("open");
+  }
+
+  editorWarningBackBtn.addEventListener("click", closeEditorWarning);
+  editorWarningOverlay.addEventListener("click", (e) => {
+    if (e.target === editorWarningOverlay) closeEditorWarning();
+  });
+  editorWarningContinueBtn.addEventListener("click", () => {
+    window.location.href = editorLink.href; // "Lanjut" — tetap buka Editor sesuai href aslinya
+  });
+
   // ================= Ngomong (chat bubble) =================
   const BUBBLE_MAX_CHARS_PER_LINE = 30;
   let bubbleHideTimer = null;
+  const sendChatBtn = document.getElementById("sendChatBtn");
 
-  function openChatInput() {
-    chatInput.hidden = false;
+  // Ambil teks dari #chatInput, tampilkan sbg bubble kalau tidak kosong,
+  // lalu selalu kosongkan lagi field-nya (siap diisi pesan berikutnya) —
+  // input SELALU kelihatan (permintaan eksplisit user, tidak lagi
+  // toggle show/hide via Enter spt versi lama), jadi tidak ada lagi
+  // openChatInput()/closeChatInput() yg nge-hide elemennya.
+  function submitChatInput() {
+    const text = chatInput.value.trim();
     chatInput.value = "";
-    chatInput.focus();
-  }
-
-  function closeChatInput() {
-    chatInput.hidden = true;
-    chatInput.blur();
+    if (text) showSpeechBubble(text);
   }
 
   // Pecah teks jadi baris maks BUBBLE_MAX_CHARS_PER_LINE karakter, greedy
@@ -595,19 +837,17 @@
     }, BUBBLE_DURATION);
   }
 
-  // Enter di luar chat input = buka input; Enter di dalam chat input = submit
-  // (tutup input, tampilkan bubble kalau ada teksnya, batal kalau kosong).
+  // Enter (selagi fokus di #chatInput) ATAU klik tombol → = submit —
+  // permintaan eksplisit user, gantiin toggle buka/tutup via Enter versi
+  // lama (input sekarang SELALU kelihatan, tidak perlu "dibuka" dulu).
   window.addEventListener("keydown", (e) => {
     if (e.key !== "Enter") return;
+    if (document.activeElement !== chatInput) return;
     e.preventDefault();
-    if (document.activeElement === chatInput) {
-      const text = chatInput.value.trim();
-      closeChatInput();
-      if (text) showSpeechBubble(text);
-    } else {
-      openChatInput();
-    }
+    submitChatInput();
   });
+
+  sendChatBtn.addEventListener("click", submitChatInput);
 
   let lastTime = 0;
   function loop(time) {
@@ -623,15 +863,14 @@
     requestAnimationFrame(loop);
   }
 
-  async function init() {
-    character.style.width = `${FRAME}px`;
-    character.style.height = `${FRAME}px`;
-    character.style.backgroundImage = `url("${characterPath(currentGender, currentFile)}")`;
-    character.style.backgroundSize = `${FRAME * SHEET_COLS}px ${FRAME * SHEET_ROWS}px`;
-
+  // Muat map (WORLD_MAP_NAME yg berlaku saat dipanggil) & posisikan ulang
+  // karakter/kamera/bubble ke tengah dunia BARU — dipakai pas load pertama
+  // (init()) MAUPUN pas ganti map lewat popup "Pilih Map" (switchWorldMap()),
+  // krn kedua kasus butuh langkah yg SAMA persis stlh data map selesai dimuat.
+  async function loadAndSetupWorld() {
     // Isi WORLD_WIDTH/HEIGHT & render layer dunia (atau fallback kalau
-    // gagal) — HARUS selesai dulu sblm hitung posisi awal karakter/kamera
-    // di bawah, krn keduanya bergantung pada ukuran dunia yg sebenarnya.
+    // gagal) — HARUS selesai dulu sblm hitung posisi karakter/kamera di
+    // bawah, krn keduanya bergantung pada ukuran dunia yg sebenarnya.
     await loadWorldMap();
     worldLayer.style.width = `${WORLD_WIDTH}px`;
     worldLayer.style.height = `${WORLD_HEIGHT}px`;
@@ -641,23 +880,39 @@
     // tergambar paling depan, tidak ketutup layer map yg posisinya di atas
     // karakter (lihat komentar panjang di style.css utk alasan lengkapnya).
     // appendChild() pada elemen yg sudah ada di DOM otomatis MEMINDAHKAN-nya
-    // (bukan menduplikasi), jadi ini aman dipanggil dari .character ke sini.
+    // (bukan menduplikasi) — jg berarti aman dipanggil ULANG tiap ganti map.
     worldLayer.appendChild(speechBubble);
 
-    // Mulai di tengah dunia, menghadap bawah, pose idle.
+    // (Selalu) mulai di tengah dunia, menghadap bawah, pose idle.
     x = (WORLD_WIDTH - FRAME) / 2;
     y = (WORLD_HEIGHT - FRAME) / 2;
     character.style.translate = `${x}px ${y}px`;
     updateSpeechBubblePosition();
     setSpriteFrame(ROW.down, IDLE_FRAME);
 
-    // Kamera langsung pas di tengah karakter sejak awal (tanpa animasi
-    // "mengejar" pas load pertama kali).
+    // Kamera langsung pas di tengah karakter (tanpa animasi "mengejar").
     const viewW = viewport.clientWidth;
     const viewH = viewport.clientHeight;
     camX = clamp(x + FRAME / 2 - viewW / 2, 0, WORLD_WIDTH - viewW);
     camY = clamp(y + FRAME / 2 - viewH / 2, 0, WORLD_HEIGHT - viewH);
     worldLayer.style.transform = `translate(${-camX}px, ${-camY}px)`;
+  }
+
+  // Dipanggil dari popup "Pilih Map" (lihat di bawah) — ganti map aktif &
+  // rebuild dunia dgn map yg baru, TANPA reload halaman (setup karakter
+  // sprite/listener dll di init() cuma perlu jalan sekali, tidak diulang).
+  async function switchWorldMap(name) {
+    WORLD_MAP_NAME = name;
+    await loadAndSetupWorld();
+  }
+
+  async function init() {
+    character.style.width = `${FRAME}px`;
+    character.style.height = `${FRAME}px`;
+    character.style.backgroundImage = `url("${characterPath(currentGender, currentFile)}")`;
+    character.style.backgroundSize = `${FRAME * SHEET_COLS}px ${FRAME * SHEET_ROWS}px`;
+
+    await loadAndSetupWorld();
 
     requestAnimationFrame(loop);
   }

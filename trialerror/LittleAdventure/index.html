@@ -34,21 +34,17 @@
        jadi kotak game selalu pas di tengah layar, apa pun tinggi header ini. -->
   <div class="game-header">
     <h1>Little Adventure</h1>
-    <div class="hint">
-      <p>— Gerakkan karakter pakai ↑ ← ↓ → atau W A S D</p>
-      <p>— Tekan Shift untuk jalan pelan</p>
-      <p>— Tekan Space untuk melompat</p>
-      <p>— Tekan Enter untuk ngomong</p>
-    </div>
     <div class="header-actions">
-      <button type="button" id="changeCharacterBtn" class="change-character-btn">🧑 Ganti Karakter</button>
-      <a href="tilemap.html" class="tilemap-link">🗺️ Tilemap Editor</a>
+      <button type="button" id="changeCharacterBtn" class="change-character-btn">🧑 Karakter</button>
+      <button type="button" id="openMapPickerBtn" class="change-character-btn">🗺️ Map</button>
+      <a href="tilemap.html" id="editorLink" class="tilemap-link">🚧 Editor</a>
     </div>
   </div>
 
-  <!-- #chatInput ditaruh di sini (bukan di .game-header) & diposisikan
-       absolute nempel di BAWAH #gameWorld — biar muncul/hilangnya tidak
-       menggeser posisi kotak game (lihat "Layout" di CLAUDE.md). -->
+  <!-- #chatInputBar ditaruh di sini (bukan di .game-header) & diposisikan
+       absolute nempel di BAWAH #gameWorld — permanen kelihatan (tidak lagi
+       toggle show/hide via Enter, lihat "Ngomong" di CLAUDE.md), jadi tidak
+       pernah menggeser posisi kotak game apa pun kondisinya. -->
   <div class="game-stage">
     <div id="gameWorld">
       <div id="worldLayer">
@@ -57,12 +53,31 @@
         </div>
       </div>
     </div>
-    <input type="text" id="chatInput" class="chat-input" placeholder="Ketik pesan, lalu tekan Enter..." hidden>
+    <div class="chat-input-bar" id="chatInputBar">
+      <input type="text" id="chatInput" class="chat-input" placeholder="Ketik pesan, lalu tekan Enter atau →...">
+      <button type="button" id="sendChatBtn" class="chat-send-btn" title="Kirim">→</button>
+    </div>
+  </div>
+
+  <!-- ===================== KONTROL LAYAR SENTUH (HP) =====================
+       Cuma kelihatan di device layar sentuh (`@media (pointer: coarse)`,
+       lihat style.css) — di desktop/mouse tetap pakai keyboard spt biasa.
+       Kontrol arah pakai analog stick (permintaan eksplisit user, gantiin
+       4 tombol W/A/S/D persegi versi awal) — seret knob di dalam lingkaran
+       dasar, arah ditentukan dari sudut seretannya, tetap manggil fungsi JS
+       yg SAMA persis dgn keyboard (addDirection/removeDirection), lihat
+       "Kontrol layar sentuh" di CLAUDE.md. -->
+  <div class="touch-joystick" id="touchJoystick">
+    <div class="joystick-knob" id="joystickKnob"></div>
+  </div>
+  <div class="touch-actions" id="touchActions">
+    <button type="button" class="action-btn" id="touchShiftBtn" title="Jalan pelan">🚶</button>
+    <button type="button" class="action-btn" id="touchJumpBtn" title="Lompat">⤴️</button>
   </div>
 
   <!-- ===================== OVERLAY: PILIH KARAKTER ===================== -->
-  <div class="character-picker-overlay" id="characterPickerOverlay">
-    <div class="character-picker-sheet">
+  <div class="picker-overlay" id="characterPickerOverlay">
+    <div class="picker-sheet">
       <div class="picker-header">
         <h2>Pilih Karakter</h2>
         <button type="button" class="picker-close-btn" id="closePickerBtn">✕</button>
@@ -72,6 +87,40 @@
         <button type="button" class="gender-tab" data-gender="Female">Wanita</button>
       </div>
       <div class="character-grid" id="characterGrid"></div>
+    </div>
+  </div>
+
+  <!-- ===================== OVERLAY: PILIH MAP (Firebase) =====================
+       Daftar SEMUA map tersimpan di trial-error/littleAdventure/tilemaps,
+       diambil pakai REST ?shallow=true (cuma nama/key, BUKAN isi tiles-nya
+       yg berat) — cocok skalanya sampai ~1000 map, lihat "Pilih Map" di
+       CLAUDE.md. -->
+  <div class="picker-overlay" id="mapPickerOverlay">
+    <div class="picker-sheet">
+      <div class="picker-header">
+        <h2>Pilih Map</h2>
+        <button type="button" class="picker-close-btn" id="closeMapPickerBtn">✕</button>
+      </div>
+      <input type="text" id="mapSearchInput" class="map-search-input" placeholder="Cari nama map...">
+      <div class="map-list" id="mapList"></div>
+    </div>
+  </div>
+
+  <!-- ===================== OVERLAY: PERINGATAN EDITOR DI HP =====================
+       Cuma dipicu di device layar sentuh (`pointer: coarse`, dicek scr JS
+       saat klik #editorLink) — Tilemap Editor tidak dirancang responsif
+       utk layar kecil, jadi user ditawari batal dulu sblm lanjut buka di
+       HP. Lihat "Peringatan buka Editor di HP" di CLAUDE.md. -->
+  <div class="picker-overlay" id="editorWarningOverlay">
+    <div class="picker-sheet">
+      <div class="picker-header">
+        <h2>⚠️ Rekomendasi</h2>
+      </div>
+      <p class="editor-warning-text">Halaman ini direkomendasikan dibuka menggunakan PC/laptop. Tetap ingin membuka halaman ini tanpa PC/laptop?</p>
+      <div class="editor-warning-actions">
+        <button type="button" id="editorWarningBackBtn" class="editor-warning-back-btn">Kembali</button>
+        <button type="button" id="editorWarningContinueBtn" class="editor-warning-continue-btn">Lanjut</button>
+      </div>
     </div>
   </div>
 
