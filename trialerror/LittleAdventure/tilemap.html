@@ -51,6 +51,11 @@
           <button type="button" class="tool-btn active" data-tool="brush">✏️ Brush</button>
           <button type="button" class="tool-btn" data-tool="fill">🪣 Fill</button>
           <button type="button" class="tool-btn" data-tool="erase">🧹 Erase</button>
+          <button type="button" class="tool-btn" data-tool="start">📍 Start Position</button>
+        </div>
+        <div class="tool-group" id="startPositionGroup">
+          <span id="startPositionLabel" class="field-label">Start: belum diset</span>
+          <button type="button" id="clearStartPositionBtn" title="Hapus Start Position">✕</button>
         </div>
         <div class="tool-group">
           <button type="button" id="undoBtn">↶ Undo</button>
@@ -104,6 +109,9 @@
       <div class="canvas-scroll" id="canvasScroll">
         <div class="canvas-wrapper" id="canvasWrapper">
           <canvas id="gridCanvas"></canvas>
+          <!-- Anak TERAKHIR canvasWrapper (setelah gridCanvas) — selalu
+               tergambar PALING ATAS, lihat "Start Position" di CLAUDE.md. -->
+          <canvas id="startMarkerCanvas"></canvas>
         </div>
       </div>
 

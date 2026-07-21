@@ -125,6 +125,9 @@
   const canvasScroll = document.getElementById("canvasScroll");
   const canvasWrapper = document.getElementById("canvasWrapper");
   const gridCanvas = document.getElementById("gridCanvas");
+  const startMarkerCanvas = document.getElementById("startMarkerCanvas");
+  const startPositionLabel = document.getElementById("startPositionLabel");
+  const clearStartPositionBtn = document.getElementById("clearStartPositionBtn");
 
   const statusTool = document.getElementById("statusTool");
   const statusCoords = document.getElementById("statusCoords");
@@ -155,6 +158,10 @@
   let mapHeight = DEFAULT_MAP_HEIGHT;
   let layers = []; // { name, visible, opacity, tilesetType, tiles: number[] } — tiles: row-major, EMPTY = kosong
   let activeLayerIndex = 0;
+  // Titik spawn karakter di game (bukan bagian dari layers[] — cuma 1 titik
+  // {col,row} di grid NORMAL, bukan tile yg dilukis), null = belum diset
+  // (game fallback ke tengah dunia, lihat "Start Position" di CLAUDE.md).
+  let startPosition = null;
   let layerCanvases = []; // <canvas> per layer, paralel dgn `layers`
   let editingLayerNameIndex = null; // index layer yg lagi diedit namanya (inline), null = tidak ada
 
@@ -238,6 +245,7 @@
   function initDefaultLayers() {
     layers = [createLayer("Background", "Base", -1), createLayer("Foreground", "Base", 0), createBlockLayer()];
     activeLayerIndex = 0;
+    startPosition = null;
   }
 
   // Posisi user-layer berikutnya = posisi tertinggi yg sudah dipakai + 1
@@ -266,9 +274,12 @@
     });
     gridCanvas.width = mapWidth * TILE_SIZE;
     gridCanvas.height = mapHeight * TILE_SIZE;
+    startMarkerCanvas.width = mapWidth * TILE_SIZE;
+    startMarkerCanvas.height = mapHeight * TILE_SIZE;
     applyMapZoomToDom();
     renderAllLayers();
     renderGrid();
+    renderStartMarker();
   }
 
   function drawTileOnCtx(ctx, cacheEntry, tileIndex, col, row) {
@@ -354,6 +365,74 @@
     }
   }
 
+  // ================= Start Position (titik spawn karakter) =================
+  // BUKAN layer (lihat diskusi di CLAUDE.md kenapa) — cuma 1 titik {col,row}
+  // di grid NORMAL (mapWidth x mapHeight), disimpan terpisah dari layers[],
+  // digambar di kanvas SENDIRI (#startMarkerCanvas, elemen TERAKHIR di DOM
+  // canvasWrapper jadi selalu tergambar plaing atas, di atas grid sekalipun)
+  // spy tidak numpuk sistem tile/undo layer sama sekali.
+
+  // Marker-nya gambar karakter default game (Male 01-1.png) pose idle
+  // menghadap bawah — permintaan eksplisit user, gantiin lingkaran+"S" versi
+  // awal, spy langsung kebayang arah hadap awal karakter pas main. Konvensi
+  // baris/kolom sprite sheet (3 kolom x 4 baris, 32x32px/frame) SAMA persis
+  // dgn yg dipakai game (lihat "Aset karakter" di CLAUDE.md) — baris 0 =
+  // hadap bawah, kolom 1 (tengah) = pose idle/diam. 32x32 sumbernya PAS sama
+  // dgn TILE_SIZE, jadi crop 1:1 tanpa scale.
+  const START_MARKER_SPRITE_SRC = "img/character/Male/Male 01-1.png";
+  const startMarkerSprite = new Image();
+  let startMarkerSpriteLoaded = false;
+  startMarkerSprite.onload = () => {
+    startMarkerSpriteLoaded = true;
+    renderStartMarker(); // jaga2 startPosition sudah keisi (mis. dari autosave) sblm sprite ini selesai dimuat
+  };
+  startMarkerSprite.src = START_MARKER_SPRITE_SRC;
+
+  function renderStartMarker() {
+    const ctx = startMarkerCanvas.getContext("2d");
+    ctx.clearRect(0, 0, startMarkerCanvas.width, startMarkerCanvas.height);
+    if (!startPosition || !startMarkerSpriteLoaded) return;
+    ctx.imageSmoothingEnabled = false;
+    const destX = startPosition.col * TILE_SIZE;
+    const destY = startPosition.row * TILE_SIZE;
+    ctx.drawImage(startMarkerSprite, 32, 0, 32, 32, destX, destY, TILE_SIZE, TILE_SIZE);
+  }
+
+  // Sel di grid NORMAL (mapWidth x mapHeight) dari posisi klik — BEDA dari
+  // cellFromEvent() yg ngikutin grid LAYER AKTIF (bisa jadi grid 4x lebih
+  // rapat kalau Block Layer lagi aktif, lihat layerGridDims()). Start
+  // Position bukan bagian dari layer manapun, jadi harus SELALU pakai grid
+  // normal apa pun layer yg lagi aktif/tool yg lagi dipakai sebelumnya.
+  function normalCellFromEvent(e) {
+    const rect = canvasWrapper.getBoundingClientRect();
+    const xRatio = (e.clientX - rect.left) / rect.width;
+    const yRatio = (e.clientY - rect.top) / rect.height;
+    const col = Math.floor(xRatio * mapWidth);
+    const row = Math.floor(yRatio * mapHeight);
+    if (col < 0 || col >= mapWidth || row < 0 || row >= mapHeight) return null;
+    return { col, row };
+  }
+
+  function updateStartPositionLabel() {
+    startPositionLabel.textContent = startPosition ? `Start: (${startPosition.col}, ${startPosition.row})` : "Start: belum diset";
+  }
+
+  function setStartPosition(col, row) {
+    startPosition = { col, row };
+    renderStartMarker();
+    updateStartPositionLabel();
+  }
+
+  function clearStartPosition() {
+    if (!startPosition) return;
+    startPosition = null;
+    renderStartMarker();
+    updateStartPositionLabel();
+    scheduleAutosave();
+  }
+
+  clearStartPositionBtn.addEventListener("click", clearStartPosition);
+
   // ================= Zoom (map) =================
   function applyMapZoomToDom() {
     canvasWrapper.style.width = `${mapWidth * TILE_SIZE * mapZoom}px`;
@@ -395,6 +474,16 @@
     });
     mapWidth = newWidth;
     mapHeight = newHeight;
+    // Start Position ikut di-clamp ke batas peta baru (bukan dihapus) kalau
+    // titiknya jadi di luar jangkauan stlh diciutkan — konsisten dgn tile
+    // layer yg jg cuma "dipotong" ke batas baru drpd dibuang semua.
+    if (startPosition) {
+      startPosition = {
+        col: clamp(startPosition.col, 0, mapWidth - 1),
+        row: clamp(startPosition.row, 0, mapHeight - 1),
+      };
+      updateStartPositionLabel();
+    }
     undoStack = [];
     redoStack = [];
     updateUndoRedoButtons();
@@ -475,6 +564,18 @@
   }
 
   canvasWrapper.addEventListener("pointerdown", (e) => {
+    // Tool "Start Position" bukan aksi layer sama sekali (bukan tile, tidak
+    // masuk undo stack) — cabang terpisah, pakai grid NORMAL selalu
+    // (normalCellFromEvent), bukan grid layer aktif (cellFromEvent).
+    if (currentTool === "start") {
+      const cell = normalCellFromEvent(e);
+      if (!cell) return;
+      isPainting = true; // dipakai jg drag utk reposisi live, lihat pointermove
+      setStartPosition(cell.col, cell.row);
+      lastPaintedCell = `${cell.col},${cell.row}`;
+      updateStatusCoords(cell);
+      return;
+    }
     const cell = cellFromEvent(e);
     if (!cell) return;
     isPainting = true;
@@ -485,6 +586,16 @@
   });
 
   window.addEventListener("pointermove", (e) => {
+    if (currentTool === "start") {
+      const cell = normalCellFromEvent(e);
+      if (cell) updateStatusCoords(cell);
+      if (!isPainting || !cell) return;
+      const key = `${cell.col},${cell.row}`;
+      if (key === lastPaintedCell) return;
+      lastPaintedCell = key;
+      setStartPosition(cell.col, cell.row);
+      return;
+    }
     const cell = cellFromEvent(e);
     if (cell) updateStatusCoords(cell);
     if (!isPainting || !cell) return;
@@ -1022,10 +1133,11 @@
   // -1/Foreground 0, lihat "Layer helpers").
   function buildMapData() {
     return {
-      version: 3,
+      version: 4, // v4 naik dari v3 krn tambahan startPosition (lihat "Start Position")
       tileSize: TILE_SIZE,
       mapWidth,
       mapHeight,
+      startPosition, // {col,row} atau null — titik spawn karakter, lihat "Start Position"
       layers: layers.map((l) => ({
         name: l.name,
         visible: l.visible,
@@ -1056,6 +1168,12 @@
   function applyMapData(data) {
     mapWidth = data.mapWidth;
     mapHeight = data.mapHeight;
+    // File v3 lama (sblm fitur ini ada) tidak punya field ini sama sekali —
+    // fallback null (belum diset), bukan dianggap error.
+    startPosition =
+      data.startPosition && Number.isInteger(data.startPosition.col) && Number.isInteger(data.startPosition.row)
+        ? { col: clamp(data.startPosition.col, 0, mapWidth - 1), row: clamp(data.startPosition.row, 0, mapHeight - 1) }
+        : null;
     const positions = migrateLayerPositions(data.layers);
     layers = data.layers.map((l, i) => ({
       name: l.name,
@@ -1090,6 +1208,7 @@
     rebuildLayerCanvases();
     renderLayerList();
     updateStatusSize();
+    updateStartPositionLabel();
     showTilesetForActiveLayer();
   }
 
@@ -1217,6 +1336,7 @@
         rebuildLayerCanvases();
         renderLayerList();
         updateStatusSize();
+        updateStartPositionLabel();
         showTilesetForActiveLayer();
       }
       setMapZoom(1);

@@ -128,6 +128,11 @@
   // tidak py Block Layer sama sekali/disembunyikan di editor/masih fallback.
   // Koordinat sudah dlm satuan WORLD (dikali SCALE), lihat isAreaBlocked().
   let blockLayerData = null;
+  // Titik spawn karakter (Start Position dari Tilemap Editor, lihat CLAUDE.md)
+  // — koordinat sudah dlm satuan WORLD (dikali SCALE), null kalau map tidak
+  // py Start Position diset/masih fallback (karakter mulai di TENGAH dunia,
+  // perilaku lama, lihat loadAndSetupWorld()).
+  let startPositionWorld = null;
   // 0-1: seberapa cepat kamera "mengejar" posisi target (karakter di tengah).
   // Makin kecil, makin nge-lag/lambat & smooth; makin besar, makin ketat
   // nempel ke karakter (1 = langsung nempel tanpa jeda sama sekali).
@@ -411,6 +416,7 @@
     // — tanpa ini, kanvas map lama numpuk di atas gambar fallback ini.
     worldLayer.querySelectorAll(".world-layer-canvas").forEach((c) => c.remove());
     blockLayerData = null;
+    startPositionWorld = null;
   }
 
   // Gambar 1 layer (bukan Block Layer) ke <canvas> native resolution
@@ -499,6 +505,15 @@
           tiles: blockLayer.tiles,
         }
       : null;
+
+    // Start Position (titik spawn, diset di Tilemap Editor lewat tool
+    // "📍 Start Position" — BUKAN layer, lihat CLAUDE.md) — dikonversi ke
+    // satuan WORLD (dikali TILE_SRC*SCALE, sama pola konversinya dgn
+    // blockLayerData.cellSize di atas). null kalau map tidak py Start
+    // Position diset — loadAndSetupWorld() fallback ke tengah dunia.
+    const sp = data.startPosition;
+    startPositionWorld =
+      sp && Number.isInteger(sp.col) && Number.isInteger(sp.row) ? { x: sp.col * TILE_SRC * SCALE, y: sp.row * TILE_SRC * SCALE } : null;
   }
 
   async function loadWorldMap() {
@@ -885,9 +900,18 @@
     // (bukan menduplikasi) — jg berarti aman dipanggil ULANG tiap ganti map.
     worldLayer.appendChild(speechBubble);
 
-    // (Selalu) mulai di tengah dunia, menghadap bawah, pose idle.
-    x = (WORLD_WIDTH - FRAME) / 2;
-    y = (WORLD_HEIGHT - FRAME) / 2;
+    // Mulai di Start Position (diset di Tilemap Editor) kalau map-nya py
+    // itu — fallback ke TENGAH dunia kalau tidak (perilaku lama, jg dipakai
+    // pas fallback ke samplemap.png statis). Diklamp ke batas dunia jg,
+    // jaga2 kalau map di-resize di editor SETELAH Start Position diset dgn
+    // cara yg entah kenapa lolos dari clamp di sisi editor (defense in depth).
+    if (startPositionWorld) {
+      x = clamp(startPositionWorld.x, 0, WORLD_WIDTH - FRAME);
+      y = clamp(startPositionWorld.y, 0, WORLD_HEIGHT - FRAME);
+    } else {
+      x = (WORLD_WIDTH - FRAME) / 2;
+      y = (WORLD_HEIGHT - FRAME) / 2;
+    }
     character.style.translate = `${x}px ${y}px`;
     updateSpeechBubblePosition();
     setSpriteFrame(ROW.down, IDLE_FRAME);

@@ -456,7 +456,8 @@ select {
   image-rendering: -moz-crisp-edges;
 }
 
-#gridCanvas {
+#gridCanvas,
+#startMarkerCanvas {
   pointer-events: none; /* biar tidak menghalangi apa pun — event tetap ditangani di canvasWrapper */
 }
 
