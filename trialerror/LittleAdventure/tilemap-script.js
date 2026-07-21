@@ -1242,12 +1242,22 @@
   });
 
   // ================= Save / Load Firebase =================
+  // Karakter `. # $ [ ] /` diganti "_" krn terlarang jadi key Firebase —
+  // TIDAK ADA lagi fallback "map" kalau nama kosong (permintaan eksplisit
+  // user, lihat validasi di saveFirebaseBtn di bawah) — dulu sengaja
+  // fallback ke situ, tapi itu justru bikin user bisa asal klik Simpan
+  // tanpa isi nama sama sekali.
   function sanitizeKey(name) {
-    return (name || "").trim().replace(/[.#$/[\]]/g, "_") || "map";
+    return (name || "").trim().replace(/[.#$/[\]]/g, "_");
   }
 
   saveFirebaseBtn.addEventListener("click", () => {
     const key = sanitizeKey(mapNameInput.value);
+    if (!key) {
+      showStatusMessage("Isi nama map dulu sebelum menyimpan.", true);
+      mapNameInput.focus();
+      return;
+    }
     mapNameInput.value = key;
     db.ref(`${TILEMAP_PATH}/${key}`)
       .set(buildMapData())
