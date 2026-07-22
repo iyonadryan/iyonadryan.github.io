@@ -168,6 +168,34 @@
     </div>
   </div>
 
+  <!-- ===================== MODAL: PIN SIMPAN SERVER ===================== -->
+  <div class="modal-overlay" id="pinModal">
+    <div class="modal-sheet">
+      <h3 id="pinModalTitle">Masukkan PIN</h3>
+      <p class="modal-field-label" id="pinModalDesc"></p>
+      <label class="modal-field-label">
+        PIN (6 angka)
+        <input type="text" id="pinModalInput" class="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••••">
+      </label>
+      <p class="modal-error-text" id="pinModalError"></p>
+      <div class="modal-actions">
+        <button type="button" id="cancelPinModalBtn">Batal</button>
+        <button type="button" id="confirmPinModalBtn" class="btn-primary">Konfirmasi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: PIN SALAH 3 KALI ===================== -->
+  <div class="modal-overlay" id="pinLockedModal">
+    <div class="modal-sheet">
+      <h3>PIN Salah 3 Kali</h3>
+      <p class="modal-field-label">Anda sudah mencoba sebanyak 3 kali. Apabila lupa PIN, dapat menghubungi Admin Iyon.</p>
+      <div class="modal-actions">
+        <button type="button" id="closePinLockedModalBtn" class="btn-primary">Tutup</button>
+      </div>
+    </div>
+  </div>
+
   <script src="tilemap-script.js"></script>
 </body>
 </html>

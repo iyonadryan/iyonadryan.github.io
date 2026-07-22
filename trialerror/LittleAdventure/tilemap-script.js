@@ -186,6 +186,17 @@
   const cancelNewLayerBtn = document.getElementById("cancelNewLayerBtn");
   const confirmNewLayerBtn = document.getElementById("confirmNewLayerBtn");
 
+  const pinModal = document.getElementById("pinModal");
+  const pinModalTitle = document.getElementById("pinModalTitle");
+  const pinModalDesc = document.getElementById("pinModalDesc");
+  const pinModalInput = document.getElementById("pinModalInput");
+  const pinModalError = document.getElementById("pinModalError");
+  const cancelPinModalBtn = document.getElementById("cancelPinModalBtn");
+  const confirmPinModalBtn = document.getElementById("confirmPinModalBtn");
+
+  const pinLockedModal = document.getElementById("pinLockedModal");
+  const closePinLockedModalBtn = document.getElementById("closePinLockedModalBtn");
+
   // ================= State =================
   let mapWidth = DEFAULT_MAP_WIDTH;
   let mapHeight = DEFAULT_MAP_HEIGHT;
@@ -1319,6 +1330,127 @@
     return (name || "").trim().replace(/[.#$/[\]]/g, "_");
   }
 
+  // ================= PIN simpan server (permintaan eksplisit user) =================
+  // Tiap map di Firebase nyimpen 1 field tambahan "pin" (angka 6 digit) —
+  // GERBANG UPDATE, bukan gerbang baca: muat/lihat map manapun via dropdown
+  // "Muat dari server" TETAP bebas tanpa PIN (lihat firebaseMapSelect di
+  // bawah, tidak berubah), cuma tombol "Simpan di server" yg sekarang minta
+  // PIN dulu. Sengaja BUKAN bagian dari `buildMapData()`/`version` (field itu
+  // scope-nya "isi map": layer, tile, dst.) — pin murni kredensial akses utk
+  // 1 aksi tulis ke Firebase, jadi TIDAK ikut disimpan ke Save JSON/autosave
+  // localStorage (export/backup lokal bukan tempat yg tepat utk nyimpen
+  // kredensial ini).
+  //
+  // Dicek FRESH dari Firebase tiap kali tombol Simpan diklik (BUKAN dicache
+  // dari pin map yg kebetulan lagi terbuka di editor) — supaya sekadar
+  // MEMBUKA/melihat sebuah map (via dropdown) tidak otomatis "membocorkan"
+  // izin nulis ulang map itu; user tetap harus MENGETIK PIN-nya scr eksplisit
+  // tiap kali mau menyimpan, persis sesuai maksud "hanya user yg tau PIN yg
+  // bisa update".
+  // Batas percobaan PIN salah berturut-turut (mode verify SAJA — mode "Buat
+  // PIN Baru" tidak pernah bisa "salah") sebelum popup "PIN Salah 3 Kali"
+  // muncul (permintaan eksplisit user) — dihitung PER SESI modal terbuka
+  // (`pinWrongAttempts` di-reset tiap `openPinModal()` dipanggil ulang, jadi
+  // klik Simpan lagi dari awal jg ngasih 3 percobaan baru, bukan akumulasi
+  // selamanya).
+  const PIN_MAX_ATTEMPTS = 3;
+  let pinWrongAttempts = 0;
+  let pinModalResolve = null; // (enteredDigits) => true utk tutup modal, false utk tetap terbuka (mis. PIN salah)
+
+  function openPinModal(existingPin, onConfirm) {
+    const isCreate = existingPin == null;
+    pinWrongAttempts = 0;
+    pinModalTitle.textContent = isCreate ? "Buat PIN Baru" : "Masukkan PIN";
+    pinModalDesc.textContent = isCreate
+      ? "Map ini belum punya PIN. Buat PIN 6 angka — PIN ini yg akan diminta tiap kali map ini mau di-update lagi nanti."
+      : "Map ini sudah dilindungi PIN. Masukkan PIN 6 angka untuk melanjutkan penyimpanan.";
+    confirmPinModalBtn.textContent = isCreate ? "Buat & Simpan" : "Konfirmasi & Simpan";
+    pinModalInput.value = "";
+    pinModalError.textContent = "";
+    pinModal.classList.add("open");
+    pinModalInput.focus();
+
+    pinModalResolve = (digits) => {
+      if (!isCreate && Number(digits) !== Number(existingPin)) {
+        pinWrongAttempts++;
+        if (pinWrongAttempts >= PIN_MAX_ATTEMPTS) {
+          openPinLockedModal();
+          return true; // tutup pinModal jg — popup lockout yg lanjut tampil
+        }
+        pinModalError.textContent = "PIN salah. Coba lagi.";
+        pinModalInput.value = "";
+        pinModalInput.focus();
+        return false;
+      }
+      onConfirm(Number(digits));
+      return true;
+    };
+  }
+
+  function closePinModal() {
+    pinModal.classList.remove("open");
+    pinModalResolve = null;
+    saveFirebaseBtn.disabled = false;
+  }
+
+  function openPinLockedModal() {
+    pinLockedModal.classList.add("open");
+  }
+
+  // Dipanggil dari tombol "Tutup" popup lockout — permintaan eksplisit user
+  // "tombol tutup semua pop up", jadi SENGAJA jg nutup `pinModal` (harusnya
+  // sudah tertutup lewat `closePinModal()` di `submitPinModal()`, tapi
+  // dipanggil ulang di sini spy tidak gantung kalau urutannya berubah nanti)
+  // — bukan cuma nutup popup lockout-nya sendiri.
+  function closePinLockedModal() {
+    pinLockedModal.classList.remove("open");
+    closePinModal();
+  }
+
+  closePinLockedModalBtn.addEventListener("click", closePinLockedModal);
+  pinLockedModal.addEventListener("click", (e) => {
+    if (e.target === pinLockedModal) closePinLockedModal();
+  });
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && pinLockedModal.classList.contains("open")) closePinLockedModal();
+  });
+
+  function submitPinModal() {
+    const digits = pinModalInput.value.trim();
+    if (!/^\d{6}$/.test(digits)) {
+      pinModalError.textContent = "PIN harus tepat 6 angka.";
+      pinModalInput.focus();
+      return;
+    }
+    if (pinModalResolve && pinModalResolve(digits) !== false) closePinModal();
+  }
+
+  confirmPinModalBtn.addEventListener("click", submitPinModal);
+  cancelPinModalBtn.addEventListener("click", closePinModal);
+  pinModal.addEventListener("click", (e) => {
+    if (e.target === pinModal) closePinModal();
+  });
+  pinModalInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      submitPinModal();
+    } else if (e.key === "Escape") {
+      closePinModal();
+    }
+  });
+
+  function saveMapToFirebase(key, pin) {
+    const data = buildMapData();
+    data.pin = pin;
+    db.ref(`${TILEMAP_PATH}/${key}`)
+      .set(data)
+      .then(() => {
+        showStatusMessage(`Tersimpan ke server sbg "${key}".`);
+        refreshFirebaseList();
+      })
+      .catch((err) => showStatusMessage(`Gagal simpan ke server: ${err.message}`, true));
+  }
+
   saveFirebaseBtn.addEventListener("click", () => {
     const key = sanitizeKey(mapNameInput.value);
     if (!key) {
@@ -1327,13 +1459,16 @@
       return;
     }
     mapNameInput.value = key;
-    db.ref(`${TILEMAP_PATH}/${key}`)
-      .set(buildMapData())
-      .then(() => {
-        showStatusMessage(`Tersimpan ke server sbg "${key}".`);
-        refreshFirebaseList();
+    saveFirebaseBtn.disabled = true;
+    db.ref(`${TILEMAP_PATH}/${key}/pin`)
+      .once("value")
+      .then((snap) => {
+        openPinModal(snap.val(), (pin) => saveMapToFirebase(key, pin));
       })
-      .catch((err) => showStatusMessage(`Gagal simpan ke server: ${err.message}`, true));
+      .catch((err) => {
+        saveFirebaseBtn.disabled = false;
+        showStatusMessage(`Gagal cek PIN: ${err.message}`, true);
+      });
   });
 
   function refreshFirebaseList() {
