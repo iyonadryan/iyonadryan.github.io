@@ -830,7 +830,12 @@
     const layer = layers[activeLayerIndex];
     const type = layer.tilesetType;
     selectedTile = 0; // index tile tidak nyambung antar tileset beda, reset tiap ganti
-    updateTilesetTabsActive(type);
+    // Block Layer/Top Object bukan tileset gambar sama sekali — SEMUA tab
+    // di-disable (tidak ada gunanya ganti "tileset" sesuatu yg bukan
+    // tileset), beda dari layer biasa yg SEKARANG semua tab tetap bisa
+    // diklik (lihat "Ganti tileset layer" — permintaan eksplisit user
+    // susulan, gantiin versi lama yg cuma bisa ditentukan sekali pas dibuat).
+    updateTilesetTabsActive(type, isBlockLayer(layer) || isTopObjectLayer(layer));
 
     if (isBlockLayer(layer) || isTopObjectLayer(layer)) {
       // Block Layer/Top Object bukan tileset gambar — sembunyikan preview &
@@ -854,10 +859,14 @@
     updateTilesetInfo();
   }
 
-  // Tab di panel kanan ini SEKADAR INDIKATOR (bukan tombol ganti tileset) —
-  // krn 1 layer = 1 tileset yg cuma ditentukan sekali sewaktu layer dibuat
-  // (modal Layer Baru), tab selain tileset milik layer aktif di-disable
-  // (tidak bisa diklik sama sekali), permintaan eksplisit user.
+  // Tab di panel kanan ini BISA diklik utk GANTI tileset layer aktif
+  // (permintaan eksplisit user susulan — gantiin versi lama yg cuma
+  // "indikator", tileset ditentukan sekali doang pas layer dibuat) — lihat
+  // `requestTilesetChange()` di bawah. Klik tab yg BUKAN Block Layer/Top
+  // Object aktif (lihat `updateTilesetTabsActive()`) selalu diizinkan, TAPI
+  // ganti tileset SELALU minta konfirmasi dulu krn ISI LAYER (array tiles)
+  // bakal DIKOSONGKAN — index tile lama tidak nyambung sama sekali ke
+  // tileset baru (col/row dihitung dari `cache.cols` tileset yg beda).
   function renderTilesetTabs() {
     tilesetTabs.innerHTML = "";
     TILESET_TYPES.forEach((t) => {
@@ -866,16 +875,44 @@
       btn.className = "tileset-tab";
       btn.textContent = t.label;
       btn.dataset.key = t.key;
+      btn.addEventListener("click", () => requestTilesetChange(t.key));
       tilesetTabs.appendChild(btn);
     });
   }
 
-  function updateTilesetTabsActive(activeType) {
+  // `disableAll` = true kalau layer aktif Block Layer/Top Object (bukan
+  // tileset gambar sama sekali, lihat pemanggilnya di
+  // `showTilesetForActiveLayer()`) — SEMUA tab di-disable spy tidak ada yg
+  // bisa diklik. Layer biasa: SEMUA tab tetap aktif/bisa diklik (beda dari
+  // versi lama yg nge-disable 7 tab selain yg lagi kepakai).
+  function updateTilesetTabsActive(activeType, disableAll) {
     tilesetTabs.querySelectorAll(".tileset-tab").forEach((btn) => {
       const isActive = btn.dataset.key === activeType;
       btn.classList.toggle("active", isActive);
-      btn.disabled = !isActive;
+      btn.disabled = !!disableAll;
     });
+  }
+
+  // Ganti tileset layer AKTIF ke `newType` — SELALU minta konfirmasi dulu
+  // (permintaan eksplisit user: "ada pop up apakah kau yakin, karena akan
+  // clear layer karena ganti tileset") krn index tile lama (`layer.tiles`)
+  // tidak nyambung sama sekali ke tileset baru begitu diganti (drawImage
+  // pakai `col/row` yg dihitung dari lebar tileset LAMA, kalau tetap dipakai
+  // di tileset BARU bisa jatuh di tile yg SALAH TOTAL/di luar batas gambar
+  // sama sekali) — satu2nya cara aman adalah kosongkan isinya, sama pola
+  // dgn `clearAllBtn`.
+  function requestTilesetChange(newType) {
+    const layer = layers[activeLayerIndex];
+    if (isBlockLayer(layer) || isTopObjectLayer(layer)) return; // jaga2, tombolnya harusnya sudah disabled
+    if (newType === layer.tilesetType) return; // klik tileset yg sama, tidak ngapa-ngapain
+    if (!confirm(`Ganti tileset layer "${layer.name}" ke "${tilesetTypeDef(newType).label}"? Isi layer ini akan hilang (dikosongkan).`)) return;
+    pushUndo();
+    layer.tilesetType = newType;
+    layer.tiles.fill(EMPTY);
+    renderLayer(activeLayerIndex);
+    renderLayerList();
+    showTilesetForActiveLayer();
+    scheduleAutosave();
   }
 
   function updateTileHighlight() {
