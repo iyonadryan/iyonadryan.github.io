@@ -101,10 +101,7 @@
           <span class="field-label">Map name :</span>
           <input type="text" id="mapNameInput" class="map-name-input" placeholder="Nama map">
           <button type="button" id="saveFirebaseBtn">☁️ Simpan di server</button>
-          <select id="firebaseMapSelect">
-            <option value="">— Muat dari server —</option>
-          </select>
-          <button type="button" id="refreshFirebaseListBtn" title="Refresh daftar">⟳</button>
+          <button type="button" id="openLoadMapModalBtn">📂 Muat dari server</button>
         </div>
       </div>
 
@@ -192,6 +189,18 @@
       <p class="modal-field-label">Anda sudah mencoba sebanyak 3 kali. Apabila lupa PIN, dapat menghubungi Admin Iyon.</p>
       <div class="modal-actions">
         <button type="button" id="closePinLockedModalBtn" class="btn-primary">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: MUAT DARI SERVER ===================== -->
+  <div class="modal-overlay" id="loadMapModal">
+    <div class="modal-sheet modal-sheet--wide">
+      <h3>Muat dari Server</h3>
+      <input type="text" id="loadMapSearchInput" class="map-search-input" placeholder="Cari nama map...">
+      <div class="map-load-list" id="loadMapList"></div>
+      <div class="modal-actions">
+        <button type="button" id="closeLoadMapModalBtn">Tutup</button>
       </div>
     </div>
   </div>

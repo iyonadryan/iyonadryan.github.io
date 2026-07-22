@@ -152,8 +152,11 @@
   const loadJsonFile = document.getElementById("loadJsonFile");
   const mapNameInput = document.getElementById("mapNameInput");
   const saveFirebaseBtn = document.getElementById("saveFirebaseBtn");
-  const firebaseMapSelect = document.getElementById("firebaseMapSelect");
-  const refreshFirebaseListBtn = document.getElementById("refreshFirebaseListBtn");
+  const openLoadMapModalBtn = document.getElementById("openLoadMapModalBtn");
+  const loadMapModal = document.getElementById("loadMapModal");
+  const loadMapSearchInput = document.getElementById("loadMapSearchInput");
+  const loadMapList = document.getElementById("loadMapList");
+  const closeLoadMapModalBtn = document.getElementById("closeLoadMapModalBtn");
 
   const canvasScroll = document.getElementById("canvasScroll");
   const canvasWrapper = document.getElementById("canvasWrapper");
@@ -1332,10 +1335,10 @@
 
   // ================= PIN simpan server (permintaan eksplisit user) =================
   // Tiap map di Firebase nyimpen 1 field tambahan "pin" (angka 6 digit) —
-  // GERBANG UPDATE, bukan gerbang baca: muat/lihat map manapun via dropdown
-  // "Muat dari server" TETAP bebas tanpa PIN (lihat firebaseMapSelect di
-  // bawah, tidak berubah), cuma tombol "Simpan di server" yg sekarang minta
-  // PIN dulu. Sengaja BUKAN bagian dari `buildMapData()`/`version` (field itu
+  // GERBANG UPDATE, bukan gerbang baca: muat/lihat map manapun via popup
+  // "Muat dari Server" (lihat `openLoadMapModal()` di bawah) TETAP bebas
+  // tanpa PIN, cuma tombol "Simpan di server" yg sekarang minta PIN dulu.
+  // Sengaja BUKAN bagian dari `buildMapData()`/`version` (field itu
   // scope-nya "isi map": layer, tile, dst.) — pin murni kredensial akses utk
   // 1 aksi tulis ke Firebase, jadi TIDAK ikut disimpan ke Save JSON/autosave
   // localStorage (export/backup lokal bukan tempat yg tepat utk nyimpen
@@ -1439,14 +1442,32 @@
     }
   });
 
-  function saveMapToFirebase(key, pin) {
+  // `createdAt`/`updatedAt` — sama pola dgn `pin` (permintaan susulan user
+  // "mulai sekarang, tambahkan juga createdAt dan updatedAt berisi
+  // timestamp"): metadata RECORD Firebase, bukan "isi map", jadi sengaja jg
+  // BUKAN bagian dari `buildMapData()`/skema `version`/Save JSON/autosave —
+  // ditempel manual di `saveMapToFirebase()` doang, sama persis `pin`.
+  // `Date.now()` (epoch ms, client-side) — konsisten dgn konvensi timestamp
+  // yg sudah dipakai app lain di repo ini (`created`/`expired` di
+  // `24Card/poker.js` dkk), BUKAN `firebase.database.ServerValue.TIMESTAMP`.
+  function saveMapToFirebase(key, pin, existingCreatedAt) {
     const data = buildMapData();
     data.pin = pin;
+    const now = Date.now();
+    // `createdAt` di-PERTAHANKAN kalau map-nya sudah pernah ada sebelumnya
+    // (map lama blm py field ini jg dianggap "belum ada", fallback ke now,
+    // drpd field ini abadi kosong) — cuma diisi SEKALI di penyimpanan
+    // pertama sebuah map, `updatedAt` yg berubah tiap simpan.
+    data.createdAt = existingCreatedAt || now;
+    data.updatedAt = now;
     db.ref(`${TILEMAP_PATH}/${key}`)
       .set(data)
       .then(() => {
+        // TIDAK perlu refresh daftar apa pun di sini lagi (beda dari versi
+        // dropdown lama) — popup "Muat dari Server" sekarang SELALU fetch
+        // ulang tiap dibuka (lihat `openLoadMapModal()`), jadi tidak ada
+        // cache list yg perlu disinkron manual stlh save.
         showStatusMessage(`Tersimpan ke server sbg "${key}".`);
-        refreshFirebaseList();
       })
       .catch((err) => showStatusMessage(`Gagal simpan ke server: ${err.message}`, true));
   }
@@ -1460,10 +1481,9 @@
     }
     mapNameInput.value = key;
     saveFirebaseBtn.disabled = true;
-    db.ref(`${TILEMAP_PATH}/${key}/pin`)
-      .once("value")
-      .then((snap) => {
-        openPinModal(snap.val(), (pin) => saveMapToFirebase(key, pin));
+    Promise.all([db.ref(`${TILEMAP_PATH}/${key}/pin`).once("value"), db.ref(`${TILEMAP_PATH}/${key}/createdAt`).once("value")])
+      .then(([pinSnap, createdAtSnap]) => {
+        openPinModal(pinSnap.val(), (pin) => saveMapToFirebase(key, pin, createdAtSnap.val()));
       })
       .catch((err) => {
         saveFirebaseBtn.disabled = false;
@@ -1471,24 +1491,35 @@
       });
   });
 
-  function refreshFirebaseList() {
-    db.ref(TILEMAP_PATH)
-      .once("value")
-      .then((snap) => {
-        firebaseMapSelect.innerHTML = '<option value="">— Muat dari server —</option>';
-        snap.forEach((child) => {
-          const opt = document.createElement("option");
-          opt.value = child.key;
-          opt.textContent = child.key;
-          firebaseMapSelect.appendChild(opt);
-        });
-      })
-      .catch((err) => showStatusMessage(`Gagal ambil daftar dari server: ${err.message}`, true));
+  // ================= Muat dari Server (popup, permintaan eksplisit user) =================
+  // Diganti dari `<select>` dropdown ke tombol + popup — dropdown native
+  // browser cuma bisa nampilin 1 baris teks per opsi, tidak cukup utk
+  // metadata yg diminta (ukuran grid + createdAt + updatedAt per map). Pola
+  // UI-nya SENGAJA disamakan dgn popup "Pilih Map" di GAME (`script.js`,
+  // lihat "Pilih Map" di CLAUDE.md) — search + urutan abjad + "default"
+  // disematkan paling atas — bedanya di sini pakai
+  // `db.ref(TILEMAP_PATH).once("value")` biasa (BUKAN REST `?shallow=true`
+  // spt di game) krn di sini JUSTRU BUTUH isi tiap map
+  // (`mapWidth`/`mapHeight`/`createdAt`/`updatedAt`), bukan cuma nama
+  // key-nya doang — `?shallow=true` hanya balikin nama anak, tidak cukup.
+  let allMapsMeta = []; // cache selagi popup terbuka — di-fetch ulang tiap dibuka (lihat openLoadMapModal)
+
+  function formatMapTimestamp(ts) {
+    if (typeof ts !== "number") return "—"; // map lama sblm fitur createdAt/updatedAt ada
+    return new Date(ts).toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
   }
 
-  firebaseMapSelect.addEventListener("change", () => {
-    const key = firebaseMapSelect.value;
-    if (!key) return;
+  // "default" SELALU di posisi PALING ATAS (permintaan eksplisit user),
+  // sisanya abjad — dipanggil SETELAH filter search jg diterapkan, spy
+  // "default" tetap nempel di atas walau lagi nyari sesuatu yg lain.
+  function sortMapsMeta(list) {
+    const sorted = [...list].sort((a, b) => a.name.localeCompare(b.name));
+    const defaultIdx = sorted.findIndex((m) => m.name === "default");
+    if (defaultIdx > 0) sorted.unshift(sorted.splice(defaultIdx, 1)[0]);
+    return sorted;
+  }
+
+  function loadMapFromFirebase(key) {
     db.ref(`${TILEMAP_PATH}/${key}`)
       .once("value")
       .then((snap) => {
@@ -1499,9 +1530,92 @@
         showStatusMessage(`Dimuat dari server: "${key}".`);
       })
       .catch((err) => showStatusMessage(`Gagal muat dari server: ${err.message}`, true));
-  });
+  }
 
-  refreshFirebaseListBtn.addEventListener("click", refreshFirebaseList);
+  function renderLoadMapList(query) {
+    loadMapList.innerHTML = "";
+    const q = query.trim().toLowerCase();
+    const filtered = q ? allMapsMeta.filter((m) => m.name.toLowerCase().includes(q)) : allMapsMeta;
+    const sorted = sortMapsMeta(filtered);
+
+    if (sorted.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "map-load-empty";
+      empty.textContent = allMapsMeta.length === 0 ? "Belum ada map tersimpan." : "Tidak ada map yg cocok.";
+      loadMapList.appendChild(empty);
+      return;
+    }
+
+    // Dibangun via createElement/textContent (BUKAN innerHTML+interpolasi
+    // string) — nama map bisa berisi karakter apa pun yg lolos
+    // `sanitizeKey()` (yg cuma nyaring karakter terlarang Firebase, BUKAN
+    // karakter HTML), jadi innerHTML+interpolasi berpotensi jadi celah XSS
+    // kalau ada nama map yg kebetulan berisi `<`/`>`.
+    sorted.forEach((m) => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "map-load-item" + (m.name === mapNameInput.value ? " active" : "");
+
+      const nameEl = document.createElement("div");
+      nameEl.className = "map-load-item-name";
+      nameEl.textContent = m.name;
+
+      const metaEl = document.createElement("div");
+      metaEl.className = "map-load-item-meta";
+      const sizeSpan = document.createElement("span");
+      sizeSpan.textContent = `${m.mapWidth ?? "?"} × ${m.mapHeight ?? "?"}`;
+      const createdSpan = document.createElement("span");
+      createdSpan.textContent = `Dibuat: ${formatMapTimestamp(m.createdAt)}`;
+      const updatedSpan = document.createElement("span");
+      updatedSpan.textContent = `Diperbarui: ${formatMapTimestamp(m.updatedAt)}`;
+      metaEl.append(sizeSpan, createdSpan, updatedSpan);
+
+      item.append(nameEl, metaEl);
+      item.addEventListener("click", () => {
+        closeLoadMapModal();
+        loadMapFromFirebase(m.name);
+      });
+      loadMapList.appendChild(item);
+    });
+  }
+
+  async function openLoadMapModal() {
+    loadMapSearchInput.value = "";
+    loadMapModal.classList.add("open");
+    loadMapList.innerHTML = '<div class="map-load-empty">Memuat daftar map…</div>';
+    try {
+      const snap = await db.ref(TILEMAP_PATH).once("value");
+      allMapsMeta = [];
+      snap.forEach((child) => {
+        const data = child.val() || {};
+        allMapsMeta.push({ name: child.key, mapWidth: data.mapWidth, mapHeight: data.mapHeight, createdAt: data.createdAt, updatedAt: data.updatedAt });
+      });
+    } catch (err) {
+      loadMapList.innerHTML = "";
+      const errEl = document.createElement("div");
+      errEl.className = "map-load-empty";
+      errEl.textContent = "Gagal memuat daftar map.";
+      loadMapList.appendChild(errEl);
+      console.warn("Gagal memuat daftar map dari Firebase:", err);
+      return;
+    }
+    renderLoadMapList("");
+    loadMapSearchInput.focus();
+  }
+
+  function closeLoadMapModal() {
+    loadMapModal.classList.remove("open");
+  }
+
+  openLoadMapModalBtn.addEventListener("click", openLoadMapModal);
+  closeLoadMapModalBtn.addEventListener("click", closeLoadMapModal);
+  loadMapModal.addEventListener("click", (e) => {
+    if (e.target === loadMapModal) closeLoadMapModal();
+  });
+  loadMapSearchInput.addEventListener("input", () => renderLoadMapList(loadMapSearchInput.value));
+  loadMapSearchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeLoadMapModal();
+  });
 
   // ================= Autosave lokal (localStorage) =================
   // Jaring pengaman murni lokal (bukan pengganti Save JSON/Firebase) — kalau
@@ -1555,7 +1669,8 @@
       setMapZoom(1);
       setTilesetZoom(0.5);
     });
-    refreshFirebaseList();
+    // Tidak ada prefetch daftar map di sini lagi (beda dari versi dropdown
+    // lama) — popup "Muat dari Server" fetch on-demand tiap dibuka.
   }
 
   init();

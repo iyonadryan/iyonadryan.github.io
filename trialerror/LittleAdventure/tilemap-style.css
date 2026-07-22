@@ -651,6 +651,73 @@ select {
   margin-top: 12px;
 }
 
+/* Popup "Muat dari Server" (permintaan eksplisit user, gantiin dropdown
+   <select> lama) — lebih lebar dari sheet modal generik (380px) krn tiap
+   baris map nampilin 4 info sekaligus (nama, ukuran grid, createdAt,
+   updatedAt), bukan cuma 1 baris teks pendek spt modal lain. */
+.modal-sheet--wide {
+  max-width: 480px;
+}
+
+.map-search-input {
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.map-load-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.map-load-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--bg-panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.map-load-item:hover {
+  border-color: var(--accent);
+}
+
+/* Map yg namanya PERSIS sama dgn isi #mapNameInput saat ini — penanda
+   visual "ini yg lagi kebuka/terakhir disimpan", sama pola `.active` dgn
+   `.layer-row.active`. */
+.map-load-item.active {
+  border-color: var(--accent);
+  background: #28407a;
+}
+
+.map-load-item-name {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.map-load-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.map-load-empty {
+  padding: 16px 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
 /* PIN simpan server (permintaan eksplisit user) — angka besar & berjarak
    spy 6 digit gampang dibaca/dihitung sekilas, beda dari input teks nama
    layer/map yg biasa. */
