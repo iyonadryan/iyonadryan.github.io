@@ -13,7 +13,7 @@
   --accent-hover: #2f6fd8;
   --danger: #dc4c56;
   --danger-hover: #c53a44;
-  --success: #34d399;
+  --success: #16a34a; /* ijo lebih GELAP/pekat drpd sblmnya (#34d399, mint terang) — permintaan eksplisit user, teks putih tebal di atasnya kurang keliatan di ijo terang, sama persis warna badge tileset "Grass" (TILESET_TYPES di tilemap-script.js) yg sudah terbukti kontras bagus dgn teks putih */
 
   /* Background di belakang kanvas map & preview tileset (bukan warna UI
      panel) — berguna spy tile transparan/semi-transparan (mis. Light Shadow)
@@ -469,8 +469,31 @@ select {
   font-size: 12px;
 }
 
+/* Kapsul warna (permintaan eksplisit user — sebelumnya cuma teks warna
+   polos di atas status-bar gelap, "sangat kurang terlihat") — teks SELALU
+   putih tebal di dalamnya (`.success`/`.error` dua-duanya, bukan ngikutin
+   warna kapsulnya), cuma warna latarnya yg beda ijo/merah. Padding/rounded
+   ditaruh di `.success`/`.error`, BUKAN di `.status-msg` dasar, spy pas
+   kosong (tidak lagi nampilin pesan) elemennya balik jadi span polos tanpa
+   kapsul kosong yg kelihatan — lihat showStatusMessage() (tilemap-script.js)
+   yg toggle class ini bareng isi/kosongin textContent. */
 .status-msg {
-  color: var(--success);
+  font-weight: 700;
+  color: #fff;
+}
+
+.status-msg.success,
+.status-msg.error {
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
+.status-msg.success {
+  background: var(--success);
+}
+
+.status-msg.error {
+  background: var(--danger);
 }
 
 /* ================= Tileset panel ================= */

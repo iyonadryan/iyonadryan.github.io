@@ -1110,11 +1110,19 @@
     mapHeightInput.value = mapHeight;
   }
 
+  let statusMsgTimer = null;
+
   function showStatusMessage(msg, isError) {
     statusSaveMsg.textContent = msg;
-    statusSaveMsg.style.color = isError ? "var(--danger)" : "var(--success)";
-    setTimeout(() => {
+    statusSaveMsg.classList.toggle("error", !!isError);
+    statusSaveMsg.classList.toggle("success", !isError);
+    // Reset timer lama tiap panggilan baru — tanpa ini, 2 pesan berturutan
+    // dlm <3.5s bisa bikin timer PERTAMA nge-clear pesan KEDUA lbh awal dari
+    // seharusnya (pola sama spt bubbleHideTimer di game, script.js).
+    clearTimeout(statusMsgTimer);
+    statusMsgTimer = setTimeout(() => {
       statusSaveMsg.textContent = "";
+      statusSaveMsg.classList.remove("error", "success");
     }, 3500);
   }
 
