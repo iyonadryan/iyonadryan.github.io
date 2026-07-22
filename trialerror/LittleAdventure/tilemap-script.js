@@ -52,15 +52,17 @@
     return layer.tilesetType === BLOCK_TILESET_KEY;
   }
 
-  // Label/warna badge "Tileset: ..." di panel Layers — Block Layer bukan
-  // bagian dari TILESET_TYPES, jadi di-intercept duluan sebelum fallback ke
-  // tilesetTypeDef() (yg cuma tau 8 tileset gambar asli).
+  // Label/warna badge "Tileset: ..." di panel Layers — Block Layer & Top
+  // Object bukan bagian dari TILESET_TYPES, jadi di-intercept duluan
+  // sebelum fallback ke tilesetTypeDef() (yg cuma tau 8 tileset gambar asli).
   function tilesetLabel(key) {
     if (key === BLOCK_TILESET_KEY) return "Red Block";
+    if (key === TOP_OBJECT_TILESET_KEY) return "Top Object";
     return tilesetTypeDef(key).label;
   }
   function tilesetColor(key) {
     if (key === BLOCK_TILESET_KEY) return "#dc2626";
+    if (key === TOP_OBJECT_TILESET_KEY) return "#2563eb";
     return tilesetTypeDef(key).color;
   }
 
@@ -89,6 +91,37 @@
       tilesetType: BLOCK_TILESET_KEY,
       layerPosition: BLOCK_LAYER_POSITION,
       tiles: new Array(cols * rows).fill(EMPTY),
+    };
+  }
+
+  // ================= Top Object (layer khusus, mask "selalu di depan
+  // karakter" — permintaan eksplisit user) =================
+  // Singleton terkunci SAMA persis pola Block Layer (lihat di atas) — beda
+  // utamanya: (1) grid NORMAL (mapWidth x mapHeight, BUKAN grid 4x lebih
+  // rapat spt Block Layer, krn presisi sub-tile tidak perlu di sini), (2)
+  // posisinya SEDIKIT di bawah Block Layer (98, bukan 99) — dua2nya layer
+  // "utility" terkunci di ujung PALING ATAS tumpukan. Bukan layer yg
+  // digambar sendiri di GAME — cuma MASK yg nandain sel mana di layer LAIN
+  // (layerPosition > 0) yg harus selalu di depan karakter, ngabaikan
+  // Y-sorting biasa (lihat "Y-sorting" & "Top Object" di CLAUDE.md).
+  const TOP_OBJECT_TILESET_KEY = "TopObject"; // bukan entry TILESET_TYPES, sama alasannya dgn BLOCK_TILESET_KEY
+  const TOP_OBJECT_LAYER_NAME = "Top Object";
+  const TOP_OBJECT_LAYER_POSITION = 98; // tepat di bawah Block Layer (99) — USER_LAYER_MAX_POSITION diciutkan ke 97 (lihat di bawah)
+  const TOP_OBJECT_TILE_VALUE = 0; // sama pola dgn BLOCK_TILE_VALUE — satu2nya nilai "ditandai", bukan index tileset asli
+  const TOP_OBJECT_COLOR = "rgba(37, 99, 235, 0.5)"; // biru, opacity 50% — sengaja beda warna dari Block Layer (merah) biar gampang dibedain scr visual pas edit
+
+  function isTopObjectLayer(layer) {
+    return layer.tilesetType === TOP_OBJECT_TILESET_KEY;
+  }
+
+  function createTopObjectLayer() {
+    return {
+      name: TOP_OBJECT_LAYER_NAME,
+      visible: true,
+      opacity: 1,
+      tilesetType: TOP_OBJECT_TILESET_KEY,
+      layerPosition: TOP_OBJECT_LAYER_POSITION,
+      tiles: new Array(mapWidth * mapHeight).fill(EMPTY), // grid NORMAL, bukan grid Block Layer yg lebih rapat
     };
   }
 
@@ -222,13 +255,14 @@
   // layerPosition = identitas TETAP tiap layer (independen dari nama, jadi
   // ganti nama tidak mempengaruhi status kunci): -1 = Background, 0 =
   // Foreground — dua-duanya TERKUNCI (tidak bisa dihapus/dipindah urutan,
-  // permintaan eksplisit user). Layer buatan user SELALU > 0, maks 98 (jadi
-  // range 1-98, total 98 layer tambahan) — dijaga di `confirmNewLayerBtn`.
+  // permintaan eksplisit user). Layer buatan user SELALU > 0, maks 97 (jadi
+  // range 1-97, total 97 layer tambahan — diciutkan dari 98 krn posisi 98
+  // sekarang dipakai Top Object) — dijaga di `confirmNewLayerBtn`.
   const LOCKED_MAX_POSITION = 0;
-  const USER_LAYER_MAX_POSITION = 98;
+  const USER_LAYER_MAX_POSITION = 97;
 
   function isLayerLocked(layer) {
-    return layer.layerPosition <= LOCKED_MAX_POSITION || layer.layerPosition === BLOCK_LAYER_POSITION;
+    return layer.layerPosition <= LOCKED_MAX_POSITION || layer.layerPosition === BLOCK_LAYER_POSITION || layer.layerPosition === TOP_OBJECT_LAYER_POSITION;
   }
 
   function createLayer(name, tilesetType, layerPosition) {
@@ -243,20 +277,20 @@
   }
 
   function initDefaultLayers() {
-    layers = [createLayer("Background", "Base", -1), createLayer("Foreground", "Base", 0), createBlockLayer()];
+    layers = [createLayer("Background", "Base", -1), createLayer("Foreground", "Base", 0), createTopObjectLayer(), createBlockLayer()];
     activeLayerIndex = 0;
     startPosition = null;
   }
 
   // Posisi user-layer berikutnya = posisi tertinggi yg sudah dipakai + 1
-  // (mulai dari 1 kalau belum ada layer buatan user sama sekali). Block Layer
-  // (posisi 99) SENGAJA DIKECUALIKAN dari perhitungan max — kalau ikut
-  // kehitung, layer user pertama bakal dapet posisi 100 & langsung ketolak
-  // sbg "sudah maks 98 layer" padahal belum ada satu pun layer user.
+  // (mulai dari 1 kalau belum ada layer buatan user sama sekali). Top Object
+  // (98) & Block Layer (99) SENGAJA DIKECUALIKAN dari perhitungan max — kalau
+  // ikut kehitung, layer user pertama bakal dapet posisi 99/100 & langsung
+  // ketolak sbg "sudah maks 97 layer" padahal belum ada satu pun layer user.
   function nextUserLayerPosition() {
     let max = 0;
     layers.forEach((l) => {
-      if (l.layerPosition > max && l.layerPosition < BLOCK_LAYER_POSITION) max = l.layerPosition;
+      if (l.layerPosition > max && l.layerPosition < TOP_OBJECT_LAYER_POSITION) max = l.layerPosition;
     });
     return max + 1;
   }
@@ -308,6 +342,22 @@
     if (isBlockLayer(layer)) {
       const { cols, rows, cellSize } = layerGridDims(layer);
       ctx.fillStyle = BLOCK_COLOR;
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          if (layer.tiles[row * cols + col] === EMPTY) continue;
+          ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+        }
+      }
+      ctx.globalAlpha = 1;
+      return;
+    }
+
+    // Top Object jg bukan gambar tileset — kotak biru solid (TOP_OBJECT_COLOR)
+    // di grid NORMAL (bukan lebih rapat spt Block Layer, lihat "Top Object"),
+    // nandain sel mana yg bakal selalu di depan karakter di game.
+    if (isTopObjectLayer(layer)) {
+      const { cols, rows, cellSize } = layerGridDims(layer);
+      ctx.fillStyle = TOP_OBJECT_COLOR;
       for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
           if (layer.tiles[row * cols + col] === EMPTY) continue;
@@ -523,6 +573,9 @@
     if (isBlockLayer(layer)) {
       ctx.fillStyle = BLOCK_COLOR;
       ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+    } else if (isTopObjectLayer(layer)) {
+      ctx.fillStyle = TOP_OBJECT_COLOR;
+      ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
     } else {
       const cache = tilesetCache[layer.tilesetType];
       if (cache && cache.loaded) drawTileOnCtx(ctx, cache, value, col, row);
@@ -551,7 +604,7 @@
 
   function paintAt(col, row) {
     const layer = layers[activeLayerIndex];
-    const tileValue = isBlockLayer(layer) ? BLOCK_TILE_VALUE : selectedTile;
+    const tileValue = isBlockLayer(layer) ? BLOCK_TILE_VALUE : isTopObjectLayer(layer) ? TOP_OBJECT_TILE_VALUE : selectedTile;
     if (currentTool === "fill") {
       floodFill(activeLayerIndex, col, row, tileValue);
       return;
@@ -704,9 +757,9 @@
     selectedTile = 0; // index tile tidak nyambung antar tileset beda, reset tiap ganti
     updateTilesetTabsActive(type);
 
-    if (isBlockLayer(layer)) {
-      // Block Layer bukan tileset gambar — sembunyikan preview & highlight,
-      // isi info statis "Red Block" (tidak ada apa2 utk dipilih user).
+    if (isBlockLayer(layer) || isTopObjectLayer(layer)) {
+      // Block Layer/Top Object bukan tileset gambar — sembunyikan preview &
+      // highlight, isi info statis (tidak ada apa2 utk dipilih user).
       tilesetImg.removeAttribute("src");
       tilesetImg.style.display = "none";
       tileHighlight.style.display = "none";
@@ -819,12 +872,13 @@
       const layer = layers[i];
       const row = document.createElement("div");
       // Warna card khusus buat layer terkunci bawaan (permintaan eksplisit
-      // user) — Block Layer (paling atas) merah, Background/Foreground
-      // (2 paling bawah) coklat. Ditentukan dari `layerPosition`, bukan
-      // nama, konsisten dgn `isLayerLocked()` (nama bisa diganti user,
-      // posisi tidak).
+      // user) — Block Layer (paling atas) merah, Top Object (persis di
+      // bawahnya) biru, Background/Foreground (2 paling bawah) coklat.
+      // Ditentukan dari `layerPosition`, bukan nama, konsisten dgn
+      // `isLayerLocked()` (nama bisa diganti user, posisi tidak).
       let variantClass = "";
       if (layer.layerPosition === BLOCK_LAYER_POSITION) variantClass = " layer-row--block";
+      else if (layer.layerPosition === TOP_OBJECT_LAYER_POSITION) variantClass = " layer-row--topobject";
       else if (layer.layerPosition <= LOCKED_MAX_POSITION) variantClass = " layer-row--basefg";
       row.className = "layer-row" + variantClass + (i === activeLayerIndex ? " active" : "");
 
@@ -1031,13 +1085,15 @@
       alert(`Sudah mencapai maksimal ${USER_LAYER_MAX_POSITION} layer tambahan.`);
       return;
     }
-    // BUKAN push() ke ujung array — Block Layer (posisi 99) HARUS selalu jadi
-    // elemen TERAKHIR (invariant "layers[] terurut menaik by layerPosition",
-    // lihat "Layer terkunci"/"Block Layer" di CLAUDE.md). Layer baru selalu
-    // disisipkan TEPAT SEBELUM Block Layer, bukan sesudahnya.
-    const blockIdx = layers.findIndex((l) => l.layerPosition === BLOCK_LAYER_POSITION);
-    layers.splice(blockIdx, 0, createLayer(name, newLayerSelectedType, position));
-    activeLayerIndex = blockIdx;
+    // BUKAN push() ke ujung array — Top Object (98) & Block Layer (99) HARUS
+    // selalu jadi 2 elemen TERAKHIR (invariant "layers[] terurut menaik by
+    // layerPosition", lihat "Layer terkunci"/"Block Layer" di CLAUDE.md).
+    // Layer baru selalu disisipkan TEPAT SEBELUM Top Object (yg posisinya
+    // paling rendah di antara dua reserved layer itu, jadi otomatis jg
+    // sebelum Block Layer), bukan sesudahnya.
+    const topObjectIdx = layers.findIndex((l) => l.layerPosition === TOP_OBJECT_LAYER_POSITION);
+    layers.splice(topObjectIdx, 0, createLayer(name, newLayerSelectedType, position));
+    activeLayerIndex = topObjectIdx;
     rebuildLayerCanvases();
     renderLayerList();
     showTilesetForActiveLayer();
@@ -1189,19 +1245,23 @@
       opacity: typeof l.opacity === "number" ? l.opacity : 1,
       // File v1 lama tidak punya tilesetType per layer — fallback ke default
       // (Base) drpd gagal/crash, dianggap paling masuk akal sbg tebakan.
-      // BLOCK_TILESET_KEY diterima jg krn valid (bukan entry TILESET_TYPES,
-      // sengaja bukan tileset gambar — lihat isBlockLayer()).
+      // BLOCK_TILESET_KEY/TOP_OBJECT_TILESET_KEY diterima jg krn valid
+      // (bukan entry TILESET_TYPES, sengaja bukan tileset gambar — lihat
+      // isBlockLayer()/isTopObjectLayer()).
       tilesetType:
-        l.tilesetType === BLOCK_TILESET_KEY || TILESET_TYPES.some((t) => t.key === l.tilesetType)
+        l.tilesetType === BLOCK_TILESET_KEY || l.tilesetType === TOP_OBJECT_TILESET_KEY || TILESET_TYPES.some((t) => t.key === l.tilesetType)
           ? l.tilesetType
           : DEFAULT_TILESET_TYPE,
       layerPosition: positions[i],
       tiles: l.tiles.slice(),
     }));
-    // File lama (dibuat sblm fitur Block Layer ada) tidak akan punya layer
-    // posisi 99 sama sekali — tambahkan singleton-nya drpd map jd selamanya
-    // tanpa Block Layer (tidak ada UI utk bikin ulang scr manual, beda dgn
-    // layer biasa yg bisa dibuat lewat modal Layer Baru kapan saja).
+    // File lama (dibuat sblm fitur ybs ada) tidak akan punya layer di posisi
+    // reserved-nya sama sekali — tambahkan singleton-nya drpd map jd
+    // selamanya tanpa layer itu (tidak ada UI utk bikin ulang scr manual,
+    // beda dgn layer biasa yg bisa dibuat lewat modal Layer Baru kapan saja).
+    if (!layers.some((l) => l.layerPosition === TOP_OBJECT_LAYER_POSITION)) {
+      layers.push(createTopObjectLayer());
+    }
     if (!layers.some((l) => l.layerPosition === BLOCK_LAYER_POSITION)) {
       layers.push(createBlockLayer());
     }

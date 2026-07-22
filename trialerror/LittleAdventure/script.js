@@ -117,6 +117,13 @@
   const BLOCK_TILESET_KEY = "Block";
   const BLOCK_SUBDIVISION = 4;
   const LOCKED_MAX_POSITION = 0;
+  // "Top Object" (mask khusus, bukan gambar tileset — lihat CLAUDE.md
+  // Tilemap Editor "Top Object") — sama persis dgn TOP_OBJECT_TILESET_KEY di
+  // tilemap-script.js. Nandain sel mana (grid NORMAL, BUKAN grid Block Layer
+  // yg lebih rapat — lihat BLOCK_SUBDIVISION) di layer ATAS karakter yg
+  // HARUS selalu di depan karakter, ngabaikan Y-sorting biasa (lihat
+  // updateDepthSort()/topObjectCanvas).
+  const TOP_OBJECT_TILESET_KEY = "TopObject";
 
   // Dunia (#worldLayer) jauh lebih besar dari jendela kamera (#gameWorld)
   // supaya ada ruang buat karakter jalan-jalan & kameranya kelihatan geser.
@@ -133,6 +140,14 @@
   // py Start Position diset/masih fallback (karakter mulai di TENGAH dunia,
   // perilaku lama, lihat loadAndSetupWorld()).
   let startPositionWorld = null;
+  // Kanvas tunggal (seukuran WORLD penuh, bukan per-baris) berisi SEMUA
+  // konten layer atas-karakter yg selnya ditandai "Top Object" (mask, lihat
+  // TOP_OBJECT_TILESET_KEY di atas) — TIDAK PERNAH ikut Y-sorting biasa,
+  // selalu dipaksa jadi anak TEPAT SEBELUM #speechBubble stlh tiap
+  // updateDepthSort() (lihat di sana), jadi permanen di depan karakter walau
+  // posisi kaki karakter ada di bawah baris tile itu. null kalau map tidak
+  // py Top Object/tidak ada sel ditandai/masih fallback.
+  let topObjectCanvas = null;
 
   // "Kaki" karakter (permintaan eksplisit user) — kotak 32x8 native (bukan
   // seluruh FRAME 32x32) di bagian PALING BAWAH karakter, dipakai sbg
@@ -441,12 +456,13 @@
     worldLayer.querySelectorAll(".world-layer-canvas").forEach((c) => c.remove());
     blockLayerData = null;
     startPositionWorld = null;
-    // Kanvas per-baris (Y-sorting) dari map SEBELUMNYA sudah kehapus lewat
-    // querySelectorAll di atas (sama class .world-layer-canvas) — array
-    // referensinya jg direset spy updateDepthSort() tidak nyoba pindahin
-    // elemen kanvas yg sudah tidak relevan.
+    // Kanvas per-baris (Y-sorting) & topObjectCanvas dari map SEBELUMNYA
+    // sudah kehapus lewat querySelectorAll di atas (sama class
+    // .world-layer-canvas) — referensinya jg direset spy updateDepthSort()
+    // tidak nyoba pindahin elemen kanvas yg sudah tidak relevan.
     aboveRowCanvasesByRow = [];
     lastDepthSplitRow = -1;
+    topObjectCanvas = null;
   }
 
   // Gambar 1 layer (bukan Block Layer) ke <canvas> native resolution
@@ -489,7 +505,13 @@
   // updateDepthSort()). `canvas.style.top` di-set manual per baris (nimpa
   // `top:0` bawaan `.world-layer-canvas`, lihat style.css) krn tiap kanvas
   // baris ini HARUS didudukkan di ketinggian baris aslinya masing2.
-  function makeWorldLayerRowCanvas(layer, row, mapWidth, imageCache) {
+  // `topObjectTiles` (opsional, lihat TOP_OBJECT_TILESET_KEY) = array tiles
+  // mentah layer Top Object map ini, seukuran mapWidth*mapHeight (grid
+  // NORMAL, sama persis dgn grid layer di atas karakter — TIDAK perlu
+  // konversi spt BLOCK_SUBDIVISION). Sel yg ditandai DILEWATI di sini —
+  // digambar terpisah ke topObjectCanvas (lihat makeTopObjectCanvas())
+  // supaya TIDAK ikut Y-sorting per-baris biasa.
+  function makeWorldLayerRowCanvas(layer, row, mapWidth, imageCache, topObjectTiles) {
     const canvas = document.createElement("canvas");
     canvas.className = "world-layer-canvas";
     canvas.width = mapWidth * TILE_SRC;
@@ -505,6 +527,10 @@
       ctx.imageSmoothingEnabled = false;
       ctx.globalAlpha = typeof layer.opacity === "number" ? layer.opacity : 1;
       for (let col = 0; col < mapWidth; col++) {
+        if (topObjectTiles) {
+          const mark = topObjectTiles[row * mapWidth + col];
+          if (mark !== -1 && mark != null) continue;
+        }
         const tile = layer.tiles[row * mapWidth + col];
         if (tile === -1 || tile == null) continue;
         const srcCol = tile % cols;
@@ -513,6 +539,46 @@
       }
       ctx.globalAlpha = 1;
     }
+    return canvas;
+  }
+
+  // Kanvas gabungan SEMUA layer atas-karakter, HANYA sel yg ditandai Top
+  // Object — seukuran WORLD PENUH (bukan per-baris spt
+  // makeWorldLayerRowCanvas()) krn kanvas ini TIDAK PERNAH ikut Y-sorting,
+  // posisinya selalu tepat sebelum #speechBubble (lihat updateDepthSort()).
+  // aboveLayers HARUS sudah terurut ascending layerPosition (sama pola dgn
+  // pemanggilnya di buildWorldFromMapData()) spy layer yg lebih "atas"
+  // digambar belakangan (menimpa yg di bawahnya), konsisten dgn urutan
+  // tumpuk normal. Return null kalau tidak ada sel ditandai sama sekali
+  // (drpd taruh kanvas kosong percuma di DOM).
+  function makeTopObjectCanvas(aboveLayers, topObjectTiles, mapWidth, mapHeight, imageCache) {
+    if (!topObjectTiles || !topObjectTiles.some((t) => t !== -1 && t != null)) return null;
+    const canvas = document.createElement("canvas");
+    canvas.className = "world-layer-canvas";
+    canvas.width = mapWidth * TILE_SRC;
+    canvas.height = mapHeight * TILE_SRC;
+    canvas.style.width = `${WORLD_WIDTH}px`;
+    canvas.style.height = `${WORLD_HEIGHT}px`;
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+    aboveLayers.forEach((layer) => {
+      const img = imageCache[layer.tilesetType];
+      if (!img) return;
+      const cols = Math.floor(img.naturalWidth / TILE_SRC);
+      ctx.globalAlpha = typeof layer.opacity === "number" ? layer.opacity : 1;
+      for (let row = 0; row < mapHeight; row++) {
+        for (let col = 0; col < mapWidth; col++) {
+          const mark = topObjectTiles[row * mapWidth + col];
+          if (mark === -1 || mark == null) continue;
+          const tile = layer.tiles[row * mapWidth + col];
+          if (tile === -1 || tile == null) continue;
+          const srcCol = tile % cols;
+          const srcRow = Math.floor(tile / cols);
+          ctx.drawImage(img, srcCol * TILE_SRC, srcRow * TILE_SRC, TILE_SRC, TILE_SRC, col * TILE_SRC, row * TILE_SRC, TILE_SRC, TILE_SRC);
+        }
+      }
+      ctx.globalAlpha = 1;
+    });
     return canvas;
   }
 
@@ -531,7 +597,9 @@
     WORLD_HEIGHT = mapHeight * TILE_SRC * SCALE;
 
     const layers = Array.isArray(data.layers) ? data.layers : [];
-    const visibleLayers = layers.filter((l) => l.visible !== false && l.tilesetType !== BLOCK_TILESET_KEY);
+    const visibleLayers = layers.filter(
+      (l) => l.visible !== false && l.tilesetType !== BLOCK_TILESET_KEY && l.tilesetType !== TOP_OBJECT_TILESET_KEY
+    );
 
     // Cuma preload tileset yg beneran dipakai layer yg keliatan (bukan semua
     // 8 spt di editor — di sini tidak ada UI ganti-ganti tileset, jadi tidak
@@ -554,22 +622,40 @@
       worldLayer.insertBefore(makeWorldLayerCanvas(layer, mapWidth, mapHeight, imageCache), character);
     });
 
+    // Top Object (mask "selalu di depan karakter", lihat TOP_OBJECT_TILESET_KEY)
+    // — dibaca dari `layers` MENTAH (bukan visibleLayers, krn sudah
+    // dikeluarkan dari situ di atas), sama pola dgn blockLayer di bawah.
+    // Disembunyikan di editor (visible:false) berarti mask-nya jg dianggap
+    // mati (sel yg tadinya ditandai ikut Y-sorting biasa lagi).
+    const topObjectLayer = layers.find((l) => l.tilesetType === TOP_OBJECT_TILESET_KEY && l.visible !== false);
+    const topObjectTiles = topObjectLayer ? topObjectLayer.tiles : null;
+
     // Layer di ATAS karakter DIBAGI per-baris (bukan 1 kanvas utuh spt
     // belowLayers) — posisi akhirnya (depan/belakang karakter) ditentukan
     // updateDepthSort() stlh ini, dipanggil dari loadAndSetupWorld(). Taruh
     // dulu apa adanya di sini (appendChild, urutan row lalu layer ascending)
     // — cuma penempatan SEMENTARA, langsung disusun ulang begitu
     // updateDepthSort() jalan (dipaksa jalan via lastDepthSplitRow=-1 di
-    // bawah).
+    // bawah). Sel yg ditandai Top Object DILEWATI di sini (lihat
+    // makeWorldLayerRowCanvas()) — digambar terpisah ke topObjectCanvas.
     aboveRowCanvasesByRow = Array.from({ length: mapHeight }, () => []);
     aboveLayers.forEach((layer) => {
       for (let row = 0; row < mapHeight; row++) {
-        const rowCanvas = makeWorldLayerRowCanvas(layer, row, mapWidth, imageCache);
+        const rowCanvas = makeWorldLayerRowCanvas(layer, row, mapWidth, imageCache, topObjectTiles);
         worldLayer.appendChild(rowCanvas);
         aboveRowCanvasesByRow[row].push(rowCanvas);
       }
     });
     lastDepthSplitRow = -1;
+
+    // Kanvas gabungan sel-sel yg ditandai Top Object — lihat
+    // makeTopObjectCanvas() & deklarasi topObjectCanvas di atas. Posisi DOM
+    // akhirnya (tepat sebelum #speechBubble) baru benar2 dipaksakan pas
+    // updateDepthSort() jalan pertama kali di bawah (lastDepthSplitRow=-1
+    // di atas menjamin itu, sama pola dgn aboveRowCanvasesByRow) — di sini
+    // cukup appendChild apa adanya dulu.
+    topObjectCanvas = makeTopObjectCanvas(aboveLayers, topObjectTiles, mapWidth, mapHeight, imageCache);
+    if (topObjectCanvas) worldLayer.appendChild(topObjectCanvas);
 
     // Block Layer TIDAK PERNAH digambar (opacity 0%/sepenuhnya tak
     // kelihatan, permintaan eksplisit user) — cuma datanya yg dipakai buat
@@ -659,6 +745,13 @@
         else worldLayer.insertBefore(c, speechBubble);
       });
     }
+    // Top Object (lihat topObjectCanvas di atas) HARUS tetap jadi kanvas
+    // TERDEPAN di antara semua layer atas-karakter stlh reorder di atas —
+    // insertBefore(c, speechBubble) pas nyusun baris "di depan" bisa nyelip
+    // lewat topObjectCanvas (mendorongnya jd lebih ke belakang drpd baris
+    // itu), jadi harus DIPAKSA balik ke posisi tepat sebelum #speechBubble
+    // di SETIAP pass reorder (bukan cuma pas dibangun pertama kali).
+    if (topObjectCanvas) worldLayer.insertBefore(topObjectCanvas, speechBubble);
   }
 
   function updateMovement(dt) {

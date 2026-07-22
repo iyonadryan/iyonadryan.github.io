@@ -226,14 +226,24 @@ button:disabled:hover {
 }
 
 /* Card layer terkunci bawaan — warna beda per jenis, permintaan eksplisit
-   user (Block Layer merah, Background/Foreground coklat) supaya langsung
-   kelihatan beda dari card layer user biasa tanpa perlu baca nama/badge. */
+   user (Block Layer merah, Top Object biru, Background/Foreground coklat)
+   supaya langsung kelihatan beda dari card layer user biasa tanpa perlu
+   baca nama/badge. */
 .layer-row--block {
   background: #5c1a1a;
   border-color: #7f2a2a;
 }
 .layer-row--block.active {
   background: #7a2323;
+  border-color: var(--accent);
+}
+
+.layer-row--topobject {
+  background: #1a2c5c;
+  border-color: #2a417f;
+}
+.layer-row--topobject.active {
+  background: #23387a;
   border-color: var(--accent);
 }
 
