@@ -133,6 +133,30 @@
   // py Start Position diset/masih fallback (karakter mulai di TENGAH dunia,
   // perilaku lama, lihat loadAndSetupWorld()).
   let startPositionWorld = null;
+
+  // "Kaki" karakter (permintaan eksplisit user) — kotak 32x8 native (bukan
+  // seluruh FRAME 32x32) di bagian PALING BAWAH karakter, dipakai sbg
+  // acuan tabrakan Block Layer (isAreaBlocked()) MAUPUN Y-sorting layer di
+  // atas karakter (updateDepthSort()) — bukan seluruh badan, krn scr visual
+  // cuma kaki yg relevan "nyentuh tanah". Lebar (32 native) PAS sama dgn
+  // FRAME_SRC = selebar FRAME penuh, tingginya (8 native) PAS sama dgn
+  // BLOCK_SUBDIVISION punya tilemap-script.js punya BLOCK_TILE_SIZE (native
+  // 8px) — dikonversi ke satuan WORLD (dikali SCALE) sama spt semua ukuran
+  // lain di file ini.
+  const FOOT_HEIGHT_SRC = 8;
+  const FOOT_HEIGHT = FOOT_HEIGHT_SRC * SCALE; // 12px WORLD
+
+  // Y-sorting (permintaan eksplisit user) — layer SELAIN Background/
+  // Foreground (layerPosition > 0) TIDAK LAGI selalu di depan karakter;
+  // per-baris tile, dinamis pindah di depan/belakang tergantung posisi Y
+  // kaki karakter dibanding baris itu. `aboveRowCanvasesByRow[row]` = array
+  // <canvas> (1 per layer "atas", urutan ascending layerPosition) utk baris
+  // itu; `lastDepthSplitRow` nyimpen baris pemisah terakhir spy
+  // updateDepthSort() tidak kerja DOM sia-sia kalau belum berubah. Lihat
+  // "Y-sorting" di CLAUDE.md.
+  let aboveRowCanvasesByRow = [];
+  let lastDepthSplitRow = -1;
+
   // 0-1: seberapa cepat kamera "mengejar" posisi target (karakter di tengah).
   // Makin kecil, makin nge-lag/lambat & smooth; makin besar, makin ketat
   // nempel ke karakter (1 = langsung nempel tanpa jeda sama sekali).
@@ -417,6 +441,12 @@
     worldLayer.querySelectorAll(".world-layer-canvas").forEach((c) => c.remove());
     blockLayerData = null;
     startPositionWorld = null;
+    // Kanvas per-baris (Y-sorting) dari map SEBELUMNYA sudah kehapus lewat
+    // querySelectorAll di atas (sama class .world-layer-canvas) — array
+    // referensinya jg direset spy updateDepthSort() tidak nyoba pindahin
+    // elemen kanvas yg sudah tidak relevan.
+    aboveRowCanvasesByRow = [];
+    lastDepthSplitRow = -1;
   }
 
   // Gambar 1 layer (bukan Block Layer) ke <canvas> native resolution
@@ -452,12 +482,48 @@
     return canvas;
   }
 
+  // Sama persis pola makeWorldLayerCanvas(), TAPI cuma gambar SATU baris
+  // tile (bukan seluruh layer) ke kanvas setinggi 1 baris — dipakai khusus
+  // layer di ATAS karakter (layerPosition > 0) spy tiap baris bisa
+  // diposisikan sendiri2 di depan/belakang karakter (Y-sorting, lihat
+  // updateDepthSort()). `canvas.style.top` di-set manual per baris (nimpa
+  // `top:0` bawaan `.world-layer-canvas`, lihat style.css) krn tiap kanvas
+  // baris ini HARUS didudukkan di ketinggian baris aslinya masing2.
+  function makeWorldLayerRowCanvas(layer, row, mapWidth, imageCache) {
+    const canvas = document.createElement("canvas");
+    canvas.className = "world-layer-canvas";
+    canvas.width = mapWidth * TILE_SRC;
+    canvas.height = TILE_SRC;
+    canvas.style.width = `${WORLD_WIDTH}px`;
+    canvas.style.height = `${TILE_SRC * SCALE}px`;
+    canvas.style.top = `${row * TILE_SRC * SCALE}px`;
+
+    const img = imageCache[layer.tilesetType];
+    if (img) {
+      const ctx = canvas.getContext("2d");
+      const cols = Math.floor(img.naturalWidth / TILE_SRC);
+      ctx.imageSmoothingEnabled = false;
+      ctx.globalAlpha = typeof layer.opacity === "number" ? layer.opacity : 1;
+      for (let col = 0; col < mapWidth; col++) {
+        const tile = layer.tiles[row * mapWidth + col];
+        if (tile === -1 || tile == null) continue;
+        const srcCol = tile % cols;
+        const srcRow = Math.floor(tile / cols);
+        ctx.drawImage(img, srcCol * TILE_SRC, srcRow * TILE_SRC, TILE_SRC, TILE_SRC, col * TILE_SRC, 0, TILE_SRC, TILE_SRC);
+      }
+      ctx.globalAlpha = 1;
+    }
+    return canvas;
+  }
+
   // Bangun dunia dari map hasil Tilemap Editor. Urutan render (permintaan
   // eksplisit user): Background & Foreground (layerPosition <= 0) SELALU di
-  // BAWAH karakter, SEMUA layer lain (layer user + Block Layer) di ATAS
-  // karakter — dicapai murni lewat urutan DOM (insertBefore vs appendChild),
-  // krn #worldLayer/.character/canvas semua `position:absolute` TANPA
-  // z-index, jadi urutan DOM = urutan tumpuk (lihat CLAUDE.md).
+  // BAWAH karakter. Layer lain (layerPosition > 0) SEKARANG dinamis —
+  // per-baris tile, di depan/belakang karakter tergantung posisi Y kaki
+  // karakter (Y-sorting, lihat updateDepthSort()) — dicapai lewat urutan DOM
+  // (insertBefore vs appendChild), krn #worldLayer/.character/canvas semua
+  // `position:absolute` TANPA z-index, jadi urutan DOM = urutan tumpuk
+  // (lihat "Y-sorting" di CLAUDE.md).
   async function buildWorldFromMapData(data) {
     const mapWidth = data.mapWidth;
     const mapHeight = data.mapHeight;
@@ -487,9 +553,23 @@
     belowLayers.forEach((layer) => {
       worldLayer.insertBefore(makeWorldLayerCanvas(layer, mapWidth, mapHeight, imageCache), character);
     });
+
+    // Layer di ATAS karakter DIBAGI per-baris (bukan 1 kanvas utuh spt
+    // belowLayers) — posisi akhirnya (depan/belakang karakter) ditentukan
+    // updateDepthSort() stlh ini, dipanggil dari loadAndSetupWorld(). Taruh
+    // dulu apa adanya di sini (appendChild, urutan row lalu layer ascending)
+    // — cuma penempatan SEMENTARA, langsung disusun ulang begitu
+    // updateDepthSort() jalan (dipaksa jalan via lastDepthSplitRow=-1 di
+    // bawah).
+    aboveRowCanvasesByRow = Array.from({ length: mapHeight }, () => []);
     aboveLayers.forEach((layer) => {
-      worldLayer.appendChild(makeWorldLayerCanvas(layer, mapWidth, mapHeight, imageCache));
+      for (let row = 0; row < mapHeight; row++) {
+        const rowCanvas = makeWorldLayerRowCanvas(layer, row, mapWidth, imageCache);
+        worldLayer.appendChild(rowCanvas);
+        aboveRowCanvasesByRow[row].push(rowCanvas);
+      }
     });
+    lastDepthSplitRow = -1;
 
     // Block Layer TIDAK PERNAH digambar (opacity 0%/sepenuhnya tak
     // kelihatan, permintaan eksplisit user) — cuma datanya yg dipakai buat
@@ -528,24 +608,57 @@
     }
   }
 
-  // Cek apakah kotak karakter (FRAME x FRAME) di posisi (px, py) menabrak
-  // sel Block Layer manapun — di-scan per-sel (bukan cuma 4 pojok) krn grid
-  // Block Layer jauh lebih rapat drpd FRAME (lihat BLOCK_SUBDIVISION di
-  // CLAUDE.md), jadi 1 sel yg diblok bisa jatuh di TENGAH salah satu sisi
-  // kotak tanpa kena pojok manapun kalau cuma dicek 4 pojoknya saja.
+  // Cek apakah kotak KAKI karakter (FRAME lebar x FOOT_HEIGHT tinggi, cuma
+  // bagian PALING BAWAH karakter, permintaan eksplisit user — lihat
+  // deklarasi FOOT_HEIGHT di atas) di posisi (px, py) menabrak sel Block
+  // Layer manapun — BUKAN lagi seluruh kotak FRAME x FRAME. Di-scan per-sel
+  // (bukan cuma 4 pojok) krn grid Block Layer jauh lebih rapat drpd FRAME
+  // (lihat BLOCK_SUBDIVISION di CLAUDE.md), jadi 1 sel yg diblok bisa jatuh
+  // di TENGAH salah satu sisi kotak tanpa kena pojok manapun kalau cuma
+  // dicek pojoknya saja.
   function isAreaBlocked(px, py) {
     if (!blockLayerData) return false;
+    const footY = py + FRAME - FOOT_HEIGHT;
     const { cols, rows, cellSize, tiles } = blockLayerData;
     const colStart = Math.max(0, Math.floor(px / cellSize));
     const colEnd = Math.min(cols - 1, Math.floor((px + FRAME - 1) / cellSize));
-    const rowStart = Math.max(0, Math.floor(py / cellSize));
-    const rowEnd = Math.min(rows - 1, Math.floor((py + FRAME - 1) / cellSize));
+    const rowStart = Math.max(0, Math.floor(footY / cellSize));
+    const rowEnd = Math.min(rows - 1, Math.floor((footY + FOOT_HEIGHT - 1) / cellSize));
     for (let row = rowStart; row <= rowEnd; row++) {
       for (let col = colStart; col <= colEnd; col++) {
         if (tiles[row * cols + col] !== -1 && tiles[row * cols + col] != null) return true;
       }
     }
     return false;
+  }
+
+  // Y-sorting (permintaan eksplisit user, lihat deklarasi
+  // aboveRowCanvasesByRow/lastDepthSplitRow di atas) — baris ke-R (kanvas
+  // layer di ATAS karakter) dibandingkan tepi BAWAHnya `(R+1)*TILE_SRC*SCALE`
+  // thd posisi Y KAKI karakter (`y + FRAME`, tepi bawah kotak karakter —
+  // SAMA persis titik acuannya dgn kaki di isAreaBlocked() di atas, cuma di
+  // sini yg dipakai bukan FOOT_HEIGHT-nya, krn yg dibandingkan adalah tepi
+  // BAWAH kaki, bukan area kakinya): kalau kaki karakter SUDAH sejajar/lebih
+  // rendah drpd tepi bawah baris itu → karakter "di depan" (baris itu
+  // digambar DI BELAKANG karakter). Kalau belum → karakter "di belakang"
+  // (baris itu DI DEPAN karakter). `splitRow` = baris pertama yg masih
+  // "di depan karakter" — semua baris SEBELUM itu taruh sblm #character di
+  // DOM, semua baris DARI situ taruh SETELAH #character (tapi SEBELUM
+  // #speechBubble, spy bubble ngomong tetap selalu paling depan, lihat
+  // "Ngomong / chat bubble").
+  function updateDepthSort() {
+    if (!aboveRowCanvasesByRow.length) return;
+    const footY = y + FRAME;
+    let splitRow = 0;
+    while (splitRow < aboveRowCanvasesByRow.length && (splitRow + 1) * TILE_SRC * SCALE <= footY) splitRow++;
+    if (splitRow === lastDepthSplitRow) return; // belum berubah, skip kerjaan DOM
+    lastDepthSplitRow = splitRow;
+    for (let row = 0; row < aboveRowCanvasesByRow.length; row++) {
+      aboveRowCanvasesByRow[row].forEach((c) => {
+        if (row < splitRow) worldLayer.insertBefore(c, character);
+        else worldLayer.insertBefore(c, speechBubble);
+      });
+    }
   }
 
   function updateMovement(dt) {
@@ -873,6 +986,7 @@
     lastTime = time;
 
     updateMovement(dt);
+    updateDepthSort();
     updateCamera(dt);
     updateAnimation(time);
 
@@ -915,6 +1029,11 @@
     character.style.translate = `${x}px ${y}px`;
     updateSpeechBubblePosition();
     setSpriteFrame(ROW.down, IDLE_FRAME);
+    // Urutan depan/belakang AWAL (Y-sorting) — lastDepthSplitRow sudah
+    // direset ke -1 di buildWorldFromMapData()/buildWorldFallback(), jadi
+    // ini DIJAMIN jalan (bukan di-skip krn "belum berubah") & langsung
+    // nyusun kanvas layer atas sesuai posisi awal karakter yg baru diisi.
+    updateDepthSort();
 
     // Kamera langsung pas di tengah karakter (tanpa animasi "mengejar").
     const viewW = viewport.clientWidth;
