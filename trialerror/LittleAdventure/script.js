@@ -111,12 +111,18 @@
     WaterFall: "[A]WaterFall_pipo.png",
   };
   // "Block Layer" (tilesetType khusus, bukan gambar tileset — lihat
-  // CLAUDE.md Tilemap Editor) & batas posisi Background/Foreground, sama
-  // persis dgn BLOCK_TILESET_KEY/BLOCK_SUBDIVISION/LOCKED_MAX_POSITION di
-  // tilemap-script.js.
+  // CLAUDE.md Tilemap Editor), sama persis dgn BLOCK_TILESET_KEY/
+  // BLOCK_SUBDIVISION di tilemap-script.js.
   const BLOCK_TILESET_KEY = "Block";
   const BLOCK_SUBDIVISION = 4;
-  const LOCKED_MAX_POSITION = 0;
+  // Ambang batas KHUSUS migrasi `mode` legacy (lihat effectiveLayerMode() di
+  // bawah) — SAMA PERSIS nilai & nama dgn LEGACY_GROUND_POSITION_MAX di
+  // tilemap-script.js. Map lama (v5 ke bawah) py Background(-1)/Foreground(0)
+  // yg DUA2NYA dulu implisit Ground — TIDAK ADA hubungannya dgn status
+  // "locked" (game ini toh tidak py konsep locked layer sama sekali, itu
+  // murni urusan editor), murni soal nebak `mode` map lama yg belum py field
+  // itu.
+  const LEGACY_GROUND_POSITION_MAX = 0;
   // "Top Object" (mask khusus, bukan gambar tileset — lihat CLAUDE.md
   // Tilemap Editor "Top Object") — sama persis dgn TOP_OBJECT_TILESET_KEY di
   // tilemap-script.js. Nandain sel mana (grid NORMAL, BUKAN grid Block Layer
@@ -124,6 +130,27 @@
   // HARUS selalu di depan karakter, ngabaikan Y-sorting biasa (lihat
   // updateDepthSort()/topObjectCanvas).
   const TOP_OBJECT_TILESET_KEY = "TopObject";
+
+  // "Mode Layer" (Ground/Object/Mask, permintaan eksplisit user) — sama
+  // persis dgn LAYER_MODE_GROUND/LAYER_MODE_OBJECT/LAYER_MODE_MASK di
+  // tilemap-script.js. Ground = SELALU di belakang karakter (statis), Object
+  // = Y-sorting per-baris (lihat "Y-sorting"), Mask = Block Layer/Top Object
+  // (dikecualikan total dari render normal, lihat effectiveLayerMode() &
+  // buildWorldFromMapData() di bawah).
+  const LAYER_MODE_GROUND = "Ground";
+  const LAYER_MODE_OBJECT = "Object";
+  const LAYER_MODE_MASK = "Mask";
+
+  // Map lama (sblm fitur "Mode Layer" ada, `version < 5`) tidak punya field
+  // `mode` per layer sama sekali — ditebak dari `tilesetType`/`layerPosition`
+  // SAMA PERSIS pola `migrateLayerMode()` di `tilemap-script.js`, supaya
+  // perilaku render map lama TETAP SAMA persis spt sebelum fitur ini ada.
+  function effectiveLayerMode(l) {
+    if (l.mode === LAYER_MODE_GROUND || l.mode === LAYER_MODE_OBJECT || l.mode === LAYER_MODE_MASK) return l.mode;
+    if (l.tilesetType === BLOCK_TILESET_KEY || l.tilesetType === TOP_OBJECT_TILESET_KEY) return LAYER_MODE_MASK;
+    if (l.layerPosition <= LEGACY_GROUND_POSITION_MAX) return LAYER_MODE_GROUND;
+    return LAYER_MODE_OBJECT;
+  }
 
   // Dunia (#worldLayer) jauh lebih besar dari jendela kamera (#gameWorld)
   // supaya ada ruang buat karakter jalan-jalan & kameranya kelihatan geser.
@@ -585,9 +612,11 @@
   }
 
   // Bangun dunia dari map hasil Tilemap Editor. Urutan render (permintaan
-  // eksplisit user): Background & Foreground (layerPosition <= 0) SELALU di
-  // BAWAH karakter. Layer lain (layerPosition > 0) SEKARANG dinamis —
-  // per-baris tile, di depan/belakang karakter tergantung posisi Y kaki
+  // eksplisit user): layer bermode "Ground" (lihat "Mode Layer" — Background
+  // SELALU Ground, Foreground BUKAN LAGI singleton spesial, bisa jadi Ground
+  // ATAU Object skrg tergantung pilihan user pas dibuat) SELALU di BAWAH
+  // karakter. Layer bermode "Object" SEKARANG dinamis — per-baris tile,
+  // di depan/belakang karakter tergantung posisi Y kaki
   // karakter (Y-sorting, lihat updateDepthSort()) — dicapai lewat urutan DOM
   // (insertBefore vs appendChild), krn #worldLayer/.character/canvas semua
   // `position:absolute` TANPA z-index, jadi urutan DOM = urutan tumpuk
@@ -599,9 +628,12 @@
     WORLD_HEIGHT = mapHeight * TILE_SRC * SCALE;
 
     const layers = Array.isArray(data.layers) ? data.layers : [];
-    const visibleLayers = layers.filter(
-      (l) => l.visible !== false && l.tilesetType !== BLOCK_TILESET_KEY && l.tilesetType !== TOP_OBJECT_TILESET_KEY
-    );
+    // Layer bermode "Mask" (Block Layer/Top Object) dikecualikan total dari
+    // render normal — datanya dipakai TERPISAH sbg collision/mask override
+    // (lihat blockLayer/topObjectLayer di bawah), bukan digambar spt layer
+    // biasa. `effectiveLayerMode()` (lihat deklarasinya) nanganin map LAMA
+    // yg belum py field `mode` sama sekali.
+    const visibleLayers = layers.filter((l) => l.visible !== false && effectiveLayerMode(l) !== LAYER_MODE_MASK);
 
     // Cuma preload tileset yg beneran dipakai layer yg keliatan (bukan semua
     // 8 spt di editor — di sini tidak ada UI ganti-ganti tileset, jadi tidak
@@ -617,8 +649,8 @@
     worldLayer.style.backgroundImage = "none";
     worldLayer.querySelectorAll(".world-layer-canvas").forEach((c) => c.remove());
 
-    const belowLayers = visibleLayers.filter((l) => l.layerPosition <= LOCKED_MAX_POSITION).sort((a, b) => a.layerPosition - b.layerPosition);
-    const aboveLayers = visibleLayers.filter((l) => l.layerPosition > LOCKED_MAX_POSITION).sort((a, b) => a.layerPosition - b.layerPosition);
+    const belowLayers = visibleLayers.filter((l) => effectiveLayerMode(l) === LAYER_MODE_GROUND).sort((a, b) => a.layerPosition - b.layerPosition);
+    const aboveLayers = visibleLayers.filter((l) => effectiveLayerMode(l) === LAYER_MODE_OBJECT).sort((a, b) => a.layerPosition - b.layerPosition);
 
     belowLayers.forEach((layer) => {
       worldLayer.insertBefore(makeWorldLayerCanvas(layer, mapWidth, mapHeight, imageCache), character);

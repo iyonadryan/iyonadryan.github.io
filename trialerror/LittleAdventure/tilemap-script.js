@@ -36,6 +36,41 @@
     return TILESET_DIR + tilesetTypeDef(key).file;
   }
 
+  // ================= Mode Layer (Ground/Object/Mask) =================
+  // Permintaan eksplisit user — SETIAP layer sekarang py field `mode` yg
+  // menentukan perilaku render-nya di GAME (lihat "Y-sorting"/"Dunia dari
+  // Tilemap Editor" di script.js/CLAUDE.md):
+  //   - "Ground" = SELALU di belakang karakter (statis) — dipakai Background/
+  //     Foreground bawaan, TAPI sekarang bisa jg dipilih user utk layer baru
+  //     manapun (bukan cuma 2 slot tetap itu lagi).
+  //   - "Object" = di depan/belakang karakter scr DINAMIS (Y-sorting
+  //     per-baris, lihat "Y-sorting") — default utk layer baru, cocok dgn
+  //     perilaku SEMUA layer user versi2 sebelumnya (dulu semua layer selain
+  //     Background/Foreground otomatis begini, ditentukan dari layerPosition
+  //     doang; sekarang eksplisit lewat field ini).
+  //   - "Mask" = reserved, CUMA Block Layer & Top Object (lihat di bawah) —
+  //     BUKAN pilihan user (tidak muncul di modal Layer Baru), tidak
+  //     digambar spt layer biasa sama sekali (data-nya dipakai
+  //     collision/override Y-sorting, bukan visual).
+  const LAYER_MODE_GROUND = "Ground";
+  const LAYER_MODE_OBJECT = "Object";
+  const LAYER_MODE_MASK = "Mask";
+  const USER_LAYER_MODES = [LAYER_MODE_GROUND, LAYER_MODE_OBJECT]; // pilihan di modal Layer Baru — Mask TIDAK termasuk
+  const DEFAULT_LAYER_MODE = LAYER_MODE_OBJECT; // cocok dgn perilaku default layer user versi lama (selalu Y-sorted)
+  // Warna badge "Mode: ..." di panel Layers — Ground COKLAT (permintaan
+  // eksplisit user, "berwarna coklat seperti Background dan Foreground"),
+  // Object slate netral (tidak diminta warna khusus), Mask UNGU (penanda
+  // "reserved/khusus", sengaja beda dari merah/biru badge TILESET Block
+  // Layer/Top Object yg sudah ada — 2 lapis warna beda makna, jangan disamain).
+  const LAYER_MODE_COLORS = {
+    [LAYER_MODE_GROUND]: "#8b5e34",
+    [LAYER_MODE_OBJECT]: "#4b5563",
+    [LAYER_MODE_MASK]: "#7c3aed",
+  };
+  function modeColor(mode) {
+    return LAYER_MODE_COLORS[mode] || LAYER_MODE_COLORS[LAYER_MODE_OBJECT];
+  }
+
   // ================= Block Layer (layer khusus, bukan tileset gambar) =================
   // Satu layer SINGLETON tambahan, TIDAK dibuat lewat modal Layer Baru spt
   // layer biasa — dibuat sekali di initDefaultLayers(), permanen terkunci
@@ -90,6 +125,7 @@
       opacity: 1,
       tilesetType: BLOCK_TILESET_KEY,
       layerPosition: BLOCK_LAYER_POSITION,
+      mode: LAYER_MODE_MASK,
       tiles: new Array(cols * rows).fill(EMPTY),
     };
   }
@@ -121,6 +157,7 @@
       opacity: 1,
       tilesetType: TOP_OBJECT_TILESET_KEY,
       layerPosition: TOP_OBJECT_LAYER_POSITION,
+      mode: LAYER_MODE_MASK,
       tiles: new Array(mapWidth * mapHeight).fill(EMPTY), // grid NORMAL, bukan grid Block Layer yg lebih rapat
     };
   }
@@ -186,6 +223,7 @@
   const newLayerModal = document.getElementById("newLayerModal");
   const newLayerNameInput = document.getElementById("newLayerNameInput");
   const newLayerTilesetTabs = document.getElementById("newLayerTilesetTabs");
+  const newLayerModeTabs = document.getElementById("newLayerModeTabs");
   const cancelNewLayerBtn = document.getElementById("cancelNewLayerBtn");
   const confirmNewLayerBtn = document.getElementById("confirmNewLayerBtn");
 
@@ -236,6 +274,7 @@
   let autosaveTimer = null;
 
   let newLayerSelectedType = DEFAULT_TILESET_TYPE;
+  let newLayerSelectedMode = DEFAULT_LAYER_MODE;
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -267,31 +306,53 @@
 
   // ================= Layer helpers =================
   // layerPosition = identitas TETAP tiap layer (independen dari nama, jadi
-  // ganti nama tidak mempengaruhi status kunci): -1 = Background, 0 =
-  // Foreground — dua-duanya TERKUNCI (tidak bisa dihapus/dipindah urutan,
-  // permintaan eksplisit user). Layer buatan user SELALU > 0, maks 97 (jadi
-  // range 1-97, total 97 layer tambahan — diciutkan dari 98 krn posisi 98
-  // sekarang dipakai Top Object) — dijaga di `confirmNewLayerBtn`.
-  const LOCKED_MAX_POSITION = 0;
+  // ganti nama tidak mempengaruhi status kunci): -1 = Background — SATU2NYA
+  // layer dasar yg TERKUNCI (tidak bisa dihapus/dipindah/direname) sekarang,
+  // permintaan eksplisit user susulan ("sebelumnya fixed itu Background dan
+  // Foreground, sekarang hanya Background yang fixed/locked, Foreground
+  // sekarang menjadi layer biasa"). Foreground BUKAN LAGI singleton spesial
+  // — tidak lagi dibuat otomatis di `initDefaultLayers()`, & kalau map lama
+  // (v5 ke bawah) masih py layer bernama "Foreground" di posisi 0, dia
+  // sekarang diperlakukan PERSIS spt layer user biasa (bisa dihapus/
+  // dipindah/direname) begitu dimuat. Layer buatan user (via modal Layer
+  // Baru) SELALU > 0, maks 97 (jadi range 1-97, total 97 layer tambahan —
+  // diciutkan dari 98 krn posisi 98 dipakai Top Object) — dijaga di
+  // `confirmNewLayerBtn`.
+  const BACKGROUND_LAYER_POSITION = -1;
   const USER_LAYER_MAX_POSITION = 97;
+  // Batas legacy KHUSUS migrasi `mode` (`migrateLayerMode()` di bawah) — map
+  // lama (v5 ke bawah, sblm fitur `mode` ada) py Background(-1)/Foreground(0)
+  // yg DUA2NYA dulu implisit Ground, jadi tebakan mode utk file selawas itu
+  // TETAP pakai ambang `<= 0` ini apa adanya (BUKAN tentang locked/tidaknya
+  // layer — itu urusan `isLayerLocked()` di atas yg SEKARANG cuma soal
+  // posisi PERSIS, bukan threshold lagi).
+  const LEGACY_GROUND_POSITION_MAX = 0;
 
   function isLayerLocked(layer) {
-    return layer.layerPosition <= LOCKED_MAX_POSITION || layer.layerPosition === BLOCK_LAYER_POSITION || layer.layerPosition === TOP_OBJECT_LAYER_POSITION;
+    return (
+      layer.layerPosition === BACKGROUND_LAYER_POSITION || layer.layerPosition === BLOCK_LAYER_POSITION || layer.layerPosition === TOP_OBJECT_LAYER_POSITION
+    );
   }
 
-  function createLayer(name, tilesetType, layerPosition) {
+  function createLayer(name, tilesetType, layerPosition, mode) {
     return {
       name,
       visible: true,
       opacity: 1,
       tilesetType: tilesetType || DEFAULT_TILESET_TYPE,
       layerPosition,
+      mode: mode || DEFAULT_LAYER_MODE,
       tiles: new Array(mapWidth * mapHeight).fill(EMPTY),
     };
   }
 
+  // Map baru (permintaan eksplisit user susulan): pas pertama kali buka page
+  // Editor, cuma Background, Top Object, & Block Layer yg ada — SEMUANYA
+  // terkunci. Foreground BUKAN LAGI dibuat otomatis di sini — kalau user mau
+  // layer serupa, tinggal bikin lewat modal Layer Baru (+ pilih mode Ground
+  // sendiri kalau mau perilaku "selalu di belakang karakter" spt Background).
   function initDefaultLayers() {
-    layers = [createLayer("Background", "Base", -1), createLayer("Foreground", "Base", 0), createTopObjectLayer(), createBlockLayer()];
+    layers = [createLayer("Background", "Base", BACKGROUND_LAYER_POSITION, LAYER_MODE_GROUND), createTopObjectLayer(), createBlockLayer()];
     activeLayerIndex = 0;
     startPosition = null;
   }
@@ -885,15 +946,19 @@
     for (let i = layers.length - 1; i >= 0; i--) {
       const layer = layers[i];
       const row = document.createElement("div");
-      // Warna card khusus buat layer terkunci bawaan (permintaan eksplisit
-      // user) — Block Layer (paling atas) merah, Top Object (persis di
-      // bawahnya) biru, Background/Foreground (2 paling bawah) coklat.
-      // Ditentukan dari `layerPosition`, bukan nama, konsisten dgn
-      // `isLayerLocked()` (nama bisa diganti user, posisi tidak).
+      // Warna card khusus — Block Layer (paling atas) merah, Top Object
+      // (persis di bawahnya) biru, keduanya ditentukan dari `layerPosition`
+      // (posisi tetap, konsisten dgn `isLayerLocked()`). Card COKLAT sekarang
+      // ditentukan dari `layer.mode === "Ground"` (permintaan eksplisit
+      // user: "layernya juga berwarna coklat seperti Background dan
+      // Foreground") — BUKAN lagi dari posisi/kunci, jadi layer BARU manapun
+      // yg user pilih mode Ground (bukan cuma Background bawaan — Foreground
+      // BUKAN LAGI singleton spesial, lihat "Layer helpers") ikut dapat card
+      // coklat yg sama.
       let variantClass = "";
       if (layer.layerPosition === BLOCK_LAYER_POSITION) variantClass = " layer-row--block";
       else if (layer.layerPosition === TOP_OBJECT_LAYER_POSITION) variantClass = " layer-row--topobject";
-      else if (layer.layerPosition <= LOCKED_MAX_POSITION) variantClass = " layer-row--basefg";
+      else if (layer.mode === LAYER_MODE_GROUND) variantClass = " layer-row--basefg";
       row.className = "layer-row" + variantClass + (i === activeLayerIndex ? " active" : "");
 
       const top = document.createElement("div");
@@ -969,9 +1034,10 @@
         }
       }
 
-      // Background & Foreground (layerPosition <= 0) TERKUNCI — permintaan
-      // eksplisit user, tidak bisa dihapus/dipindah urutan. Ikon gembok murni
-      // indikator visual (lihat removeLayerBtn/moveLayerUpBtn/moveLayerDownBtn
+      // Background (SATU2NYA layer dasar yg terkunci sekarang, lihat "Layer
+      // helpers" — Foreground BUKAN LAGI singleton spesial) TERKUNCI —
+      // permintaan eksplisit user, tidak bisa dihapus/dipindah urutan. Ikon
+      // gembok murni indikator visual (lihat removeLayerBtn/moveLayerUpBtn/moveLayerDownBtn
       // di bawah utk penegakan aturannya yg sesungguhnya).
       if (isLayerLocked(layer)) {
         const lockIcon = document.createElement("span");
@@ -994,6 +1060,19 @@
       tilesetBadge.style.background = tilesetColor(layer.tilesetType);
       tilesetLabelEl.appendChild(tilesetBadge);
 
+      // Label mode — permintaan eksplisit user, ditaruh TEPAT DI BAWAH
+      // "Tileset :" (sama pola badge kapsul warna, lihat komentar di atas).
+      // Ground = coklat, Object = slate netral, Mask = ungu (lihat
+      // LAYER_MODE_COLORS/modeColor()).
+      const modeLabelEl = document.createElement("div");
+      modeLabelEl.className = "layer-tileset-label";
+      modeLabelEl.appendChild(document.createTextNode("Mode: "));
+      const modeBadge = document.createElement("span");
+      modeBadge.className = "tileset-badge";
+      modeBadge.textContent = layer.mode;
+      modeBadge.style.background = modeColor(layer.mode);
+      modeLabelEl.appendChild(modeBadge);
+
       const opacity = document.createElement("input");
       opacity.type = "range";
       opacity.min = "0";
@@ -1008,6 +1087,7 @@
 
       row.appendChild(top);
       row.appendChild(tilesetLabelEl);
+      row.appendChild(modeLabelEl);
       row.appendChild(opacity);
       row.addEventListener("click", () => {
         activeLayerIndex = i;
@@ -1042,7 +1122,7 @@
     moveLayerDownBtn.disabled = locked || activeLayerIndex <= 0 || isLayerLocked(layers[activeLayerIndex - 1]);
   }
 
-  // ================= Modal Layer Baru (nama + wajib pilih tileset) =================
+  // ================= Modal Layer Baru (nama + wajib pilih tileset + mode) =================
   function renderNewLayerTilesetTabs() {
     newLayerTilesetTabs.innerHTML = "";
     TILESET_TYPES.forEach((t) => {
@@ -1058,6 +1138,25 @@
     });
   }
 
+  // Mode Ground/Object utk layer BARU (permintaan eksplisit user) — Mask
+  // TIDAK ditawarkan di sini sama sekali (`USER_LAYER_MODES` cuma berisi 2
+  // dari 3 mode yg ada, lihat deklarasinya), krn Mask reserved khusus Block
+  // Layer/Top Object (singleton, tidak dibuat lewat modal ini).
+  function renderNewLayerModeTabs() {
+    newLayerModeTabs.innerHTML = "";
+    USER_LAYER_MODES.forEach((m) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "tileset-tab" + (m === newLayerSelectedMode ? " active" : "");
+      btn.textContent = m;
+      btn.addEventListener("click", () => {
+        newLayerSelectedMode = m;
+        renderNewLayerModeTabs();
+      });
+      newLayerModeTabs.appendChild(btn);
+    });
+  }
+
   function openNewLayerModal() {
     if (nextUserLayerPosition() > USER_LAYER_MAX_POSITION) {
       alert(`Sudah mencapai maksimal ${USER_LAYER_MAX_POSITION} layer tambahan.`);
@@ -1065,7 +1164,9 @@
     }
     newLayerNameInput.value = `Layer ${layers.length + 1}`;
     newLayerSelectedType = DEFAULT_TILESET_TYPE;
+    newLayerSelectedMode = DEFAULT_LAYER_MODE;
     renderNewLayerTilesetTabs();
+    renderNewLayerModeTabs();
     newLayerModal.classList.add("open");
     newLayerNameInput.focus();
   }
@@ -1086,10 +1187,13 @@
       alert("Nama layer tidak boleh kosong.");
       return;
     }
-    // Nama layer harus unik — termasuk terhadap Block Layer/Background/
-    // Foreground yg sudah ada & terkunci (permintaan eksplisit user).
-    // Case-insensitive spy "background" & "Background" dianggap tabrakan
-    // jg, bukan cuma exact match.
+    // Nama layer harus unik — termasuk terhadap layer dasar/singleton yg
+    // sudah ada (Block Layer/Top Object/Background, ATAU layer bernama
+    // "Foreground" kalau map ini masih py peninggalan dari sebelum fitur ini
+    // ada, lihat "Layer helpers") — cek dilakukan thd SEMUA layer yg ada,
+    // bukan cuma yg terkunci (permintaan eksplisit user). Case-insensitive
+    // spy "background" & "Background" dianggap tabrakan jg, bukan cuma exact
+    // match.
     if (layers.some((l) => l.name.toLowerCase() === name.toLowerCase())) {
       alert(`Sudah ada layer dgn nama "${name}". Pilih nama lain.`);
       return;
@@ -1106,7 +1210,7 @@
     // paling rendah di antara dua reserved layer itu, jadi otomatis jg
     // sebelum Block Layer), bukan sesudahnya.
     const topObjectIdx = layers.findIndex((l) => l.layerPosition === TOP_OBJECT_LAYER_POSITION);
-    layers.splice(topObjectIdx, 0, createLayer(name, newLayerSelectedType, position));
+    layers.splice(topObjectIdx, 0, createLayer(name, newLayerSelectedType, position, newLayerSelectedMode));
     activeLayerIndex = topObjectIdx;
     rebuildLayerCanvases();
     renderLayerList();
@@ -1117,7 +1221,7 @@
 
   removeLayerBtn.addEventListener("click", () => {
     if (isLayerLocked(layers[activeLayerIndex])) {
-      alert("Layer Background/Foreground terkunci, tidak bisa dihapus.");
+      alert("Layer ini terkunci, tidak bisa dihapus.");
       return;
     }
     if (layers.length <= 1) {
@@ -1138,9 +1242,10 @@
 
   // "Naik" = mendekati depan/foreground (index makin besar), "Turun" = mendekati
   // belakang/background (index makin kecil) — sesuai urutan render layers[].
-  // Background/Foreground (layerPosition <= 0) TERKUNCI: tidak bisa jadi
-  // sumber ATAU tujuan tukar posisi (dicek dua-duanya krn layer user paling
-  // bawah bertetangga langsung dgn Foreground yg terkunci).
+  // Background (layer dasar terkunci SATU2NYA sekarang, lihat "Layer
+  // helpers") TERKUNCI: tidak bisa jadi sumber ATAU tujuan tukar posisi
+  // (dicek dua-duanya krn layer user paling bawah bisa bertetangga langsung
+  // dgn Background yg terkunci).
   moveLayerUpBtn.addEventListener("click", () => {
     if (isLayerLocked(layers[activeLayerIndex])) return;
     if (activeLayerIndex >= layers.length - 1) return;
@@ -1209,9 +1314,10 @@
   // `tilesetType` PER LAYER (krn 1 layer = 1 tileset, tiap layer bisa beda).
   // version 3: tambah `layerPosition` per layer (identitas kunci Background
   // -1/Foreground 0, lihat "Layer helpers").
+  // version 4: tambah `startPosition` map-level (lihat "Start Position").
   function buildMapData() {
     return {
-      version: 4, // v4 naik dari v3 krn tambahan startPosition (lihat "Start Position")
+      version: 5, // v5 naik dari v4 krn tambahan `mode` per layer (lihat "Mode Layer")
       tileSize: TILE_SIZE,
       mapWidth,
       mapHeight,
@@ -1222,6 +1328,7 @@
         opacity: l.opacity,
         tilesetType: l.tilesetType,
         layerPosition: l.layerPosition,
+        mode: l.mode,
         tiles: l.tiles,
       })),
     };
@@ -1241,6 +1348,25 @@
       if (l.name === "Foreground") return 0;
       return nextPosition++;
     });
+  }
+
+  // File v4 lama (sblm fitur "Mode Layer" ada) tidak punya field `mode` sama
+  // sekali — ditebak dari `tilesetType`/`layerPosition` (SUDAH ke-migrasi di
+  // atas, jadi `resolvedPosition` di sini SELALU angka) supaya perilaku
+  // render map lama TETAP SAMA persis spt sebelum fitur ini ada, tanpa perlu
+  // user edit ulang manual: Block Layer/Top Object → "Mask" (ditentukan dari
+  // `tilesetType`, SEBELUM `layerPosition` dicek — 2 layer ini kebetulan jg
+  // px `layerPosition` > `LEGACY_GROUND_POSITION_MAX` jadi HARUS dicek lebih
+  // dulu, kalau kebalik bakal salah ke-anggap "Object"), Background/Foreground
+  // LAMA (`layerPosition <= 0` — dua2nya DULU implisit Ground, TERLEPAS dari
+  // status locked/tidaknya Foreground SEKARANG, lihat "Layer helpers") →
+  // "Ground", sisanya (semua layer user lama) → "Object" (perilaku Y-sorted
+  // default versi sebelum fitur mode ada).
+  function migrateLayerMode(l, resolvedPosition) {
+    if (l.mode === LAYER_MODE_GROUND || l.mode === LAYER_MODE_OBJECT || l.mode === LAYER_MODE_MASK) return l.mode;
+    if (l.tilesetType === BLOCK_TILESET_KEY || l.tilesetType === TOP_OBJECT_TILESET_KEY) return LAYER_MODE_MASK;
+    if (resolvedPosition <= LEGACY_GROUND_POSITION_MAX) return LAYER_MODE_GROUND;
+    return LAYER_MODE_OBJECT;
   }
 
   function applyMapData(data) {
@@ -1267,6 +1393,7 @@
           ? l.tilesetType
           : DEFAULT_TILESET_TYPE,
       layerPosition: positions[i],
+      mode: migrateLayerMode(l, positions[i]),
       tiles: l.tiles.slice(),
     }));
     // File lama (dibuat sblm fitur ybs ada) tidak akan punya layer di posisi
