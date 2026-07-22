@@ -201,6 +201,8 @@
   const mapSearchInput = document.getElementById("mapSearchInput");
   const mapList = document.getElementById("mapList");
 
+  const musicBtn = document.getElementById("musicBtn");
+
   const editorLink = document.getElementById("editorLink");
   const editorWarningOverlay = document.getElementById("editorWarningOverlay");
   const editorWarningBackBtn = document.getElementById("editorWarningBackBtn");
@@ -887,6 +889,17 @@
     characterPickerOverlay.classList.remove("open");
   }
 
+  // Tombol "Music" (permintaan eksplisit user, khusus PC/laptop — lihat
+  // @media (pointer: coarse) di style.css utk penyembunyian di HP) — buka
+  // tab BARU ke video YouTube tetap (bukan navigasi/redirect di tab yg
+  // sama, spy game tetap kebuka). `noopener,noreferrer` (permintaan
+  // keamanan standar `window.open` ke domain eksternal) — cegah tab baru
+  // itu punya akses balik (`window.opener`) ke halaman game ini.
+  const MUSIC_URL = "https://youtu.be/sJx_BqzbAEc";
+  musicBtn.addEventListener("click", () => {
+    window.open(MUSIC_URL, "_blank", "noopener,noreferrer");
+  });
+
   changeCharacterBtn.addEventListener("click", openCharacterPicker);
   closePickerBtn.addEventListener("click", closeCharacterPicker);
   characterPickerOverlay.addEventListener("click", (e) => {
@@ -1015,6 +1028,11 @@
   function submitChatInput() {
     const text = chatInput.value.trim();
     chatInput.value = "";
+    // Lepas fokus dari input stlh submit (permintaan eksplisit user) — tanpa
+    // ini, fokus TETAP nempel di #chatInput stlh Enter (cuma value-nya yg
+    // dikosongkan), jadi W/A/S/D abis ngirim pesan masih ke-anggap ngetik
+    // (lihat isTypingInField()) drpd langsung gerakin karakter.
+    chatInput.blur();
     if (text) showSpeechBubble(text);
   }
 
@@ -1059,14 +1077,33 @@
     }, BUBBLE_DURATION);
   }
 
-  // Enter (selagi fokus di #chatInput) ATAU klik tombol → = submit —
-  // permintaan eksplisit user, gantiin toggle buka/tutup via Enter versi
-  // lama (input sekarang SELALU kelihatan, tidak perlu "dibuka" dulu).
+  // Enter = TOGGLE mode ngetik/mode gerak (permintaan eksplisit user, khusus
+  // PC/laptop — mempermudah gonta-ganti tanpa perlu klik manual ke field):
+  // - Fokus lagi di #chatInput → submit (spt sebelumnya) + `blur()` (lihat
+  //   submitChatInput()) → balik ke mode gerak (WASD langsung jalan lagi).
+  // - TIDAK fokus di situ → `chatInput.focus()` (masuk mode ngetik), TANPA
+  //   submit apa pun (field toh kosong sejak submit terakhir) — jadi Enter
+  //   sekarang py 2 arah: buka mode ngetik DAN nutupnya, gantiin gabungan
+  //   "klik field" (buka) + "Enter sekali lagi" (submit doang, tanpa nutup)
+  //   versi sebelumnya.
   window.addEventListener("keydown", (e) => {
     if (e.key !== "Enter") return;
-    if (document.activeElement !== chatInput) return;
+    if (document.activeElement === chatInput) {
+      e.preventDefault();
+      submitChatInput();
+      return;
+    }
+    // Jangan nyerobot fokus kalau lagi ngetik di field LAIN (mis.
+    // #mapSearchInput di popup Pilih Map, lihat isTypingInField()) ATAU lagi
+    // ada overlay/popup lain yg kebuka (Karakter/Pilih Map/Peringatan
+    // Editor) — Enter di situ punya konteksnya sendiri2 (submit search,
+    // dst.), bukan urusan toggle chat ini.
+    if (isTypingInField()) return;
+    if (characterPickerOverlay.classList.contains("open")) return;
+    if (mapPickerOverlay.classList.contains("open")) return;
+    if (editorWarningOverlay.classList.contains("open")) return;
     e.preventDefault();
-    submitChatInput();
+    chatInput.focus();
   });
 
   sendChatBtn.addEventListener("click", submitChatInput);

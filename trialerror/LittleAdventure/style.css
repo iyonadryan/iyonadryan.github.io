@@ -61,9 +61,15 @@ h1 {
   gap: 10px;
 }
 
-/* Di HP, 3 tombol header ditumpuk vertikal (permintaan eksplisit user,
+/* Di HP, tombol header ditumpuk vertikal (permintaan eksplisit user,
    gantiin sebaris horizontal) — muat lebih baik di layar sempit & jempol
-   lebih gampang jangkau tiap tombolnya satu-satu drpd berdesakan sebaris. */
+   lebih gampang jangkau tiap tombolnya satu-satu drpd berdesakan sebaris.
+   (Penyembunyian `.music-btn` di HP ditaruh di media query TERPISAH di
+   bawah, SETELAH definisi dasar `.music-btn` — bukan digabung ke sini —
+   krn cascade CSS: rule belakangan menang kalau spesifisitasnya sama, jadi
+   `display:none` di sini bakal ketiban/dibatalkan begitu aja oleh
+   `.music-btn { display: inline-flex }` yg posisinya lebih ke bawah di
+   file ini kalau digabung jadi satu blok media query yg sama.) */
 @media (pointer: coarse) {
   .header-actions {
     flex-direction: column;
@@ -84,6 +90,40 @@ h1 {
 
 .change-character-btn:hover {
   filter: brightness(1.08);
+}
+
+/* Tombol "Music" (permintaan eksplisit user) — merah, khusus PC/laptop,
+   lihat @media (pointer: coarse) di bawah utk penyembunyian di HP. Warna
+   merah SENGAJA beda dari `.change-character-btn` (hijau `--accent`)/
+   `.tilemap-link` (hitam-putih) drpd nyampur ke salah satu pola yg udah
+   ada — ini bukan aksi gameplay atau tool navigasi, murni tombol eksternal. */
+.music-btn {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: #dc2626;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.music-btn:hover {
+  filter: brightness(1.08);
+}
+
+/* Sembunyikan TOTAL di HP (permintaan eksplisit user "khusus pc/laptop
+   (bukan mobile)") — pola kebalikan dari .touch-joystick/.touch-actions
+   (nongol di sentuh, sembunyi di mouse). Ditaruh SETELAH definisi dasar
+   `.music-btn` di atas (bukan digabung ke media query `.header-actions`
+   yg lebih awal) supaya menang di cascade — lihat komentarnya. */
+@media (pointer: coarse) {
+  .music-btn {
+    display: none;
+  }
 }
 
 /* Sengaja outline (bukan solid spt .change-character-btn) — biar tombol2 ini

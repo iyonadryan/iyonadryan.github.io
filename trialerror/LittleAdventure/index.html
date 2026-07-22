@@ -39,6 +39,13 @@
       <button type="button" id="changeCharacterBtn" class="change-character-btn">🧑 Karakter</button>
       <button type="button" id="openMapPickerBtn" class="change-character-btn">🗺️ Map</button>
       <a href="tilemap.html" id="editorLink" class="tilemap-link">🚧 Editor</a>
+      <!-- Khusus PC/laptop (permintaan eksplisit user) — disembunyikan di HP
+           lewat @media (pointer: coarse) di style.css, pola yg sama dgn
+           touch-joystick/touch-actions tapi kebalik (nongol di mouse,
+           sembunyi di sentuh). Ditaruh SETELAH Editor (permintaan eksplisit
+           user "disamping kanan editor, bukan kiri") — urutan DOM = urutan
+           tampil krn `.header-actions` flex row biasa tanpa `order`. -->
+      <button type="button" id="musicBtn" class="music-btn">▶︎ Music</button>
     </div>
   </div>
 
