@@ -43,6 +43,14 @@ LittleAdventure/
   tilemap-script.js  # logic khusus tilemap.html: layers, tools (brush/fill/erase), undo/redo, tileset
                      # picker, save/load JSON, save/load Firebase, autosave localStorage
   img/
+    favicon.png  # icon tab browser index.html & tilemap.html (permintaan eksplisit user) — HASIL CROP
+                 # manual dari character/Male/Male 01-1.png (baris0/kolom1 = idle menghadap bawah,
+                 # 32x32px sumbernya, sama persis konvensi row/kolom yg dipakai game & marker Start
+                 # Position), di-upscale nearest-neighbor (BUKAN bicubic, spy pixel-art tetap tegas)
+                 # ke 128x128 via PowerShell System.Drawing (tidak ada ImageMagick/sharp/jimp di
+                 # environment ini) — file statis, BUKAN digenerate ulang otomatis oleh kode apa pun,
+                 # kalau karakter default game (`currentFile` di script.js) berubah nanti, file ini
+                 # HARUS di-crop ulang manual scr terpisah (tidak otomatis ikut sinkron).
     character/
       Male/      # sprite sheet karakter pria — banyak varian (01 s/d ~25+), tiap nomor
                  # punya beberapa file -1/-2/-3/-4 (variasi warna/outfit sprite sheet yg sama)
@@ -162,7 +170,7 @@ Analog stick (bawah kiri) + 2 tombol aksi (bawah kanan) — permintaan eksplisit
 
 ## Dunia dari Tilemap Editor (`loadWorldMap`, `buildWorldFromMapData`, Firebase)
 
-**Jalur UTAMA dunia game** (permintaan eksplisit user) — `index.html` sekarang memuat map yg dibuat & disimpan lewat Tilemap Editor (lihat "Tilemap Editor" di atas), bukan lagi gambar statis. Nama map yg dipakai **hardcode** `WORLD_MAP_NAME = "map_iyon"` (`script.js`) — belum ada UI pilih map lain di game, ganti map = ganti konstanta ini manual.
+**Jalur UTAMA dunia game** (permintaan eksplisit user) — `index.html` sekarang memuat map yg dibuat & disimpan lewat Tilemap Editor (lihat "Tilemap Editor" di atas), bukan lagi gambar statis. Nama map DEFAULT yg dipakai pas pertama kali buka halaman **hardcode** `WORLD_MAP_NAME = "default"` (`script.js`, permintaan eksplisit user — map bernama persis `"default"` di Firebase, bukan `map_iyon` yg dipakai selama development fitur "Dunia dari Tilemap Editor") — setelahnya BISA diganti runtime tanpa reload lewat popup "🗺️ Map" (lihat "Pilih Map"), yg nyimpen pilihannya ke variabel `WORLD_MAP_NAME` yg sama ini (`let`, bukan `const`).
 
 ### Alur load (`init()` → `loadWorldMap()`)
 
@@ -193,7 +201,7 @@ Analog stick (bawah kiri) + 2 tombol aksi (bawah kanan) — permintaan eksplisit
 
 ### Batasan yg disadari
 
-- **Hardcode 1 nama map** (`WORLD_MAP_NAME`) — belum ada mekanisme pilih map lain dari dalam game (mis. lewat query string/menu), ganti map = edit konstanta ini manual di `script.js`.
+- **Hardcode 1 nama map DEFAULT** (`WORLD_MAP_NAME = "default"`) yg dipakai pas pertama kali buka halaman — sekarang SUDAH bisa diganti map lain dari dalam game runtime lewat popup "🗺️ Map" (lihat "Pilih Map"), tapi map AWAL yg dimuat tiap kali halaman dibuka/di-refresh tetap hardcode, belum ada mekanisme "ingat map terakhir dipilih" (mis. lewat query string/localStorage) — tiap refresh selalu balik ke map `"default"`.
 - **Belum ada loading indicator** — selagi `await loadWorldMap()` jalan (biasanya cepat, tapi tergantung network), karakter/map belum kelihatan sama sekali (elemen kosong) tanpa pesan "Loading..." apa pun.
 - **Duplikasi konstanta tileset** (lihat di atas) — resiko drift kalau `tilemap-script.js` berubah tapi `script.js` lupa disinkron, krn tidak ada modul/shared source di project ini.
 

@@ -91,7 +91,7 @@
   // Fallback ke gambar statis lama kalau load dari Firebase gagal (map belum
   // ada/rules blm diset/network error) supaya game tidak pernah blank.
   const TILEMAPS_PATH = "trial-error/littleAdventure/tilemaps"; // node induk — dipakai jg utk listing nama map, lihat "Pilih Map"
-  let WORLD_MAP_NAME = "map_iyon"; // `let`, bisa diganti lewat popup "Pilih Map"
+  let WORLD_MAP_NAME = "default"; // `let`, bisa diganti lewat popup "Pilih Map"
   const FALLBACK_MAP_SRC = "img/samplemap.png";
   const FALLBACK_MAP_SRC_SIZE = 1920; // px, ukuran asli map fallback (persegi: 1920x1920)
 
