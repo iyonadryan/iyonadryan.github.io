@@ -735,25 +735,34 @@ a{ color:inherit; }
   cursor:pointer;
   box-shadow: var(--shadow-md);
 }
-/* Ikon play/pause (permintaan eksplisit user, gantiin SVG disc+dot yg
-   dianggap kurang jelas) — 2 glyph teks ditumpuk, cuma 1 yg kelihatan
-   tergantung status `.playing` di tombol induknya. Animasi spin TETAP
-   dipertahankan (jg permintaan eksplisit user) — sama persis mekanismenya
-   dgn disc lama: `animation-play-state:paused` bawaan, baru `running` pas
-   `.playing`. */
-.music-toggle .music-icon{
-  display:none;
-  color:#fff;
-  font-size:18px;
-  line-height:1;
-  animation: spin 3.2s linear infinite;
-  animation-play-state:paused;
+/* Ikon play/pause digambar pakai bentuk CSS murni (segitiga border-trick +
+   2 batang), BUKAN glyph teks (▶︎/❚❚ lama) — glyph font punya "bobot visual"
+   beda2 per karakter (❚❚ tampak lebih besar drpd ▶︎ walau font-size sama
+   persis, dikonfirmasi user), jadi ukurannya gak bisa dijamin sama persis
+   lintas browser/OS. Bentuk CSS geometris menjamin ukuran identik selalu.
+   Statis/diam (TANPA animasi putar) — permintaan eksplisit user susulan. */
+.music-toggle .music-icon{ display:none; }
+.music-toggle .music-icon-play{
+  display:block;
+  width:0; height:0;
+  border-top:7px solid transparent;
+  border-bottom:7px solid transparent;
+  border-left:12px solid #fff;
+  margin-left:2px;
 }
-.music-toggle .music-icon-play{ display:block; }
+.music-toggle .music-icon-pause{
+  display:none;
+  gap:4px;
+  width:14px; height:14px;
+}
+.music-toggle .music-icon-pause::before,
+.music-toggle .music-icon-pause::after{
+  content:"";
+  width:5px; height:14px;
+  background:#fff;
+}
 .music-toggle.playing .music-icon-play{ display:none; }
-.music-toggle.playing .music-icon-pause{ display:block; }
-.music-toggle.playing .music-icon{ animation-play-state:running; }
-@keyframes spin{ to{ transform: rotate(360deg); } }
+.music-toggle.playing .music-icon-pause{ display:flex; }
 @media (max-width:560px){
   .music-toggle{ left:auto; right:18px; transform:none; }
 }
@@ -777,7 +786,7 @@ a{ color:inherit; }
 .toast.show{ opacity:1; transform:translate(-50%, 0); }
 
 @media (prefers-reduced-motion: reduce){
-  .reveal, .reveal-in, .petal, .cd-num, .btn-open, .music-icon{ animation:none !important; transition:none !important; }
+  .reveal, .reveal-in, .petal, .cd-num, .btn-open{ animation:none !important; transition:none !important; }
   .reveal, .reveal-in{ opacity:1 !important; transform:none !important; }
 }
 
