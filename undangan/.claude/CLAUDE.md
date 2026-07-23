@@ -246,7 +246,11 @@ Permintaan eksplisit user — ditanya dulu ("dipakai buat apa alamatnya?") krn a
 
 ## Musik Latar
 
-`<audio id="bgm" loop preload="none">` **tanpa `src`** (blm ada file audio asli disiapkan) — tombol `.music-toggle` tetap berfungsi scr visual (toggle class `.playing`, ikon disc berputar) walau `bgm.play()` gagal diam-diam (`.catch(()=>{})`) krn tidak ada sumber suara. Begitu ada file lagu asli, tinggal isi `src="nama-file.mp3"` di `<audio>`, tidak perlu ubah JS sama sekali.
+**Data asli** — user nambah file lagu ke folder baru `undangan/music/` (`Lagu Pernikahan Kita - Tiara Andini ft. Arsy Widianto (Piano Cover) with Lyrics by AnggelMel.mp3`, durasi ±4:45), diisi ke `<audio id="bgm" loop preload="none" src="music/...">` di ke-3 varian `index.html`/`index2.html`/`index3.html` — TIDAK ada perubahan JS sama sekali (sesuai catatan lama: tinggal isi `src`, `bgm.play()` di `script*.js` sudah menangani sisanya), cuma `src` attribute yg ditambah.
+
+- **Nama file di `src` di-`encodeURIComponent()`-kan** (spasi → `%20`, `(`/`)` → `%28`/`%29`, dst.) — nama file asli py spasi & tanda kurung, encoding manual dipakai drpd nulis spasi mentah di atribut HTML (lebih robust lintas server/browser drpd andalkan auto-encoding implisit browser).
+- **Folder `music/` BARU** (belum ada sebelumnya) — cuma isi 1 file ini, ditaruh sejajar `gallery/`/`asset/` di root `undangan/`.
+- **Diuji eksplisit** (Playwright + Edge headless, ke-3 file): request network ke path `music/...` TERBUKTI berhasil (HTTP 200); klik "Buka Undangan" → `bgm.play()` TERBUKTI benar2 jalan (`paused: false`, `currentTime` maju, `readyState: 4`/HAVE_ENOUGH_DATA, `duration` ±285 detik, `error: null`, TIDAK ada page error) — bukan cuma diam2 gagal spt sblm ada file asli.
 
 ## Gotcha: `[hidden]` vs `display:flex`
 
@@ -255,8 +259,6 @@ Permintaan eksplisit user — ditanya dulu ("dipakai buat apa alamatnya?") krn a
 ## Placeholder yang masih tersisa
 
 - Foto profil bulat kedua mempelai (`.couple-photo`) — sengaja dibiarkan, lihat "Status saat ini".
-- Alamat lengkap Akad (`Jl. Kenanga No. 12, Bandung`) & Resepsi (`Jl. Riau No. 45, Bandung`), termasuk link Google Maps query-nya.
-- File audio latar (`#bgm` blm ada `src`).
 
 ## Rencana / TODO ke depan
 
