@@ -1,3 +1,20 @@
+// ---------- GUEST NAME FROM URL (?tamu=NamaTamu) ----------
+// Permintaan eksplisit user — link undangan per-tamu bisa personalisasi
+// sapaan cover, mis. ?tamu=BapakHaji. `URLSearchParams` otomatis decode
+// %20/+ jadi spasi (jadi ?tamu=Bapak+Haji atau ?tamu=Bapak%20Haji sama2
+// jadi "Bapak Haji"), ditulis apa adanya via textContent (BUKAN innerHTML,
+// otomatis aman dari HTML injection walau isi param sembarangan). Kalau
+// param tidak ada/kosong → placeholder "Tamu Undangan" bawaan di HTML tetap
+// dipakai, tidak disentuh sama sekali.
+(function () {
+  var tamu = new URLSearchParams(window.location.search).get('tamu');
+  if (!tamu) return;
+  tamu = tamu.trim();
+  if (!tamu) return;
+  var guestNameEl = document.getElementById('guestName');
+  if (guestNameEl) guestNameEl.textContent = tamu;
+})();
+
 // ---------- STAGGERED REVEAL DELAYS ----------
 document.querySelectorAll('[data-delay]').forEach(function (el) {
   var step = el.closest('.cover-inner') ? 0.12 : 0.1;

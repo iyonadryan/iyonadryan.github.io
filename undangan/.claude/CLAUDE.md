@@ -23,9 +23,23 @@ Prototype pertama dibuat lewat permintaan terbuka ("desain modern minimalis ala 
 
 ```
 undangan/
-  index.html      # halaman undangan tamu: cover, 8 section utama, lightbox galeri
-  style.css        # semua styling halaman undangan (token warna di :root, animasi, responsive)
-  script.js        # logic halaman undangan (vanilla JS, tanpa framework)
+  index.html      # halaman undangan tamu (varian UTAMA/paling lengkap — tema adat Jawa+Padang penuh,
+                     # lihat "Unsur Adat"): cover, 8 section utama, lightbox galeri
+  style.css        # semua styling index.html (token warna di :root, animasi, responsive)
+  script.js        # logic index.html (vanilla JS, tanpa framework)
+  index2.html      # varian desain ALTERNATIF — struktur HTML & `script2.js` SAMA PERSIS dgn
+                     # index.html/script.js (diff `script.js` vs `script2.js`: KOSONG, byte-identik),
+                     # cuma beda motif ornamen (`.kawung` — 4 lingkaran batik Jawa, motif dari "Tahap 1"
+                     # yg SUDAH diganti di index.html "Tahap 2", lihat "Unsur Adat") & `style2.css` sendiri
+  style2.css       # styling khusus index2.html
+  script2.js       # IDENTIK dgn script.js (lihat catatan di atas) — kalau edit logic (bukan cuma
+                     # tampilan), WAJIB disinkron manual ke 3 file script (`script.js`/`script2.js`/
+                     # `script3.js`) sekaligus, TIDAK ada modul/import di project ini
+  index3.html      # varian desain ALTERNATIF lain — struktur HTML & `script3.js` jg SAMA PERSIS dgn
+                     # index.html/script.js, motif ornamen `.leaf` (daun tunggal, lebih minimalis drpd
+                     # kawung/belah-ketupat), `style3.css` sendiri
+  style3.css       # styling khusus index3.html
+  script3.js       # IDENTIK dgn script.js (lihat catatan di atas)
   rsvp.html        # panel admin — lihat semua data RSVP/ucapan yg masuk (lihat "Panel Admin")
   rsvp.css         # styling khusus panel admin (reuse token dari style.css)
   rsvp.js          # logic panel admin
@@ -51,10 +65,29 @@ Tidak ada folder `.claude/` terpisah lagi di dalamnya — sama seperti `app/`/`t
 
 ## Alur halaman
 
-1. **Cover/gate** (`#cover`) — layar penuh 100vh: eyebrow "THE WEDDING OF", monogram cincin "A & S", nama besar bergaya script "Adryan & Suci", tanggal, sapaan tamu, tombol "Buka Undangan". Ada kelopak bunga jatuh halus (`.petal`, dibuat via JS `coverPetals`) dan reveal stagger masuk (`.reveal-in`, delay dihitung dari `data-delay` di `script.js`).
+1. **Cover/gate** (`#cover`) — layar penuh 100vh: eyebrow "THE WEDDING OF", monogram cincin "A & S", nama besar bergaya script "Adryan & Suci", tanggal, sapaan tamu (`#guestName`, lihat "Nama Tamu dari URL" — bisa dipersonalisasi per-link), tombol "Buka Undangan". Ada kelopak bunga jatuh halus (`.petal`, dibuat via JS `coverPetals`) dan reveal stagger masuk (`.reveal-in`, delay dihitung dari `data-delay` di `script.js`).
 2. **Klik "Buka Undangan"** → `.cover.closing` (fade+scale out via `@keyframes cover-out`) → setelah 850ms, `cover.hidden=true`, `invite.hidden=false`, scroll ke atas, mulai `initScrollReveal()` (IntersectionObserver utk animasi fade-up tiap section saat discroll), dan audio latar dicoba diputar (`bgm.play()`, lihat "Musik Latar").
 3. **Isi undangan** (`<main id="invite">`), scroll panjang berurutan: Kutipan pembuka → Kedua Mempelai → Countdown (Save the Date) → Rangkaian Acara (Akad & Resepsi) → Galeri → RSVP & Ucapan → Amplop Digital → Penutup.
 4. **Tombol musik mengambang** (`.music-toggle`, kanan-bawah di layar sempit) — ikon disc berputar (`.disc`, `animation-play-state` toggle) saat lagu diputar.
+
+## Nama Tamu dari URL (`?tamu=...`)
+
+Permintaan eksplisit user — link undangan bisa dipersonalisasi per-tamu lewat query string, mis. `index.html?tamu=BapakHaji` bikin sapaan cover ("Kepada Yth. Bapak/Ibu/Saudara/i / **Bapak Haji**") ganti dari placeholder default "Tamu Undangan". Dipilih nama parameter **`tamu`** (bukan `to`/`guest`/`nama`, sempat ditanyakan ke user sblm implementasi) krn paling deskriptif & konsisten dgn semua teks UI situs ini yg berbahasa Indonesia.
+
+- **Diimplementasikan IDENTIK di ke-3 varian** (`script.js`/`script2.js`/`script3.js` — inget, ketiganya SUDAH byte-identik dari awal, lihat "Struktur file") — blok baru `(function () { ... })()` di paling ATAS tiap file, SEBELUM "STAGGERED REVEAL DELAYS":
+  ```js
+  var tamu = new URLSearchParams(window.location.search).get('tamu');
+  if (!tamu) return;
+  tamu = tamu.trim();
+  if (!tamu) return;
+  var guestNameEl = document.getElementById('guestName');
+  if (guestNameEl) guestNameEl.textContent = tamu;
+  ```
+- **`<p class="guest-name">` dikasih `id="guestName"`** (ke-3 `index*.html`, sebelumnya cuma class tanpa id) — satu2nya perubahan HTML yg diperlukan.
+- **`URLSearchParams` otomatis decode `+`/`%20` jadi spasi** — jadi `?tamu=Bapak+Haji+Slamet` ATAU `?tamu=Bapak%20Haji%20Slamet` sama2 tampil "Bapak Haji Slamet"; nama tanpa spasi apa adanya (`?tamu=BapakHaji`, sesuai contoh awal user) jg tetap valid, ditampilkan persis apa adanya TANPA usaha nebak-nebak pisahin kata (mis. tidak ada logic "sisipkan spasi sebelum huruf kapital" — sengaja dihindari krn bisa salah utk nama yg emang dimaksud 1 kata atau py huruf kapital di tengah scr wajar).
+- **`textContent`, BUKAN `innerHTML`** — otomatis aman dari HTML injection walau isi param `tamu` sembarangan/jahat, tanpa perlu sanitasi manual tambahan.
+- **Param kosong/tidak ada → placeholder default "Tamu Undangan" di HTML dipakai apa adanya** (function `return` lebih awal, tidak nyentuh `#guestName` sama sekali) — jadi link TANPA `?tamu=` tetap valid & aman dibagi scr umum (mis. di grup WhatsApp campuran).
+- **Diuji eksplisit** (Playwright + Edge headless, ke-3 file `index.html`/`index2.html`/`index3.html`): tanpa param → placeholder tetap "Tamu Undangan"; `?tamu=BapakHaji` → berubah jadi "BapakHaji"; `?tamu=Bapak+Haji+Slamet` → jadi "Bapak Haji Slamet" (spasi ke-decode benar); `?tamu=` (kosong) → placeholder tetap tidak berubah. **Catatan testing**: `npx serve` (dipakai sbg static server lokal di banyak sesi testing repo ini) py bug nyata — redirect 301 "clean URL" utk file `.html` yg diakses dgn query string **MEMBUANG query string-nya** (`foo.html?x=1` → redirect ke `foo` TANPA `?x=1` sama sekali, dikonfirmasi via network log) — ini murni artefak tooling `serve`, BUKAN perilaku GitHub Pages (host produksi repo ini, yg serve file apa adanya tanpa redirect) atau bug di kode. Solusinya dites pakai static file server literal buatan sendiri (Node `http.createServer` polos, tanpa rewrite apa pun) drpd `npx serve` khusus utk kasus testing yg melibatkan query string.
 
 ## Palet Warna
 
@@ -190,7 +223,13 @@ Halaman ini **dikunci PIN 6-digit** (`190723`, hardcoded literal di `rsvp.js`) s
 
 ## Amplop Digital
 
-Kartu bank (`.gift-card`) tiap punya tombol "Salin Nomor" (`.copy-btn`, `data-copy="<nomor tanpa spasi>"`) → `copyText()` di `script.js`: coba `navigator.clipboard.writeText()`, fallback ke `textarea`+`execCommand('copy')` kalau gagal (pola sama persis dgn tool lain di `tool/`), feedback via toast kecil bawah layar. Nomor rekening & nama pemilik **masih placeholder**, blm data asli.
+Kartu bank (`.gift-card`) tiap punya tombol "Salin Nomor" (`.copy-btn`, `data-copy="<nomor tanpa spasi>"`) → `copyText()` di `script.js`: coba `navigator.clipboard.writeText()`, fallback ke `textarea`+`execCommand('copy')` kalau gagal (pola sama persis dgn tool lain di `tool/`), feedback via toast kecil bawah layar.
+
+**Data asli** (diisi menggantikan placeholder Bank Mandiri/BCA sebelumnya, sama persis di ke-3 varian `index.html`/`index2.html`/`index3.html` — inget, `gift-card` bukan bagian dari `script*.js` yg byte-identik, tapi HTML tiap file DIEDIT MANUAL 3x krn strukturnya duplikat, bukan shared):
+- **Adryan Luthfi Faiz** — Bank **BNI**, `836097456`
+- **Suci Wulandari** — Bank **BCA**, `6310363331`
+
+`<p class="gift-number">` (versi tampil) SEKARANG SAMA PERSIS dgn `data-copy` (dipakai tombol Salin) — **TANPA spasi pengelompokan** (permintaan eksplisit user susulan, sebelumnya sempat ditampilkan dgn spasi mis. `836 097 456` lalu diminta dihapus) — jadi cuma ada **1 bentuk angka** yg perlu dijaga sinkron, bukan 2 format beda. Kalau nomor rekening berubah lagi nanti, wajib update KEDUA atribut (`gift-number` & `data-copy`, isinya SEKARANG identik) di ke-3 file HTML sekaligus (6 tempat total: 2 kartu × 3 file).
 
 ## Musik Latar
 
@@ -204,7 +243,6 @@ Kartu bank (`.gift-card`) tiap punya tombol "Salin Nomor" (`.copy-btn`, `data-co
 
 - Foto profil bulat kedua mempelai (`.couple-photo`) — sengaja dibiarkan, lihat "Status saat ini".
 - Alamat lengkap Akad (`Jl. Kenanga No. 12, Bandung`) & Resepsi (`Jl. Riau No. 45, Bandung`), termasuk link Google Maps query-nya.
-- Nomor rekening & nama pemilik di Amplop Digital.
 - File audio latar (`#bgm` blm ada `src`).
 
 ## Rencana / TODO ke depan
