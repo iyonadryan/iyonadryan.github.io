@@ -542,6 +542,9 @@ a{ color:inherit; }
   text-align:left;
   margin-top:18px;
   display:flex; flex-direction:column; gap:10px;
+  max-height:480px;
+  overflow-y:auto;
+  padding-right:4px;
 }
 .wish-empty{
   text-align:center;
@@ -552,12 +555,20 @@ a{ color:inherit; }
 }
 .wish-card{
   background: var(--card);
-  border-left:3px solid var(--sage);
+  border-left:4px solid var(--sage);
   border-radius:10px;
   padding:14px 16px;
   box-shadow: var(--shadow-sm);
   animation: wish-in 0.5s ease;
 }
+/* Status kehadiran ditandai lewat WARNA STROKE KIRI kartu (permintaan
+   eksplisit user, gantiin label teks "Hadir"/"Masih Ragu"/"Tidak Hadir" yg
+   dulu ditampilkan di sebelah nama) — sama persis warna badge status di
+   panel admin (rsvp.css: .badge-hadir/.badge-ragu/.badge-tidak) spy
+   konsisten. */
+.wish-card--hadir{ border-left-color:#3E7449; }
+.wish-card--ragu{ border-left-color:#A67525; }
+.wish-card--tidak{ border-left-color:#B04F60; }
 @keyframes wish-in{
   from{ opacity:0; transform: translateY(10px); }
   to{ opacity:1; transform: translateY(0); }
@@ -565,11 +576,6 @@ a{ color:inherit; }
 .wish-name{
   font-size:13px; font-weight:600; margin:0 0 4px;
   color: var(--forest);
-}
-.wish-attendance{
-  font-size:11px; color: var(--blush);
-  font-weight:500; margin-left:6px;
-  text-transform:uppercase; letter-spacing:0.03em;
 }
 .wish-text{ font-size:13px; color: var(--ink); margin:0; line-height:1.6; }
 

@@ -167,7 +167,7 @@ document.querySelectorAll('.copy-btn').forEach(function (btn) {
 // ---------- RSVP & UCAPAN (Firebase: undangan/rsvp) ----------
 var rsvpRef = db.ref(UNDANGAN_PATH + '/rsvp');
 var wishListEl = document.getElementById('wishList');
-var ATTENDANCE_LABEL = { hadir: 'Hadir', ragu: 'Masih Ragu', tidak: 'Tidak Hadir' };
+var ATTENDANCE_CLASS = { hadir: 'wish-card--hadir', ragu: 'wish-card--ragu', tidak: 'wish-card--tidak' };
 
 function renderWishList(wishesObj) {
   var wishes = Object.keys(wishesObj || {}).map(function (id) {
@@ -181,8 +181,8 @@ function renderWishList(wishesObj) {
   }
 
   wishListEl.innerHTML = wishes.map(function (w) {
-    return '<div class="wish-card">' +
-      '<p class="wish-name">' + escapeHtml(w.name) + '<span class="wish-attendance">' + (ATTENDANCE_LABEL[w.attendance] || '') + '</span></p>' +
+    return '<div class="wish-card ' + (ATTENDANCE_CLASS[w.attendance] || '') + '">' +
+      '<p class="wish-name">' + escapeHtml(w.name) + '</p>' +
       '<p class="wish-text">' + escapeHtml(w.message) + '</p>' +
       '</div>';
   }).join('');
