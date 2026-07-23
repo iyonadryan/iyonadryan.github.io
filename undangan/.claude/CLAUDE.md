@@ -8,7 +8,7 @@ Prototype pertama dibuat lewat permintaan terbuka ("desain modern minimalis ala 
 
 1. Palet warna awal: ivory/cream + sage + gold + terracotta.
 2. User kasih referensi gambar (mockup undangan bertema floral pink+hijau eucalyptus, tombol olive-green, nama mempelai script hijau tua) → palet diganti total mengikuti itu (lihat "Palet Warna").
-3. Nama mempelai diisi data asli: **Adryan Luthfi Faiz** & **Suci Wulandari**, lalu detail orang tua & IG asli menyusul.
+3. Nama mempelai diisi data asli: **Adryan Luthfi Faiz** & **Suci Wulandari**, lalu detail orang tua & IG asli menyusul (link IG `<a href="#">` placeholder sempat lama gak diisi — SUDAH diisi link asli belakangan, lihat poin 16).
 4. Galeri diisi 6 foto prewedding asli dari `gallery/` (awalnya placeholder kotak abu-abu).
 5. Tanggal & jam akad diperbarui ke data asli: **Minggu, 2 Agustus 2026**, Akad 09.00 WIB.
 6. Foto profil bulat kedua mempelai (`.couple-photo`) **sempat sengaja dibiarkan placeholder** ("Foto Pria"/"Foto Wanita") — user eksplisit minta dibiarkan placeholder dulu, belum ada foto individual yg mau dipasang di situ (beda dari galeri yg sudah diisi foto asli). **SUDAH DIISI** foto asli belakangan — lihat poin 15 & "Foto Profil Mempelai (`photo/`)".
@@ -21,6 +21,7 @@ Prototype pertama dibuat lewat permintaan terbuka ("desain modern minimalis ala 
 13. Sempat ada **2 varian desain alternatif** (`index2.html`+`style2.css`+`script2.js` bertema kawung, `index3.html`+`style3.css`+`script3.js` bertema leaf minimalis — dibuat sekali di awal utk dibandingkan, JS-nya SELALU byte-identik dgn `script.js`) — **SUDAH DIHAPUS** (permintaan eksplisit user: "yang dipake sekarang index.html") begitu `index.html` (varian adat Jawa+Padang penuh, lihat "Unsur Adat") ditetapkan sbg yg dipakai final. Semua fitur/perbaikan yg sblmnya diterapkan "ke-3 varian sekaligus" (Nama Tamu dari URL, Optimasi Galeri WebP, Kirim Kado Fisik, Musik Latar, dst — lihat section masing2) sekarang **cuma relevan utk `index.html`/`style.css`/`script.js`** — kalau baca riwayat perubahan lama di dokumen ini & ketemu "ke-3 file"/"index2.html"/"script3.js" dkk, itu peninggalan sblm penghapusan ini, sudah tidak berlaku lagi.
 14. Ikon play/pause musik direvisi 2x lagi (lihat "Ikon Play/Pause Tombol Musik"): dari glyph teks Unicode (`▶︎`/`❚❚`) sempat py masalah ukuran gak konsisten & animasi putar dianggap kurang bagus → diganti bentuk CSS geometris murni (segitiga + 2 batang), STATIS tanpa animasi.
 15. User nambah 2 foto asli baru ke folder baru `photo/` (`MONO0919-Edit.jpg` = mempelai pria, `MONO0927-Edit.jpg` = mempelai wanita) → di-duplikat jd WebP resolusi lebih kecil (pola sama persis dgn `gallery/`, lihat "Optimasi Galeri (WebP)"), lalu di-crop bagian wajah jd `photo/groom-face.webp` & `photo/bride-face.webp`, dipasang ke `.couple-photo` (`index.html`) gantiin placeholder "Foto Pria"/"Foto Wanita" dari poin 6 — lihat "Foto Profil Mempelai (`photo/`)".
+16. Link IG di `.couple-social` (section "Kedua Mempelai") diisi data asli: `<a href="#">` placeholder → `https://www.instagram.com/iyonadryanlf/` (Adryan) & `https://www.instagram.com/wulanshii/` (Suci), keduanya ditambah `target="_blank" rel="noopener noreferrer"` spy kebuka tab baru (permintaan eksplisit user) drpd navigasi keluar dari halaman undangan di tab yg sama.
 
 ## Struktur file
 
