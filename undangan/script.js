@@ -1,13 +1,13 @@
-// ---------- GUEST NAME FROM URL (?tamu=NamaTamu) ----------
+// ---------- GUEST NAME FROM URL (?to=NamaTamu) ----------
 // Permintaan eksplisit user — link undangan per-tamu bisa personalisasi
-// sapaan cover, mis. ?tamu=BapakHaji. `URLSearchParams` otomatis decode
-// %20/+ jadi spasi (jadi ?tamu=Bapak+Haji atau ?tamu=Bapak%20Haji sama2
+// sapaan cover, mis. ?to=BapakHaji. `URLSearchParams` otomatis decode
+// %20/+ jadi spasi (jadi ?to=Bapak+Haji atau ?to=Bapak%20Haji sama2
 // jadi "Bapak Haji"), ditulis apa adanya via textContent (BUKAN innerHTML,
 // otomatis aman dari HTML injection walau isi param sembarangan). Kalau
 // param tidak ada/kosong → placeholder "Tamu Undangan" bawaan di HTML tetap
 // dipakai, tidak disentuh sama sekali.
 (function () {
-  var tamu = new URLSearchParams(window.location.search).get('tamu');
+  var tamu = new URLSearchParams(window.location.search).get('to');
   if (!tamu) return;
   tamu = tamu.trim();
   if (!tamu) return;
