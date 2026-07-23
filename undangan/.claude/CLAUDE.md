@@ -11,7 +11,7 @@ Prototype pertama dibuat lewat permintaan terbuka ("desain modern minimalis ala 
 3. Nama mempelai diisi data asli: **Adryan Luthfi Faiz** & **Suci Wulandari**, lalu detail orang tua & IG asli menyusul.
 4. Galeri diisi 6 foto prewedding asli dari `gallery/` (awalnya placeholder kotak abu-abu).
 5. Tanggal & jam akad diperbarui ke data asli: **Minggu, 2 Agustus 2026**, Akad 09.00 WIB.
-6. Foto profil bulat kedua mempelai (`.couple-photo`) **sengaja masih placeholder** ("Foto Pria"/"Foto Wanita") — user eksplisit minta dibiarkan placeholder dulu, belum ada foto individual yg mau dipasang di situ (beda dari galeri yg sudah diisi foto asli).
+6. Foto profil bulat kedua mempelai (`.couple-photo`) **sempat sengaja dibiarkan placeholder** ("Foto Pria"/"Foto Wanita") — user eksplisit minta dibiarkan placeholder dulu, belum ada foto individual yg mau dipasang di situ (beda dari galeri yg sudah diisi foto asli). **SUDAH DIISI** foto asli belakangan — lihat poin 15 & "Foto Profil Mempelai (`photo/`)".
 7. RSVP & Ucapan disambungkan ke **Firebase Realtime Database** (path `undangan/rsvp`) — awalnya cuma demo client-side (hilang kalau refresh), sekarang submit beneran tersimpan & tersinkron realtime ke semua yg buka halaman (lihat "RSVP & Ucapan").
 8. Ditambah **panel admin terpisah** (`rsvp.html`) utk memantau semua data RSVP yg masuk — view-only, realtime, blm ada proteksi login (lihat "Panel Admin").
 9. Panel admin dikasih **gerbang PIN 6-digit** (`190723`) + lockout 1 menit stlh 3x salah — lihat "Proteksi PIN".
@@ -19,6 +19,8 @@ Prototype pertama dibuat lewat permintaan terbuka ("desain modern minimalis ala 
 11. Palet & motif kawung diganti lagi mengikuti referensi konkret tema "Adat Jawa" weddingbestie.id (screenshot + link dari user) — palet jadi sogan/blush/maroon/emas, motif kawung → belah-ketupat ramping, ditambah **2 ilustrasi bunga asli** (`asset/*.webp`) mengapit cover. Siluet gonjong (Padang) tetap dipertahankan. Lihat "Unsur Adat" bagian Tahap 2.
 12. User nambah 8 aset baru (`asset/java-heritage-*.webp` + `JAWA-PATTERN.png`) & komplain background section2 setelah cover masih polos → semua aset dipasang menyebar di tiap section (bkn cuma cover), 1 aset (`java-heritage-PATTERN.webp`) dipakai sbg tekstur berulang di **semua** section. Nemu & benerin 1 bug stacking-context nyata (bkn cuma CSS bawaan browser) — lihat "Unsur Adat" bagian Tahap 3.
 13. Sempat ada **2 varian desain alternatif** (`index2.html`+`style2.css`+`script2.js` bertema kawung, `index3.html`+`style3.css`+`script3.js` bertema leaf minimalis — dibuat sekali di awal utk dibandingkan, JS-nya SELALU byte-identik dgn `script.js`) — **SUDAH DIHAPUS** (permintaan eksplisit user: "yang dipake sekarang index.html") begitu `index.html` (varian adat Jawa+Padang penuh, lihat "Unsur Adat") ditetapkan sbg yg dipakai final. Semua fitur/perbaikan yg sblmnya diterapkan "ke-3 varian sekaligus" (Nama Tamu dari URL, Optimasi Galeri WebP, Kirim Kado Fisik, Musik Latar, dst — lihat section masing2) sekarang **cuma relevan utk `index.html`/`style.css`/`script.js`** — kalau baca riwayat perubahan lama di dokumen ini & ketemu "ke-3 file"/"index2.html"/"script3.js" dkk, itu peninggalan sblm penghapusan ini, sudah tidak berlaku lagi.
+14. Ikon play/pause musik direvisi 2x lagi (lihat "Ikon Play/Pause Tombol Musik"): dari glyph teks Unicode (`▶︎`/`❚❚`) sempat py masalah ukuran gak konsisten & animasi putar dianggap kurang bagus → diganti bentuk CSS geometris murni (segitiga + 2 batang), STATIS tanpa animasi.
+15. User nambah 2 foto asli baru ke folder baru `photo/` (`MONO0919-Edit.jpg` = mempelai pria, `MONO0927-Edit.jpg` = mempelai wanita) → di-duplikat jd WebP resolusi lebih kecil (pola sama persis dgn `gallery/`, lihat "Optimasi Galeri (WebP)"), lalu di-crop bagian wajah jd `photo/groom-face.webp` & `photo/bride-face.webp`, dipasang ke `.couple-photo` (`index.html`) gantiin placeholder "Foto Pria"/"Foto Wanita" dari poin 6 — lihat "Foto Profil Mempelai (`photo/`)".
 
 ## Struktur file
 
@@ -36,6 +38,11 @@ undangan/
     MONO0889-Edit.jpg, MONO0896-Edit.jpg, MONO0902-Edit.jpg       # tidak direferensikan HTML lagi
     0K0A3202-Edit.webp, 0K0A3216-Edit.webp, 0K0A3227-Edit.webp,   # dipakai situs (lihat
     MONO0889-Edit.webp, MONO0896-Edit.webp, MONO0902-Edit.webp   # "Optimasi Galeri (WebP)")
+  photo/           # foto individual mempelai (lihat "Foto Profil Mempelai")
+    MONO0919-Edit.jpg, MONO0919-Edit.webp   # mempelai pria — jpg ARSIP resolusi penuh, webp duplikat kecil
+    MONO0927-Edit.jpg, MONO0927-Edit.webp   # mempelai wanita — sama pola dgn di atas
+    groom-face.webp                          # crop wajah dari MONO0919, dipakai `.couple-photo` index.html
+    bride-face.webp                          # crop wajah dari MONO0927, dipakai `.couple-photo` index.html
   asset/           # ilustrasi adat (webp, alpha transparan) tersebar di semua section — lihat "Unsur Adat"
     crescent-arch.webp, rose-spray.webp          # cover (Tahap 2)
     java-heritage-COUPLE-1.webp                    # section Mempelai (kiri-atas)
@@ -163,7 +170,7 @@ User nambah 8 file baru ke `asset/` (`java-heritage-COUPLE-1..4.webp`, `java-her
 
 - 6 foto asli, ditampilkan grid 3 kolom (`.gallery-grid`, `aspect-ratio:1/1`, `object-fit:cover`) — `<img src="gallery/*.webp">` di `index.html` (lihat "Optimasi Galeri (WebP)" di bawah utk kenapa `.webp`, bukan `.jpg` lagi).
 - Tiap foto dibungkus `<button class="gallery-item">` (bukan `<div>`) supaya bisa diklik & accessible (fokus keyboard). Klik → `#lightbox` overlay fullscreen (`script.js`, IIFE "GALLERY LIGHTBOX"): set `src`/`alt` dari `<img>` yg diklik (baca `img.src` APA ADANYA, jadi otomatis ikut `.webp` tanpa perlu sentuh JS sama sekali), toggle class `.open`. Tutup lewat tombol ✕, klik area gelap di luar gambar, atau tombol **Esc**.
-- Foto profil bulat mempelai (`.couple-photo`, section "Kedua Mempelai") **beda dari galeri** — itu masih placeholder teks ("Foto Pria"/"Foto Wanita"), **sengaja belum diisi** foto asli (lihat "Status saat ini" poin 6).
+- Foto profil bulat mempelai (`.couple-photo`, section "Kedua Mempelai") **beda dari galeri** — bukan bagian dari `.gallery-grid`/lightbox, foto individual sendiri (crop wajah), lihat "Foto Profil Mempelai (`photo/`)" di bawah.
 
 ### Optimasi Galeri (WebP)
 
@@ -175,6 +182,18 @@ Permintaan eksplisit user — 6 foto asli (`gallery/*.jpg`, LANGSUNG dari kamera
 - **HTML** (`index.html`, `<img src="gallery/*.jpg">` → `.webp`) — SATU-SATUNYA perubahan yg diperlukan; `script.js` (lightbox) **TIDAK PERLU diubah** krn baca `img.src` dinamis, otomatis ikut apa pun ekstensi yg ada di HTML.
 - **Diuji eksplisit** (Playwright + Edge headless): semua 6 request gambar galeri TERBUKTI HTTP 200 dgn `content-type: image/webp`, tiap `<img>` TERBUKTI `complete:true` dgn dimensi 1333×2000, klik galeri → lightbox TERBUKTI nampilin file `.webp` yg sama (bukan fallback ke jpg lama) — screenshot grid & lightbox dua2nya TERBUKTI tampil bersih tanpa artefak.
 - **Kalau nanti mau folder lebih ringan lagi** (`.jpg` asli 57MB msh nyisa di `gallery/`, disengaja dipertahankan sbg arsip resolusi penuh) — tinggal dihapus manual kapan saja, TIDAK ada referensi apa pun lagi ke file itu di kode (aman dihapus tanpa merusak apa pun) — belum dihapus di sini krn user secara eksplisit minta "duplikat", bukan "ganti/hapus".
+
+## Foto Profil Mempelai (`photo/`)
+
+Mengisi placeholder `.couple-photo` ("Foto Pria"/"Foto Wanita", lihat "Status saat ini" poin 6 & 15) dgn foto asli — user nambah 2 foto baru ke folder baru `undangan/photo/`: `MONO0919-Edit.jpg` (mempelai pria, Adryan, 4249×6373, 11.07MB) & `MONO0927-Edit.jpg` (mempelai wanita, Suci, 4439×6658, 13.29MB). Prosesnya **2 tahap terpisah**, jangan dikira 1 langkah:
+
+1. **Duplikat WebP full-frame** — pola PERSIS sama dgn "Optimasi Galeri (WebP)" di atas (`sharp`, resize max 2000px sisi terpanjang `fit:'inside'`, kualitas 82): `MONO0919-Edit.webp` (130.1KB) & `MONO0927-Edit.webp` (145.2KB) DIBUAT sbg duplikat, `.jpg` asli TETAP ADA sbg arsip. **Tidak ada HTML yg mereferensikan 2 file full-frame ini** (beda dari `gallery/`, yg webp full-frame-nya beneran dipakai di grid) — di `photo/`, full-frame cuma bahan mentah utk tahap 2 (crop wajah), foto YANG DIPAKAI di situs adalah hasil crop-nya, bukan versi full-frame ini.
+2. **Crop wajah** dari `.jpg` ASLI (resolusi penuh, BUKAN dari `.webp` yg sudah di-resize tahap 1 — crop dari sumber resolusi tertinggi biar hasil akhir tetap tajam) pakai `sharp().extract({left,top,width,height})` lalu `.resize(400,400).webp({quality:88})` → `groom-face.webp` (27.0KB) & `bride-face.webp` (17.4KB). **Koordinat crop dicari via preview iteratif** (crop percobaan di-screenshot, dicek visual, disesuaikan sampai framing pas — bukan angka sekali tebak), hasil akhir: kotak persegi berpusat di wajah + sebagian penutup kepala/kerudung, cukup ruang di sekeliling drpd crop terlalu ketat mepet wajah (konsisten gaya "headshot", bukan cuma mata-hidung-mulut doang) — kedua crop dibuat dgn framing/zoom level SEPADAN (rasio wajah-thd-frame mirip) spy simetris pas ditampilkan berdampingan di section "Kedua Mempelai".
+3. **`index.html`**: `<div class="couple-photo"><span>Foto Pria</span></div>` / `...Foto Wanita...` → `<div class="couple-photo"><img src="photo/groom-face.webp" alt="Adryan Luthfi Faiz"></div>` / `...bride-face.webp" alt="Suci Wulandari"...` — placeholder `<span>` teks dihapus total, gantiin `<img>`.
+4. **`style.css`** `.couple-photo`: ditambah `overflow:hidden` (spy `<img>` kepotong rapi ikut bentuk lingkaran, container-nya sendiri TETAP dipertahankan `width:96px;height:96px;border-radius:50%` — jadi kalau `<img>` gagal load, background gradient lama tetap kelihatan sbg fallback graceful) + rule baru `.couple-photo img{ width:100%; height:100%; object-fit:cover; }` (isi penuh lingkaran, crop otomatis ikut bentuk kontainer kalau rasio sedikit meleset, walau harusnya udah persegi pas dari tahap crop).
+- **Kenapa 400×400, bukan lebih kecil/besar**: `.couple-photo` tampil di CSS cuma `96px` — tapi retina/HiDPI display butuh ±2-3x resolusi native spy tetap tajam, 400px (±4.2x) kasih ruang lebih dari cukup tanpa file jadi besar (27KB/17.4KB, jauh di bawah threshold yg perlu dikhawatirkan).
+- **Diuji eksplisit** (Playwright + Edge headless): kedua `<img>` TERBUKTI `complete:true`, `naturalWidth`/`naturalHeight` `400×400`, tanpa `pageerror`; screenshot section "Kedua Mempelai" (kedua kartu) TERBUKTI foto tampil bersih dlm bingkai lingkaran, wajah dua2nya proporsional/tidak terpotong aneh, framing kartu pria & wanita terlihat sepadan/konsisten.
+- **Kalau nanti user nambah foto profil lagi/ganti foto** (mis. gara2 hasil crop kurang pas atau foto diganti sesi lain): ulangi 2 tahap yg sama (duplikat webp dulu, baru crop wajah manual dgn preview iteratif) — TIDAK ada cara otomatis deteksi wajah di pipeline ini (semua koordinat crop dicari manual via preview, bukan face-detection library).
 
 ## RSVP & Ucapan (Firebase)
 
@@ -275,13 +294,8 @@ Waktu venue diganti ke Masjid Raya Al Ikhlas (lihat "Data acara"), field `&locat
 
 `.cover{ display:flex; ... }` (utk centering konten) **menang atas** attribute `hidden` bawaan browser (`[hidden]{display:none}`) krn spesifisitas CSS sama (class selector vs attribute selector, keduanya (0,1,0)) dan aturan `.cover` di stylesheet penulis datang setelah UA stylesheet default — akibatnya cover tidak benar-benar hilang stlh "Buka Undangan" diklik, cuma numpuk di atas/mendorong section berikutnya turun 100vh. **Sudah diperbaiki** dgn `[hidden]{ display:none !important; }` di baris awal `style.css`. Ini bug berulang yg sama persis pernah kejadian di `tool/generate-sql-query/` — **kalau bikin file HTML/CSS baru lain di repo ini yg pakai kombinasi `hidden` attribute + elemen ber-`display:flex/grid` eksplisit, selalu tambahkan rule `[hidden]{display:none!important}` di awal**, jangan asumsikan `hidden` otomatis menang.
 
-## Placeholder yang masih tersisa
-
-- Foto profil bulat kedua mempelai (`.couple-photo`) — sengaja dibiarkan, lihat "Status saat ini".
-
 ## Rencana / TODO ke depan
 
-- Isi placeholder yg tersisa di atas begitu user kasih datanya.
 - **Auth Firebase**: sama spt app lain, path `undangan` di Realtime Database masih publik readable/writable tanpa proteksi rules — perlu ditambah rules kalau mau dibatasi (mis. rate-limit submit, validasi field wajib ada). **Beda dari** proteksi PIN `rsvp.html` (lihat "Proteksi PIN") — PIN cuma ngunci tampilan UI-nya, data mentahnya di Firebase tetap bisa diakses langsung via REST API/devtools oleh siapa pun yg tau `databaseURL` (sama kayak semua app lain di repo ini), PIN bukan pengganti Firebase rules.
 - Panel admin blm ada fitur hapus/edit data (view-only, lihat "Panel Admin") — tambahkan kalau user minta, pola tombol hapus + `openConfirm()` sudah ada presedennya di app lain (`app/wishlist`, dst).
 - Belum ada moderasi ucapan (semua submit langsung tampil ke publik tanpa direview) — kalau nanti butuh, bisa tambah field `approved:boolean` + filter di `renderWishList()`/`renderList()`.
