@@ -684,6 +684,12 @@ a{ color:inherit; }
   margin:0 0 8px;
   font-weight:600;
 }
+.gift-logo{
+  display:block;
+  height:26px;
+  width:auto;
+  margin:0 auto 10px;
+}
 .gift-number{
   font-family: var(--serif);
   font-size:20px;

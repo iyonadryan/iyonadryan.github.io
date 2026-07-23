@@ -22,6 +22,7 @@ Prototype pertama dibuat lewat permintaan terbuka ("desain modern minimalis ala 
 14. Ikon play/pause musik direvisi 2x lagi (lihat "Ikon Play/Pause Tombol Musik"): dari glyph teks Unicode (`▶︎`/`❚❚`) sempat py masalah ukuran gak konsisten & animasi putar dianggap kurang bagus → diganti bentuk CSS geometris murni (segitiga + 2 batang), STATIS tanpa animasi.
 15. User nambah 2 foto asli baru ke folder baru `photo/` (`MONO0919-Edit.jpg` = mempelai pria, `MONO0927-Edit.jpg` = mempelai wanita) → di-duplikat jd WebP resolusi lebih kecil (pola sama persis dgn `gallery/`, lihat "Optimasi Galeri (WebP)"), lalu di-crop bagian wajah jd `photo/groom-face.webp` & `photo/bride-face.webp`, dipasang ke `.couple-photo` (`index.html`) gantiin placeholder "Foto Pria"/"Foto Wanita" dari poin 6 — lihat "Foto Profil Mempelai (`photo/`)".
 16. Link IG di `.couple-social` (section "Kedua Mempelai") diisi data asli: `<a href="#">` placeholder → `https://www.instagram.com/iyonadryanlf/` (Adryan) & `https://www.instagram.com/wulanshii/` (Suci), keduanya ditambah `target="_blank" rel="noopener noreferrer"` spy kebuka tab baru (permintaan eksplisit user) drpd navigasi keluar dari halaman undangan di tab yg sama.
+17. User nambah 2 logo bank resmi ke folder baru `logo/` (`logo-bank-bni.png`, `logo-bank-bca.png`) → di-trim+resize+konversi WebP (pola sama dgn foto lain di repo ini), dipasang di kartu "Amplop Digital" di bawah teks nama bank, di atas nomor rekening — lihat "Logo Bank".
 
 ## Struktur file
 
@@ -44,6 +45,9 @@ undangan/
     MONO0927-Edit.jpg, MONO0927-Edit.webp   # mempelai wanita — sama pola dgn di atas
     groom-face.webp                          # crop wajah dari MONO0919, dipakai `.couple-photo` index.html
     bride-face.webp                          # crop wajah dari MONO0927, dipakai `.couple-photo` index.html
+  logo/            # logo resmi bank, alpha transparan (lihat "Amplop Digital")
+    logo-bank-bni.png, logo-bank-bni.webp   # png asli dari user (arsip) + webp ter-trim&resize dipakai situs
+    logo-bank-bca.png, logo-bank-bca.webp   # sama pola dgn di atas
   asset/           # ilustrasi adat (webp, alpha transparan) tersebar di semua section — lihat "Unsur Adat"
     crescent-arch.webp, rose-spray.webp          # cover (Tahap 2)
     java-heritage-COUPLE-1.webp                    # section Mempelai (kiri-atas)
@@ -259,6 +263,15 @@ Kartu bank (`.gift-card`) tiap punya tombol "Salin Nomor"/"Salin Alamat" (`.copy
 - **Suci Wulandari** — Bank **BCA**, `6310363331`
 
 `<p class="gift-number">` (versi tampil) SEKARANG SAMA PERSIS dgn `data-copy` (dipakai tombol Salin) — **TANPA spasi pengelompokan** (permintaan eksplisit user susulan, sebelumnya sempat ditampilkan dgn spasi mis. `836 097 456` lalu diminta dihapus) — jadi cuma ada **1 bentuk angka** yg perlu dijaga sinkron, bukan 2 format beda. Kalau nomor rekening berubah lagi nanti, wajib update KEDUA atribut (`gift-number` & `data-copy`, isinya SEKARANG identik) di `index.html`.
+
+### Logo Bank
+
+User nambah 2 file logo resmi ke folder baru `undangan/logo/` (`logo-bank-bni.png`, `logo-bank-bca.png` — keduanya lockup horizontal "ikon + wordmark", py alpha channel transparan asli dari sumbernya, dikonfirmasi via `sharp` cek RGBA pojok = `[255,255,255,0]`, BUKAN cuma putih opaque). Diminta ditaruh **di bawah teks nama bank** ("Bank BNI"/"Bank BCA"), di ATAS nomor rekening.
+
+- **Diproses dulu sblm dipakai** (`sharp`, sama precedent dgn foto/galeri lain di repo ini): `.trim()` (buang padding transparan berlebih di sekeliling logo — PNG asli py banyak ruang kosong, `logo-bank-bni.png` dari `2000×1414` jadi `1528×443` stlh trim, `logo-bank-bca.png` `2000×627` sudah pas/gak berubah) → `.resize({width:480})` → `.webp({quality:90})` — hasil `logo-bank-bni.webp` (12.7KB) & `logo-bank-bca.webp` (23.7KB), alpha TETAP terjaga (WebP support transparansi sama spt PNG). **PNG asli TETAP ADA** di folder yg sama sbg arsip (pola sama dgn `gallery/`/`photo/` — duplikat, bukan replace), yg dipakai HTML cuma versi `.webp`.
+- **HTML** (`index.html`, 2 kartu bank): `<img class="gift-logo" src="logo/logo-bank-bni.webp" alt="Logo Bank BNI">` / `...logo-bank-bca.webp" alt="Logo Bank BCA"...` disisipkan di ANTARA `<p class="gift-bank">` & `<p class="gift-number">`. Kartu ke-3 (Kirim Kado Fisik, lihat di bawah) **TIDAK dikasih logo** — bukan kartu bank, gak relevan.
+- **CSS** (`style.css`) — class baru `.gift-logo{ display:block; height:26px; width:auto; margin:0 auto 10px; }`: tinggi FIXED `26px` biar 2 logo yg rasio aspeknya beda (BNI trimmed ±3.45:1, BCA ±3.2:1 — mirip tapi gak identik) tetap konsisten tingginya walau lebarnya beda dikit (89.8px vs 83.2px dirender, selisih wajar krn beda logo, bukan bug); `width:auto` biar `object-fit` gak perlu, proporsi asli logo terjaga apa adanya (gak digepengin/diregangin). **`margin:0 auto`, BUKAN cuma `text-align:center` dari `.section`/`.gift-card` (yg cuma efektif ke inline/inline-block, TIDAK ke `display:block`)** — gotcha sempat kejadian: logo awalnya nempel rata kiri padahal teks "BANK BNI"/"BANK BCA" di atasnya kelihatan center, krn `<img>`-nya `display:block` py lebar intrinsik < lebar card, `text-align:center` parent gak ngefek ke situ, HARUS `margin-left:auto;margin-right:auto` eksplisit di elemen block itu sendiri.
+- **Diuji eksplisit** (Playwright + Edge headless): kedua `<img>` TERBUKTI `complete:true` dgn dimensi asli `480×139`/`480×150`, TANPA `pageerror`; screenshot section Amplop Digital TERBUKTI kedua logo tampil bersih dgn background transparan (nyatu mulus dgn `.gift-card` yg berwarna `var(--card)`, gak ada kotak putih solid yg keliatan mismatch), tinggi render konsisten `26px` di kedua logo.
 
 ### Kirim Kado Fisik (kartu ke-3, alamat)
 
