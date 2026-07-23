@@ -618,7 +618,7 @@ a{ color:inherit; }
   text-align:left;
   margin-top:18px;
   display:flex; flex-direction:column; gap:10px;
-  max-height:480px;
+  max-height:300px;
   overflow-y:auto;
   padding-right:4px;
 }
@@ -735,14 +735,24 @@ a{ color:inherit; }
   cursor:pointer;
   box-shadow: var(--shadow-md);
 }
-.music-toggle .disc{
-  width:24px; height:24px;
-  fill:none; stroke:#fff; stroke-width:1.4;
+/* Ikon play/pause (permintaan eksplisit user, gantiin SVG disc+dot yg
+   dianggap kurang jelas) — 2 glyph teks ditumpuk, cuma 1 yg kelihatan
+   tergantung status `.playing` di tombol induknya. Animasi spin TETAP
+   dipertahankan (jg permintaan eksplisit user) — sama persis mekanismenya
+   dgn disc lama: `animation-play-state:paused` bawaan, baru `running` pas
+   `.playing`. */
+.music-toggle .music-icon{
+  display:none;
+  color:#fff;
+  font-size:18px;
+  line-height:1;
   animation: spin 3.2s linear infinite;
   animation-play-state:paused;
 }
-.music-toggle .disc-dot{ fill:#fff; stroke:none; }
-.music-toggle.playing .disc{ animation-play-state:running; }
+.music-toggle .music-icon-play{ display:block; }
+.music-toggle.playing .music-icon-play{ display:none; }
+.music-toggle.playing .music-icon-pause{ display:block; }
+.music-toggle.playing .music-icon{ animation-play-state:running; }
 @keyframes spin{ to{ transform: rotate(360deg); } }
 @media (max-width:560px){
   .music-toggle{ left:auto; right:18px; transform:none; }
@@ -767,7 +777,7 @@ a{ color:inherit; }
 .toast.show{ opacity:1; transform:translate(-50%, 0); }
 
 @media (prefers-reduced-motion: reduce){
-  .reveal, .reveal-in, .petal, .cd-num, .btn-open, .disc{ animation:none !important; transition:none !important; }
+  .reveal, .reveal-in, .petal, .cd-num, .btn-open, .music-icon{ animation:none !important; transition:none !important; }
   .reveal, .reveal-in{ opacity:1 !important; transform:none !important; }
 }
 

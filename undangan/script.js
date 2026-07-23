@@ -122,7 +122,7 @@ document.getElementById('addCalendarBtn').addEventListener('click', function () 
     '&text=' + encodeURIComponent('Pernikahan Adryan & Suci') +
     '&dates=' + start + '/' + end +
     '&details=' + encodeURIComponent('Akad Nikah & Resepsi Pernikahan Adryan & Suci') +
-    '&location=' + encodeURIComponent('Graha Kirana Ballroom, Jl. Riau No. 45, Bandung');
+    '&location=' + encodeURIComponent('Masjid Raya Al Ikhlas, Asrama Polri Ex Brimob, Jl. Kesatriaan Raya, RT.5/RW.7, Cilincing, Jakarta Utara 14120');
   window.open(url, '_blank', 'noopener,noreferrer');
 });
 
