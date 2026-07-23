@@ -160,7 +160,7 @@ async function copyText(text, label) {
 
 document.querySelectorAll('.copy-btn').forEach(function (btn) {
   btn.addEventListener('click', function () {
-    copyText(btn.dataset.copy, 'Nomor rekening');
+    copyText(btn.dataset.copy, btn.dataset.copyLabel || 'Nomor rekening');
   });
 });
 

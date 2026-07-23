@@ -684,6 +684,12 @@ a{ color:inherit; }
   color: var(--muted);
   margin:0 0 16px;
 }
+.gift-address-text{
+  font-size:14px;
+  color: var(--ink);
+  line-height:1.7;
+  margin:0 0 6px;
+}
 
 /* ---- Closing ---- */
 .closing-section{ background-color: var(--cream); padding-bottom:88px; }

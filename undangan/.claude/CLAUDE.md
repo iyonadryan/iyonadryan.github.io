@@ -156,9 +156,10 @@ User nambah 8 file baru ke `asset/` (`java-heritage-COUPLE-1..4.webp`, `java-her
 ## Data acara
 
 - **Tanggal**: Minggu, 2 Agustus 2026 (hari sengaja dikoreksi ke "Minggu" — dicek manual via `Date.prototype.toLocaleDateString('id-ID',{weekday:'long'})`, krn tanggal itu memang jatuh hari Minggu, bukan Sabtu spt asumsi awal placeholder).
-- **Akad Nikah**: 09.00 — 10.30 WIB, di kediaman mempelai wanita (alamat placeholder, blm data asli).
-- **Resepsi**: 11.00 — 14.00 WIB, Graha Kirana Ballroom (alamat placeholder, blm data asli).
-- Tombol "Lihat Lokasi" tiap acara → link Google Maps search query (`https://maps.google.com/?q=...`), **bukan** embed peta — cukup buka tab baru.
+- **Akad Nikah**: 09.00 — 10.30 WIB, **Masjid Raya Al Ikhlas** (data asli, menggantikan placeholder "kediaman mempelai wanita").
+- **Resepsi**: 11.00 — 14.00 WIB, **Masjid Raya Al Ikhlas** — **SAMA PERSIS lokasinya dgn Akad** (permintaan eksplisit user, beda dari placeholder lama yg py 2 venue beda — Kediaman Mempelai Wanita utk Akad, Graha Kirana Ballroom utk Resepsi).
+- **Alamat lengkap** (dipakai di `<p class="event-venue">`, 2× per file — Akad & Resepsi, sama persis di ke-3 varian `index.html`/`index2.html`/`index3.html`, HTML diedit manual 3x krn duplikat bukan shared): `Asrama Polri Ex Brimob, Jl. Kesatriaan Raya, RT.5/RW.7, Cilincing, Jakarta Utara 14120` — ditulis PERSIS dari input user, KECUALI "North Jakarta City" (bahasa Inggris asli dari user, kemungkinan hasil ekspor Google Maps locale Inggris) diterjemahkan ke **"Jakarta Utara"** spy konsisten dgn aturan "semua teks UI berbahasa Indonesia" — bagian lain (RT/RW, nama jalan, kode pos) dibiarkan APA ADANYA tanpa reformat, sama prinsipnya dgn alamat kirim kado (lihat "Kirim Kado Fisik").
+- **Tombol "Lihat Lokasi" (kedua acara) pakai link Google Maps SHARE asli dari user** (`https://maps.app.goo.gl/wWomQoFo3YL3nC1aA?g_st=ac`, format `maps.app.goo.gl` short-link) — **BUKAN LAGI** search query `https://maps.google.com/?q=...` yg dipakai placeholder lama (nama venue+alamat di-`+`-encode manual) — link share asli lebih akurat (nunjuk pin PERSIS, bukan hasil pencarian teks yg bisa meleset), dipakai apa adanya, sama persis di kedua kartu (Akad & Resepsi) & ke-3 varian file. **Kalau lokasi ganti lagi nanti**: link share Maps yg baru HARUS diminta ke user (bukan dikonstruksi manual dari nama+alamat spt sebelumnya), krn user secara eksplisit kasih link share, bukan minta di-generate dari teks alamat.
 
 ### Countdown & Add to Calendar (`script.js`)
 
@@ -223,13 +224,25 @@ Halaman ini **dikunci PIN 6-digit** (`190723`, hardcoded literal di `rsvp.js`) s
 
 ## Amplop Digital
 
-Kartu bank (`.gift-card`) tiap punya tombol "Salin Nomor" (`.copy-btn`, `data-copy="<nomor tanpa spasi>"`) → `copyText()` di `script.js`: coba `navigator.clipboard.writeText()`, fallback ke `textarea`+`execCommand('copy')` kalau gagal (pola sama persis dgn tool lain di `tool/`), feedback via toast kecil bawah layar.
+Kartu bank (`.gift-card`) tiap punya tombol "Salin Nomor"/"Salin Alamat" (`.copy-btn`, `data-copy="<teks yg disalin>"`) → `copyText()` di `script.js`: coba `navigator.clipboard.writeText()`, fallback ke `textarea`+`execCommand('copy')` kalau gagal (pola sama persis dgn tool lain di `tool/`), feedback via toast kecil bawah layar.
+
+- **Label toast per-tombol** (`data-copy-label`, permintaan eksplisit user susulan pas nambah kartu alamat di bawah) — listener `.copy-btn` (`script.js`) sekarang baca `btn.dataset.copyLabel || 'Nomor rekening'` (fallback ke label lama kalau atribut ini tidak ada, jadi 2 tombol bank yg SUDAH ADA duluan tidak perlu diubah HTML-nya sama sekali, otomatis tetap "Nomor rekening disalin"). Kartu alamat (lihat di bawah) pakai `data-copy-label="Alamat"` → toast "Alamat disalin", bukan ikut2an bilang "Nomor rekening disalin" yg keliru.
 
 **Data asli** (diisi menggantikan placeholder Bank Mandiri/BCA sebelumnya, sama persis di ke-3 varian `index.html`/`index2.html`/`index3.html` — inget, `gift-card` bukan bagian dari `script*.js` yg byte-identik, tapi HTML tiap file DIEDIT MANUAL 3x krn strukturnya duplikat, bukan shared):
 - **Adryan Luthfi Faiz** — Bank **BNI**, `836097456`
 - **Suci Wulandari** — Bank **BCA**, `6310363331`
 
 `<p class="gift-number">` (versi tampil) SEKARANG SAMA PERSIS dgn `data-copy` (dipakai tombol Salin) — **TANPA spasi pengelompokan** (permintaan eksplisit user susulan, sebelumnya sempat ditampilkan dgn spasi mis. `836 097 456` lalu diminta dihapus) — jadi cuma ada **1 bentuk angka** yg perlu dijaga sinkron, bukan 2 format beda. Kalau nomor rekening berubah lagi nanti, wajib update KEDUA atribut (`gift-number` & `data-copy`, isinya SEKARANG identik) di ke-3 file HTML sekaligus (6 tempat total: 2 kartu × 3 file).
+
+### Kirim Kado Fisik (kartu ke-3, alamat)
+
+Permintaan eksplisit user — ditanya dulu ("dipakai buat apa alamatnya?") krn ambigu antara ganti alamat Akad/Resepsi vs field baru, user pilih: **field baru khusus alamat kirim kado fisik** (bukan alamat acara Akad/Resepsi yg masih placeholder terpisah, lihat "Data acara"), berlaku sama utk kado dari pihak mempelai pria maupun wanita (1 alamat, bukan 2 alamat per keluarga).
+
+- **Kartu ke-3** ditambahkan SETELAH 2 kartu bank (`data-delay="5"`, lanjutan urutan reveal 3/4 yg sudah ada), REUSE class `.gift-card` (container sama) + `.gift-bank` (dipakai ulang sbg label judul "Kirim Kado Fisik", walau namanya "gift-**bank**" skrg isinya bukan nama bank) + `.gift-owner` (dipakai ulang sbg keterangan "Untuk mempelai pria & wanita") — class BARU cuma 1: **`.gift-address-text`** (font 14px, `color: var(--ink)`, `line-height:1.7` — beda dari `.gift-number` yg serif besar, krn isinya alamat panjang bukan angka rekening pendek) di `style.css`/`style2.css`/`style3.css`.
+- **Alamat**: `KP TANAH 80 NO.2 RT.010/RW.008 KLENDER DUREN SAWIT JAKARTA TIMUR DKI JAKARTA` — ditulis **PERSIS apa adanya** (all-caps, singkatan RT/RW dgn titik) sesuai input asli user, TIDAK diformat ulang (kapitalisasi/tanda baca) krn resiko salah transkripsi/tafsir struktur alamat (RT/RW mana, kelurahan/kecamatan mana) yg tidak eksplisit dijelaskan user — konsisten dgn prinsip "display = copy value, apa adanya" yg baru ditegaskan user di kartu bank (lihat di atas).
+- **`data-copy` SAMA PERSIS dgn teks yg ditampilkan** (bukan versi lain) — tombol "Salin Alamat" (`data-copy-label="Alamat"`, lihat di atas).
+- Sama persis di ke-3 varian `index.html`/`index2.html`/`index3.html` (HTML diedit manual 3x, bukan shared — sama pola dgn 2 kartu bank).
+- **Diuji eksplisit** (Playwright + Edge headless, ke-3 file): kartu ke-3 TERBUKTI muncul dgn label/teks alamat/tombol yg benar, `data-copy` SAMA PERSIS dgn teks tampil, klik "Salin Alamat" (izin clipboard di-`grantPermissions`) TERBUKTI nyalin teks yg benar ke clipboard SUNGGUHAN (dicek `navigator.clipboard.readText()`) & toast TERBUKTI muncul "Alamat disalin" (bukan "Nomor rekening disalin" yg keliru) — 2 tombol bank yg sudah ada TERBUKTI tidak terpengaruh (`copyLabel: null`, tetap fallback ke label lama).
 
 ## Musik Latar
 
