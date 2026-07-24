@@ -28,6 +28,7 @@ Prototype pertama dibuat lewat permintaan terbuka ("desain modern minimalis ala 
 20. User bandingin link undangan sendiri dgn punya temen pas di-share ke WhatsApp — punya temen nampilin card preview (judul, deskripsi, gambar), punya sendiri kosong cuma nampilin URL mentah. Ditambahkan **Open Graph & Twitter Card meta tags** + 1 gambar preview baru (`asset/og-image.jpg`, crop landscape dari salah satu foto galeri) — lihat "Preview Link (Open Graph)".
 21. User nambah 6 foto baru ke folder baru `gallery2/` (`gallery_1.jpeg`...`gallery_6.jpeg`) → di-konversi WebP (pola sama dgn `gallery/`), 2 di antaranya (`gallery_2`, `gallery_3`) ternyata ada watermark kecil "AI-generated content" di pojok — DIHILANGKAN dulu (teknik clone-stamp manual via `sharp`) sblm dikonversi, baru semuanya dipasang gantiin isi section Galeri yg lama (`gallery/`) — lihat "Optimasi Galeri (WebP)" & "Watermark AI di `gallery2/`".
 22. Lagu latar diganti dari "Lagu Pernikahan Kita - Tiara Andini..." ke **"Banda Neira - Sampai Jadi Debu"** (permintaan eksplisit user) — cuma ganti `src` attribute `<audio id="bgm">`, gak ada perubahan lain — lihat "Musik Latar".
+23. Foto `.couple-photo` DIGANTI LAGI — user nambah folder baru `photo2/` (`groom.jpeg`/`bride.jpeg`, foto bust portrait studio SUDAH square 2731×2731) & minta pakai foto ini, TAPI eksplisit bilang **"gak perlu di-crop"** (beda dari `photo/` sblmnya yg emang di-crop wajah manual) — jadi cuma di-resize+convert WebP APA ADANYA (utuh, termasuk ruang kosong abu2 di atas kepala krn orangnya cuma isi ±2/3 bawah frame), TANPA crop wajah sama sekali. Lihat "Foto Profil Mempelai (`photo/`)" utk detail & perbandingan dgn pendekatan `photo/` yg lama.
 
 ## Struktur file
 
@@ -54,11 +55,14 @@ undangan/
                                           # gallery_3 sempat py watermark "AI-generated content" kecil
                                           # di pojok, SUDAH dihilangkan di kedua file (jpeg DAN webp) —
                                           # lihat "Watermark AI di gallery2/"
-  photo/           # foto individual mempelai (lihat "Foto Profil Mempelai")
+  photo/           # foto individual mempelai GENERASI PERTAMA — SUDAH TIDAK DIPAKAI (digantikan `photo2/`)
     MONO0919-Edit.jpg, MONO0919-Edit.webp   # mempelai pria — jpg ARSIP resolusi penuh, webp duplikat kecil
     MONO0927-Edit.jpg, MONO0927-Edit.webp   # mempelai wanita — sama pola dgn di atas
-    groom-face.webp                          # crop wajah dari MONO0919, dipakai `.couple-photo` index.html
-    bride-face.webp                          # crop wajah dari MONO0927, dipakai `.couple-photo` index.html
+    groom-face.webp                          # crop wajah dari MONO0919 — SUDAH TIDAK dipakai index.html
+    bride-face.webp                          # crop wajah dari MONO0927 — SUDAH TIDAK dipakai index.html
+  photo2/          # foto individual mempelai GENERASI KEDUA — INI yg dipakai `.couple-photo` skrg
+    groom.jpeg, groom.webp   # mempelai pria — bust portrait persegi 2731x2731, TANPA di-crop (permintaan
+    bride.jpeg, bride.webp   # mempelai wanita — sama pola, lihat "Foto Profil Mempelai" utk detail
   logo/            # logo resmi bank, alpha transparan (lihat "Amplop Digital")
     logo-bank-bni.png, logo-bank-bni.webp   # png asli dari user (arsip) + webp ter-trim&resize dipakai situs
     logo-bank-bca.png, logo-bank-bca.webp   # sama pola dgn di atas
@@ -225,7 +229,16 @@ User nambah 8 file baru ke `asset/` (`java-heritage-COUPLE-1..4.webp`, `java-her
 - **File YANG DIGANTI**: `.jpeg` ASLI (`gallery_2.jpeg`/`gallery_3.jpeg`) ditimpa langsung dgn versi watermark-free (BUKAN cuma versi `.webp`-nya doang) — krn watermark itu cacat yg mmg harus dibuang, bukan konten asli yg perlu diarsipkan apa adanya (beda prinsipnya dgn resize/compress yg emang sengaja diarsipkan versi mentahnya). WebP-nya lalu di-generate ULANG dari `.jpeg` yg udah bersih ini.
 - **Kalau nanti ada foto baru lain yg ternyata py watermark serupa** (dari AI tool apa pun) — pola yg sama bisa dipakai LAGI (clone-stamp same-row) SELAMA area watermarknya nempel di background polos/gradasi simpel; kalau watermarknya nimpa bagian penting foto (wajah, detail baju, dll) teknik simpel ini TIDAK akan cukup, perlu tools inpainting yg lebih canggih (di luar kemampuan sesi ini).
 
-## Foto Profil Mempelai (`photo/`)
+## Foto Profil Mempelai (`photo/` → SUDAH DIGANTI `photo2/`)
+
+**Generasi kedua (`photo2/`, INI YANG DIPAKAI SEKARANG)** — user nambah folder baru `photo2/` isi `groom.jpeg` & `bride.jpeg` (masing2 bust portrait studio, SUDAH square 2731×2731 dari sononya, background abu2 polos) & minta pakai foto ini, TAPI eksplisit **"gak perlu di-crop"** (beda arahan dari `photo/` sblmnya yg emang diminta crop wajah manual, lihat di bawah) — jadi cuma **resize+convert WebP APA ADANYA**, tanpa crop wajah sama sekali:
+
+- `groom.jpeg`/`bride.jpeg` → `sharp().resize(500,500).webp({quality:88})` → `photo2/groom.webp` (11.1KB) & `photo2/bride.webp` (8.4KB) — resize doang (gambar udah persegi, gak perlu `extract()`/crop apa pun), 500×500 dipilih sama alasannya dgn 400×400 di `photo/` dulu (retina-ready utk avatar 96px).
+- **`index.html`**: `<img src="photo/groom-face.webp">` / `bride-face.webp` → `<img src="photo2/groom.webp">` / `photo2/bride.webp` — cuma ganti `src`, `alt` & struktur lain tetap.
+- **Konsekuensi visual krn TANPA crop**: karena foto sumbernya bust-shot (orangnya cuma isi ±2/3 bagian bawah frame, sisanya background abu2 polos di atas kepala), begitu foto PERSEGI UTUH ini discale ke lingkaran `96px` (`.couple-photo img{object-fit:cover}` — tapi krn source-nya udah 1:1 SAMA PERSIS dgn box 1:1, `object-fit:cover` di sini PRAKTIS gak nge-crop apa2, cuma scale-down biasa), wajah tampil lebih kecil/gak "mengisi penuh" lingkaran dibanding pendekatan `photo/` yg lama (yg crop wajah ketat dulu sblm resize) — **ini konsekuensi yg DIKETAHUI & DITERIMA** krn user eksplisit minta versi tanpa-crop, BUKAN oversight. Kalau user berubah pikiran nanti minta wajah lebih dominan di lingkaran, tinggal ulangi pola crop manual spt `photo/` (lihat di bawah), sumbernya (`photo2/*.jpeg`) udah cukup resolusi tinggi (2731×2731) utk itu.
+- **`photo/` (generasi pertama) DIBIARKAN nganggur di repo** (TIDAK dihapus, cuma "diganti") — pola yg sama dgn `gallery/`→`gallery2/` & lagu lama di `music/`.
+
+### Generasi pertama (`photo/`, SUDAH TIDAK DIPAKAI) — histori pendekatan crop-wajah manual
 
 Mengisi placeholder `.couple-photo` ("Foto Pria"/"Foto Wanita", lihat "Status saat ini" poin 6 & 15) dgn foto asli — user nambah 2 foto baru ke folder baru `undangan/photo/`: `MONO0919-Edit.jpg` (mempelai pria, Adryan, 4249×6373, 11.07MB) & `MONO0927-Edit.jpg` (mempelai wanita, Suci, 4439×6658, 13.29MB). Prosesnya **2 tahap terpisah**, jangan dikira 1 langkah:
 
