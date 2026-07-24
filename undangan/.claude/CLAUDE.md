@@ -23,6 +23,8 @@ Prototype pertama dibuat lewat permintaan terbuka ("desain modern minimalis ala 
 15. User nambah 2 foto asli baru ke folder baru `photo/` (`MONO0919-Edit.jpg` = mempelai pria, `MONO0927-Edit.jpg` = mempelai wanita) → di-duplikat jd WebP resolusi lebih kecil (pola sama persis dgn `gallery/`, lihat "Optimasi Galeri (WebP)"), lalu di-crop bagian wajah jd `photo/groom-face.webp` & `photo/bride-face.webp`, dipasang ke `.couple-photo` (`index.html`) gantiin placeholder "Foto Pria"/"Foto Wanita" dari poin 6 — lihat "Foto Profil Mempelai (`photo/`)".
 16. Link IG di `.couple-social` (section "Kedua Mempelai") diisi data asli: `<a href="#">` placeholder → `https://www.instagram.com/iyonadryanlf/` (Adryan) & `https://www.instagram.com/wulanshii/` (Suci), keduanya ditambah `target="_blank" rel="noopener noreferrer"` spy kebuka tab baru (permintaan eksplisit user) drpd navigasi keluar dari halaman undangan di tab yg sama.
 17. User nambah 2 logo bank resmi ke folder baru `logo/` (`logo-bank-bni.png`, `logo-bank-bca.png`) → di-trim+resize+konversi WebP (pola sama dgn foto lain di repo ini), dipasang di kartu "Amplop Digital" di bawah teks nama bank, di atas nomor rekening — lihat "Logo Bank".
+18. Nama parameter URL personalisasi tamu diganti dari `?tamu=` ke `?to=` (permintaan eksplisit user) — lihat "Nama Tamu dari URL".
+19. User rencana pindah hosting dari GitHub Pages ke **cPanel** (hosting mandiri pertama kalinya bagi user) — sempat ditanya perlu `index.php` apa nggak (JAWABAN: TIDAK PERLU, situs statis murni, Apache/cPanel udah otomatis kenali `index.html` sbg default document), lalu diminta dibuatkan **halaman 404 custom** + cara ngarahin link salah ke situ — ditambah `404.html` & `.htaccess` (`ErrorDocument 404 /404.html`) — lihat "Hosting (cPanel)".
 
 ## Struktur file
 
@@ -61,6 +63,8 @@ undangan/
     JAWA-PATTERN.png                               # TIDAK dipakai — duplikat PATTERN.webp, lihat Tahap 3
   music/           # musik latar (lihat "Musik Latar")
     Lagu Pernikahan Kita - Tiara Andini ft. Arsy Widianto (Piano Cover) with Lyrics by AnggelMel.mp3
+  404.html         # halaman not-found custom, tema sama dgn index.html (lihat "Hosting (cPanel)")
+  .htaccess        # ErrorDocument 404 /404.html — cuma efektif di Apache/cPanel, GitHub Pages abaikan file ini
   .claude/
     CLAUDE.md       # file ini
 ```
@@ -308,6 +312,25 @@ Waktu venue diganti ke Masjid Raya Al Ikhlas (lihat "Data acara"), field `&locat
 ## Gotcha: `[hidden]` vs `display:flex`
 
 `.cover{ display:flex; ... }` (utk centering konten) **menang atas** attribute `hidden` bawaan browser (`[hidden]{display:none}`) krn spesifisitas CSS sama (class selector vs attribute selector, keduanya (0,1,0)) dan aturan `.cover` di stylesheet penulis datang setelah UA stylesheet default — akibatnya cover tidak benar-benar hilang stlh "Buka Undangan" diklik, cuma numpuk di atas/mendorong section berikutnya turun 100vh. **Sudah diperbaiki** dgn `[hidden]{ display:none !important; }` di baris awal `style.css`. Ini bug berulang yg sama persis pernah kejadian di `tool/generate-sql-query/` — **kalau bikin file HTML/CSS baru lain di repo ini yg pakai kombinasi `hidden` attribute + elemen ber-`display:flex/grid` eksplisit, selalu tambahkan rule `[hidden]{display:none!important}` di awal**, jangan asumsikan `hidden` otomatis menang.
+
+## Hosting (cPanel)
+
+User berencana pindah host situs ini dari GitHub Pages (host yg dipakai selama ini utk seluruh repo) ke **cPanel** miliknya sendiri — pengalaman hosting mandiri pertama bagi user, jadi banyak hal dasar (default document, custom error page) perlu dijelasin dari awal, bukan diasumsikan sudah tau.
+
+- **TIDAK PERLU `index.php`** — sempat ditanya user krn khawatir cPanel butuh PHP. Situs ini statis murni (HTML/CSS/JS vanilla, satu2nya "backend" cuma Firebase via CDN, lihat "RSVP & Ucapan"), dan Apache (web server dibalik hampir semua shared hosting cPanel) SECARA DEFAULT sudah kenali `index.html` sbg default document kalau folder diakses langsung — jadi upload `index.html` apa adanya, gak perlu rename/duplikat jd `.php`. **Sengaja TIDAK dibuatkan `index.php` duplikat** (walau user nawarin) — kalau dibuat, itu jadi 2 file yg isinya harus disinkron manual selamanya, persis masalah `index2.html`/`index3.html` yg baru aja dihapus (lihat "Status saat ini" poin 13) — pola yg mmg dihindari di folder ini.
+  - **Kalau di folder cPanel tujuan udah ADA `index.php`** (kadang cPanel taruh file placeholder "under construction" otomatis di `public_html` akun baru) — itu HARUS dihapus/ditimpa, krn urutan prioritas default `DirectoryIndex` Apache biasanya taruh `index.php` di atas `index.html` kalau dua2nya ada di folder yg sama, jadi `index.php` lama bakal kepilih drpd `index.html` situs ini.
+  - Konfirmasi dari user: undangan ini bakal diakses dari **domain/subdomain sendiri** (bukan subfolder kayak `domain.com/undangan/`) — jadi `index.html` & semua asetnya (`style.css`, `gallery/`, dst) ditaruh LANGSUNG di root folder hosting (`public_html/` akun/subdomain itu), path relatif yg udah dipakai di kode (`src="gallery/..."`, `href="style.css"`, dst — semua tanpa `/` di depan) otomatis udah benar tanpa perlu diubah.
+
+### Halaman 404 custom
+
+Permintaan eksplisit user susulan — kalau tamu buka link yg salah/rusak (typo, link lama yg udah gak berlaku, dst), defaultnya browser cuma nampilin pesan mentah "Not Found" bawaan server, gak sesuai tema situs. Solusinya 2 file baru:
+
+- **`404.html`** — halaman not-found custom, reuse `style.css` yg sama (`<link rel="stylesheet" href="style.css">`, jadi token warna/font otomatis konsisten & ikut berubah kalau palet diganti lagi nanti tanpa perlu disentuh) + sedikit CSS scoped di `<style>` inline (class `.notfound*`, cuma dipakai halaman ini) utk layout card sederhana: angka "404" besar (font serif maroon), judul "Halaman Tidak Ditemukan", 1 kalimat penjelasan Bahasa Indonesia, tombol "Kembali ke Undangan" (`href="index.html"`, reuse class `.btn-outline.btn-small` yg udah ada) — dihiasin 2 ilustrasi bunga yg SAMA dgn cover (`asset/crescent-arch.webp`/`asset/rose-spray.webp`, class `.cover-floral*` yg udah ada) spy nyambung visual dgn halaman utama, TANPA bikin aset/CSS baru khusus dekorasi.
+- **`.htaccess`** — isinya cuma 1 baris: `ErrorDocument 404 /404.html`. Ini directive Apache yg bilang "kalau ada request yg hasilnya 404 (halaman gak ketemu), tampilin isi `/404.html` ini drpd pesan default server". Path `/404.html` (absolut dari root domain) krn user konfirmasi undangan ini di-hosting di root domain/subdomain sendiri (lihat di atas) — **kalau nanti ternyata dipindah jd subfolder** (mis. `domain.com/undangan/`), path ini WAJIB diubah jd `/undangan/404.html`, TIDAK otomatis ikut nyesuain.
+- **Cara kerjanya di cPanel**: TIDAK PERLU setting apa pun lagi di panel cPanel — cukup upload `404.html` & `.htaccess` ke folder yg sama dgn `index.html` (root `public_html`-nya). Apache di cPanel SECARA DEFAULT baca `.htaccess` tiap folder otomatis (`AllowOverride All` sudah jadi konfigurasi standar hampir semua shared hosting cPanel justru SUPAYA fitur `.htaccess` kayak gini bisa jalan tanpa akses config server) — jadi begitu 2 file ini keupload, error 404 apa pun di domain itu otomatis kearah ke halaman custom ini, tanpa langkah manual tambahan di UI cPanel.
+- **`.htaccess` diawali titik (hidden file)** — di File Manager cPanel biasanya perlu toggle "Show Hidden Files" dulu spy kelihatan/bisa diupload lewat drag-drop UI; kalau upload via FTP client (FileZilla dkk) biasanya defaultnya udah kelihatan tanpa toggle apa pun.
+- **TIDAK berfungsi di GitHub Pages** (host lama repo ini) — GitHub Pages gak jalanin Apache/`.htaccess` sama sekali, jadi selama masih di GitHub Pages, `.htaccess` ini cuma file nganggur tanpa efek (gak error, cuma diabaikan). Baru aktif efeknya begitu situs ini beneran dipindah ke cPanel.
+- **Belum diuji di cPanel sungguhan** (blm ada akses hosting cPanel di sesi ini) — `404.html` udah divisualkan (Playwright screenshot, tampilan TERBUKTI sesuai desain: 404 besar, judul, teks, tombol, 2 ornamen bunga di pojok) tapi trigger `ErrorDocument`-nya (`.htaccess`) sendiri BELUM bisa dites end-to-end krn butuh server Apache sungguhan (static server lokal yg dipakai testing repo ini bukan Apache, gak baca `.htaccess`) — **kalau nanti sudah di-upload ke cPanel, coba akses link ngasal (mis. `domain.com/asdf123`) utk pastiin beneran kearah ke halaman custom ini, bukan pesan 404 bawaan server**.
 
 ## Rencana / TODO ke depan
 
