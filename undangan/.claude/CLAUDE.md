@@ -26,6 +26,7 @@ Prototype pertama dibuat lewat permintaan terbuka ("desain modern minimalis ala 
 18. Nama parameter URL personalisasi tamu diganti dari `?tamu=` ke `?to=` (permintaan eksplisit user) — lihat "Nama Tamu dari URL".
 19. User rencana pindah hosting dari GitHub Pages ke **cPanel** (hosting mandiri pertama kalinya bagi user) — sempat ditanya perlu `index.php` apa nggak (JAWABAN: TIDAK PERLU, situs statis murni, Apache/cPanel udah otomatis kenali `index.html` sbg default document), lalu diminta dibuatkan **halaman 404 custom** + cara ngarahin link salah ke situ — ditambah `404.html` & `.htaccess` (`ErrorDocument 404 /404.html`) — lihat "Hosting (cPanel)". Domain final yg dipakai: **`https://pernikahan-adryan-suci.my.id/`**.
 20. User bandingin link undangan sendiri dgn punya temen pas di-share ke WhatsApp — punya temen nampilin card preview (judul, deskripsi, gambar), punya sendiri kosong cuma nampilin URL mentah. Ditambahkan **Open Graph & Twitter Card meta tags** + 1 gambar preview baru (`asset/og-image.jpg`, crop landscape dari salah satu foto galeri) — lihat "Preview Link (Open Graph)".
+21. User nambah 6 foto baru ke folder baru `gallery2/` (`gallery_1.jpeg`...`gallery_6.jpeg`) → di-konversi WebP (pola sama dgn `gallery/`), 2 di antaranya (`gallery_2`, `gallery_3`) ternyata ada watermark kecil "AI-generated content" di pojok — DIHILANGKAN dulu (teknik clone-stamp manual via `sharp`) sblm dikonversi, baru semuanya dipasang gantiin isi section Galeri yg lama (`gallery/`) — lihat "Optimasi Galeri (WebP)" & "Watermark AI di `gallery2/`".
 
 ## Struktur file
 
@@ -38,11 +39,20 @@ undangan/
   rsvp.html        # panel admin — lihat semua data RSVP/ucapan yg masuk (lihat "Panel Admin")
   rsvp.css         # styling khusus panel admin (reuse token dari style.css)
   rsvp.js          # logic panel admin
-  gallery/         # 6 foto prewedding asli (dipakai di section Galeri)
+  gallery/         # 6 foto prewedding GENERASI PERTAMA — SUDAH TIDAK DIPAKAI di section Galeri lagi
+                     # (digantikan `gallery2/`, lihat poin 21 & "Optimasi Galeri (WebP)"), dibiarkan
+                     # nganggur di repo (bkn dihapus) krn user gak minta dihapus, cuma "diganti"
     0K0A3202-Edit.jpg, 0K0A3216-Edit.jpg, 0K0A3227-Edit.jpg,      # resolusi penuh, ARSIP —
     MONO0889-Edit.jpg, MONO0896-Edit.jpg, MONO0902-Edit.jpg       # tidak direferensikan HTML lagi
-    0K0A3202-Edit.webp, 0K0A3216-Edit.webp, 0K0A3227-Edit.webp,   # dipakai situs (lihat
-    MONO0889-Edit.webp, MONO0896-Edit.webp, MONO0902-Edit.webp   # "Optimasi Galeri (WebP)")
+    0K0A3202-Edit.webp, 0K0A3216-Edit.webp, 0K0A3227-Edit.webp,   # webp jg SUDAH TIDAK dipakai —
+    MONO0889-Edit.webp, MONO0896-Edit.webp, MONO0902-Edit.webp   # cuma sisa dari sblm ganti ke gallery2/
+  gallery2/        # 6 foto prewedding GENERASI KEDUA — INI yg dipakai di section Galeri skrg
+    gallery_1.jpeg ... gallery_6.jpeg   # asli dari user, resolusi lebih kecil dari `gallery/` lama
+                                          # (±30KB-850KB, bkn hasil kamera profesional 6-12MB), ARSIP
+    gallery_1.webp ... gallery_6.webp  # dipakai situs (lihat "Optimasi Galeri (WebP)"). gallery_2 &
+                                          # gallery_3 sempat py watermark "AI-generated content" kecil
+                                          # di pojok, SUDAH dihilangkan di kedua file (jpeg DAN webp) —
+                                          # lihat "Watermark AI di gallery2/"
   photo/           # foto individual mempelai (lihat "Foto Profil Mempelai")
     MONO0919-Edit.jpg, MONO0919-Edit.webp   # mempelai pria — jpg ARSIP resolusi penuh, webp duplikat kecil
     MONO0927-Edit.jpg, MONO0927-Edit.webp   # mempelai wanita — sama pola dgn di atas
@@ -180,20 +190,38 @@ User nambah 8 file baru ke `asset/` (`java-heritage-COUPLE-1..4.webp`, `java-her
 
 ## Galeri & Lightbox
 
-- 6 foto asli, ditampilkan grid 3 kolom (`.gallery-grid`, `aspect-ratio:1/1`, `object-fit:cover`) — `<img src="gallery/*.webp">` di `index.html` (lihat "Optimasi Galeri (WebP)" di bawah utk kenapa `.webp`, bukan `.jpg` lagi).
+- 6 foto asli, ditampilkan grid 3 kolom (`.gallery-grid`, `aspect-ratio:1/1`, `object-fit:cover`) — `<img src="gallery2/*.webp">` di `index.html` (lihat "Optimasi Galeri (WebP)" di bawah utk kenapa `.webp`, bukan `.jpg`/`.jpeg` lagi — DAN kenapa `gallery2/`, bukan `gallery/`).
 - Tiap foto dibungkus `<button class="gallery-item">` (bukan `<div>`) supaya bisa diklik & accessible (fokus keyboard). Klik → `#lightbox` overlay fullscreen (`script.js`, IIFE "GALLERY LIGHTBOX"): set `src`/`alt` dari `<img>` yg diklik (baca `img.src` APA ADANYA, jadi otomatis ikut `.webp` tanpa perlu sentuh JS sama sekali), toggle class `.open`. Tutup lewat tombol ✕, klik area gelap di luar gambar, atau tombol **Esc**.
 - Foto profil bulat mempelai (`.couple-photo`, section "Kedua Mempelai") **beda dari galeri** — bukan bagian dari `.gallery-grid`/lightbox, foto individual sendiri (crop wajah), lihat "Foto Profil Mempelai (`photo/`)" di bawah.
 
 ### Optimasi Galeri (WebP)
 
-Permintaan eksplisit user — 6 foto asli (`gallery/*.jpg`, LANGSUNG dari kamera profesional, resolusi 3615×5422/4439×6658, **6-12MB per file**, total ±57MB) terlalu besar utk situs mobile-first, bikin loading galeri lambat.
+**Generasi pertama (`gallery/`, SUDAH TIDAK DIPAKAI)** — permintaan eksplisit user, 6 foto asli (`gallery/*.jpg`, LANGSUNG dari kamera profesional, resolusi 3615×5422/4439×6658, **6-12MB per file**, total ±57MB) terlalu besar utk situs mobile-first, bikin loading galeri lambat.
 
-- **`gallery/*.webp` DIBUAT sbg DUPLIKAT baru** (bukan replace/hapus `.jpg` asli — permintaan eksplisit user "duplikat image", jadi `.jpg` resolusi penuh TETAP ADA di folder yg sama sbg arsip, cuma sudah TIDAK direferensikan dari HTML manapun lagi) — dihasilkan via `sharp` (`npm install sharp` sementara di scratchpad, bukan dependency permanen repo ini — project ini toh tanpa `package.json`/build tool, lihat "Tech Stack"): **resize max 2000px** (sisi terpanjang, `fit:'inside', withoutEnlargement:true` — proporsi tetap terjaga, tidak pernah diperbesar), **kualitas WebP 82**.
-- **Hasil: ±99% lebih kecil** (mis. `MONO0889-Edit.jpg` 12.21MB → `MONO0889-Edit.webp` 0.14MB) — total galeri jadi ±565KB drpd ±57MB, TANPA penurunan kualitas visual yg kentara (dicek visual langsung tiap hasil, foto studio terang MAUPUN foto gelap/monokrom yg rawan banding — dua2nya tetap tajam & bersih).
-- **Kenapa max 2000px cukup**: `.lightbox` (tampilan penuh foto) `position:fixed;inset:0` — bentang SELURUH viewport browser (BUKAN dibatasi `max-width:520px` bingkai halaman spt konten lain, lihat "Layout"), tapi foto berorientasi potret (rasio ±2:3) jadi 2000px di sisi terpanjang sudah lebih dari cukup utk tampilan penuh layar desktop manapun yg realistis, apalagi cuma thumbnail grid 3-kolom yg jauh lebih kecil lagi.
-- **HTML** (`index.html`, `<img src="gallery/*.jpg">` → `.webp`) — SATU-SATUNYA perubahan yg diperlukan; `script.js` (lightbox) **TIDAK PERLU diubah** krn baca `img.src` dinamis, otomatis ikut apa pun ekstensi yg ada di HTML.
-- **Diuji eksplisit** (Playwright + Edge headless): semua 6 request gambar galeri TERBUKTI HTTP 200 dgn `content-type: image/webp`, tiap `<img>` TERBUKTI `complete:true` dgn dimensi 1333×2000, klik galeri → lightbox TERBUKTI nampilin file `.webp` yg sama (bukan fallback ke jpg lama) — screenshot grid & lightbox dua2nya TERBUKTI tampil bersih tanpa artefak.
-- **Kalau nanti mau folder lebih ringan lagi** (`.jpg` asli 57MB msh nyisa di `gallery/`, disengaja dipertahankan sbg arsip resolusi penuh) — tinggal dihapus manual kapan saja, TIDAK ada referensi apa pun lagi ke file itu di kode (aman dihapus tanpa merusak apa pun) — belum dihapus di sini krn user secara eksplisit minta "duplikat", bukan "ganti/hapus".
+- **`gallery/*.webp` DIBUAT sbg DUPLIKAT baru** (bukan replace/hapus `.jpg` asli — permintaan eksplisit user "duplikat image", jadi `.jpg` resolusi penuh TETAP ADA di folder yg sama sbg arsip) — dihasilkan via `sharp` (`npm install sharp` sementara di scratchpad, bukan dependency permanen repo ini — project ini toh tanpa `package.json`/build tool, lihat "Tech Stack"): **resize max 2000px** (sisi terpanjang, `fit:'inside', withoutEnlargement:true` — proporsi tetap terjaga, tidak pernah diperbesar), **kualitas WebP 82**.
+- **Hasil: ±99% lebih kecil** (mis. `MONO0889-Edit.jpg` 12.21MB → `MONO0889-Edit.webp` 0.14MB) — total galeri jadi ±565KB drpd ±57MB, TANPA penurunan kualitas visual yg kentara.
+- **SUDAH DIGANTIKAN oleh `gallery2/`** (lihat di bawah) — folder & isinya (jpg arsip + webp) DIBIARKAN nganggur di repo, TIDAK dihapus (user gak minta dihapus, cuma "diganti"), TIDAK ada lagi referensi HTML ke folder ini.
+
+**Generasi kedua (`gallery2/`, INI YANG DIPAKAI SEKARANG)** — user nambah 6 foto baru lain (`gallery2/gallery_1.jpeg` ... `gallery_6.jpeg`, ±30KB–850KB per file, resolusi jauh lebih kecil drpd generasi pertama krn bukan langsung dari kamera profesional — 2731×4096 utk yg gede, 853×1280 utk yg udah kecil dari sononya) & minta dikonversi WebP + section Galeri pindah pakai foto2 ini.
+
+- **Proses sama persis** (`sharp`, resize max 2000px `fit:'inside'` — praktis gak ngerize yg 853×1280 krn udah di bawah cap, `withoutEnlargement:true`, kualitas WebP 82) — hasil `gallery2/gallery_1.webp` ... `gallery_6.webp`, `.jpeg` asli TETAP ADA sbg arsip (pola "duplikat, jangan hapus" yg sama dgn generasi pertama).
+- **2 file (`gallery_2`, `gallery_3`) py watermark "AI-generated content"** — DIBERESIN dulu SEBELUM dikonversi ke WebP, lihat "Watermark AI di `gallery2/`" di bawah.
+- **HTML** (`index.html`, `<img src="gallery/*.webp">` → `<img src="gallery2/*.webp">`) — SATU-SATUNYA perubahan yg diperlukan; `script.js` (lightbox) **TIDAK PERLU diubah** krn baca `img.src` dinamis, otomatis ikut folder/ekstensi apa pun yg ada di HTML.
+- **Diuji eksplisit** (Playwright + Edge headless): semua 6 request gambar `gallery2/*.webp` TERBUKTI HTTP 200, tiap `<img>` TERBUKTI `complete:true`, klik galeri → lightbox TERBUKTI nampilin file `gallery2/` yg benar — screenshot grid TERBUKTI tampil bersih.
+- **Kalau nanti ganti galeri lagi** (`gallery3/` dst) — ikuti pola yg sama: taruh foto baru di folder baru, convert WebP, ganti 6 baris `<img src="...">` di section Galeri `index.html`, TIDAK perlu sentuh `script.js`. **WAJIB cek dulu tiap foto baru scr visual sblm dipasang** (lihat "Watermark AI di `gallery2/`") — bukan cuma resize-convert-pasang langsung tanpa dilihat, krn foto yg dikasih user gak selalu bersih dari watermark/artefak yg gak keliatan dari nama filenya doang.
+
+### Watermark AI di `gallery2/`
+
+`gallery_2.jpeg` & `gallery_3.jpeg` (dari 6 foto baru yg user kasih) ternyata py watermark kecil abu-abu transparan **"AI-generated content"** di pojok kiri-bawah — kemungkinan bekas hasil AI photo-editor/outfit-changer (studio foto kadang pakai ini utk preview ganti busana digital), kebawa gak sengaja pas user save/kirim filenya. 4 foto lain (`gallery_1`, `4`, `5`, `6`) BERSIH, gak ada watermark serupa.
+
+- **Ditemukan & dilaporkan ke user dulu** (via `AskUserQuestion`) SEBELUM dipasang ke situs — bukan cuma diam2 pakai atau diam2 skip, krn ini menyangkut keaslian konten yg bakal dilihat tamu undangan, keputusan ada di user bukan diasumsikan sendiri. User pilih: **hilangkan watermarknya, tetap pakai ke-6 foto**.
+- **Teknik yg dipakai: "clone stamp" manual via `sharp`** (bukan AI inpainting — gak ada tool utk itu di sesi ini) — background di area watermark itu polos/gradasi halus (lantai studio putih-abu2), jadi bisa "ditutup" pakai patch persegi diambil dari bagian lain foto yg backgroundnya sama:
+  1. Ukur bounding box watermark scr presisi (crop percobaan berkali2 di-zoom sampai ketemu koordinat pas — percobaan pertama kepotong/ketinggalan sebagian teks krn area yg diukur kurang lebar, revisi ke lebih lebar).
+  2. Ambil patch pengganti dari **baris (y) yg SAMA persis**, cuma digeser horizontal (x) ke area kosong di kanan watermark — BUKAN digeser vertikal (atas/bawah) — krn pencahayaan studio biasanya gradasi vertikal (atas-bawah beda terang), jadi geser horizontal di baris sama menjamin tone/pencahayaan patch nyambung mulus tanpa perlu feathering/blend manual.
+  3. `sharp().composite([{ input: patchBuffer, left, top }])` nempelin patch itu pas di posisi watermark, disimpan quality 95 (minim recompression loss krn ini edit di atas JPEG yg udah lossy).
+  4. Hasil diverifikasi via crop-zoom ke area bekas watermark (TERBUKTI bersih, teks hilang total) DAN via tampilan ukuran normal (TERBUKTI seam/sambungan patch imperceptible, gak ada kotak/garis aneh keliatan).
+- **File YANG DIGANTI**: `.jpeg` ASLI (`gallery_2.jpeg`/`gallery_3.jpeg`) ditimpa langsung dgn versi watermark-free (BUKAN cuma versi `.webp`-nya doang) — krn watermark itu cacat yg mmg harus dibuang, bukan konten asli yg perlu diarsipkan apa adanya (beda prinsipnya dgn resize/compress yg emang sengaja diarsipkan versi mentahnya). WebP-nya lalu di-generate ULANG dari `.jpeg` yg udah bersih ini.
+- **Kalau nanti ada foto baru lain yg ternyata py watermark serupa** (dari AI tool apa pun) — pola yg sama bisa dipakai LAGI (clone-stamp same-row) SELAMA area watermarknya nempel di background polos/gradasi simpel; kalau watermarknya nimpa bagian penting foto (wajah, detail baju, dll) teknik simpel ini TIDAK akan cukup, perlu tools inpainting yg lebih canggih (di luar kemampuan sesi ini).
 
 ## Foto Profil Mempelai (`photo/`)
 
