@@ -27,6 +27,7 @@ Prototype pertama dibuat lewat permintaan terbuka ("desain modern minimalis ala 
 19. User rencana pindah hosting dari GitHub Pages ke **cPanel** (hosting mandiri pertama kalinya bagi user) — sempat ditanya perlu `index.php` apa nggak (JAWABAN: TIDAK PERLU, situs statis murni, Apache/cPanel udah otomatis kenali `index.html` sbg default document), lalu diminta dibuatkan **halaman 404 custom** + cara ngarahin link salah ke situ — ditambah `404.html` & `.htaccess` (`ErrorDocument 404 /404.html`) — lihat "Hosting (cPanel)". Domain final yg dipakai: **`https://pernikahan-adryan-suci.my.id/`**.
 20. User bandingin link undangan sendiri dgn punya temen pas di-share ke WhatsApp — punya temen nampilin card preview (judul, deskripsi, gambar), punya sendiri kosong cuma nampilin URL mentah. Ditambahkan **Open Graph & Twitter Card meta tags** + 1 gambar preview baru (`asset/og-image.jpg`, crop landscape dari salah satu foto galeri) — lihat "Preview Link (Open Graph)".
 21. User nambah 6 foto baru ke folder baru `gallery2/` (`gallery_1.jpeg`...`gallery_6.jpeg`) → di-konversi WebP (pola sama dgn `gallery/`), 2 di antaranya (`gallery_2`, `gallery_3`) ternyata ada watermark kecil "AI-generated content" di pojok — DIHILANGKAN dulu (teknik clone-stamp manual via `sharp`) sblm dikonversi, baru semuanya dipasang gantiin isi section Galeri yg lama (`gallery/`) — lihat "Optimasi Galeri (WebP)" & "Watermark AI di `gallery2/`".
+22. Lagu latar diganti dari "Lagu Pernikahan Kita - Tiara Andini..." ke **"Banda Neira - Sampai Jadi Debu"** (permintaan eksplisit user) — cuma ganti `src` attribute `<audio id="bgm">`, gak ada perubahan lain — lihat "Musik Latar".
 
 ## Struktur file
 
@@ -74,7 +75,8 @@ undangan/
     JAWA-PATTERN.png                               # TIDAK dipakai — duplikat PATTERN.webp, lihat Tahap 3
     og-image.jpg                                   # preview link WhatsApp/dst, lihat "Preview Link (Open Graph)"
   music/           # musik latar (lihat "Musik Latar")
-    Lagu Pernikahan Kita - Tiara Andini ft. Arsy Widianto (Piano Cover) with Lyrics by AnggelMel.mp3
+    Banda Neira - Sampai Jadi Debu (Lirik Lagu).mp3                          # DIPAKAI skrg (`<audio src>`)
+    Lagu Pernikahan Kita - Tiara Andini ft. Arsy Widianto (Piano Cover) with Lyrics by AnggelMel.mp3  # lagu LAMA, nganggur
   404.html         # halaman not-found custom, tema sama dgn index.html (lihat "Hosting (cPanel)")
   .htaccess        # ErrorDocument 404 /404.html — cuma efektif di Apache/cPanel, GitHub Pages abaikan file ini
   .claude/
@@ -319,11 +321,11 @@ Permintaan eksplisit user — ditanya dulu ("dipakai buat apa alamatnya?") krn a
 
 ## Musik Latar
 
-**Data asli** — user nambah file lagu ke folder baru `undangan/music/` (`Lagu Pernikahan Kita - Tiara Andini ft. Arsy Widianto (Piano Cover) with Lyrics by AnggelMel.mp3`, durasi ±4:45), diisi ke `<audio id="bgm" loop preload="none" src="music/...">` di `index.html` — TIDAK ada perubahan JS sama sekali (sesuai catatan lama: tinggal isi `src`, `bgm.play()` di `script.js` sudah menangani sisanya), cuma `src` attribute yg ditambah.
+**Lagu SUDAH DIGANTI 1x** — awalnya "Lagu Pernikahan Kita - Tiara Andini ft. Arsy Widianto (Piano Cover) with Lyrics by AnggelMel.mp3" (±4:45), **SEKARANG pakai "Banda Neira - Sampai Jadi Debu (Lirik Lagu).mp3"** (±6:43) — permintaan eksplisit user susulan, cuma ganti lagu, TIDAK ada perubahan struktur/JS sama sekali (tinggal ganti `src` attribute `<audio id="bgm">` di `index.html`, `bgm.play()` di `script.js` gak perlu disentuh — mekanismenya generik, gak peduli lagu apa isinya). File lagu lama (`Lagu Pernikahan Kita...mp3`) DIBIARKAN nganggur di folder `music/` (TIDAK dihapus, user gak minta dihapus, cuma "ganti"), sama pola-nya dgn `gallery/` yg lama dibiarkan nganggur stlh diganti `gallery2/` (lihat "Optimasi Galeri (WebP)").
 
-- **Nama file di `src` di-`encodeURIComponent()`-kan** (spasi → `%20`, `(`/`)` → `%28`/`%29`, dst.) — nama file asli py spasi & tanda kurung, encoding manual dipakai drpd nulis spasi mentah di atribut HTML (lebih robust lintas server/browser drpd andalkan auto-encoding implisit browser).
-- **Folder `music/` BARU** (belum ada sebelumnya) — cuma isi 1 file ini, ditaruh sejajar `gallery/`/`asset/` di root `undangan/`.
-- **Diuji eksplisit** (Playwright + Edge headless): request network ke path `music/...` TERBUKTI berhasil (HTTP 200); klik "Buka Undangan" → `bgm.play()` TERBUKTI benar2 jalan (`paused: false`, `currentTime` maju, `readyState: 4`/HAVE_ENOUGH_DATA, `duration` ±285 detik, `error: null`, TIDAK ada page error) — bukan cuma diam2 gagal spt sblm ada file asli.
+- **Nama file di `src` cuma spasi yg di-encode jd `%20`** — tanda kurung `(`/`)` DIBIARKAN literal apa adanya (BUKAN di-encode jd `%28`/`%29`) krn browser modern terima literal `(`/`)` di URL path tanpa masalah; ini konsisten dgn cara file lama (`(Piano Cover)`) sebenarnya ditulis di kode (dicek ulang lgsg dari `index.html`, bukan diasumsikan dari catatan lama di dokumen ini yg ternyata salah nyebut `%28`/`%29` — CATATAN LAMA ITU KELIRU, sudah dikoreksi di sini).
+- **Folder `music/` isinya SEKARANG 2 file** (lagu lama nganggur + lagu baru yg dipakai) — beda dari catatan lama yg bilang "cuma isi 1 file", udah gak akurat lagi stlh pergantian ini.
+- **Diuji eksplisit** (Playwright + Edge headless): request network ke path baru TERBUKTI berhasil (HTTP 200); klik "Buka Undangan" → `bgm.play()` TERBUKTI benar2 jalan (`paused: false`, `readyState: 4`/HAVE_ENOUGH_DATA, `duration` ±403 detik/6:43, `error: null`, TIDAK ada page error).
 
 ### Ikon Play/Pause Tombol Musik
 
