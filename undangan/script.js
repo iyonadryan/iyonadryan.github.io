@@ -228,32 +228,61 @@ function escapeHtml(str) {
   });
 }
 
-// ---------- GALLERY LIGHTBOX ----------
+// ---------- GALLERY LIGHTBOX (dgn navigasi next/prev looping + swipe) ----------
 (function () {
   var lightbox = document.getElementById('lightbox');
   var lightboxImg = document.getElementById('lightboxImg');
+  var prevBtn = document.getElementById('lightboxPrev');
+  var nextBtn = document.getElementById('lightboxNext');
+  var items = Array.prototype.slice.call(document.querySelectorAll('.gallery-item'));
+  var currentIndex = 0;
 
-  function openLightbox(src, alt) {
-    lightboxImg.src = src;
-    lightboxImg.alt = alt;
+  function showIndex(index) {
+    currentIndex = (index + items.length) % items.length;
+    var img = items[currentIndex].querySelector('img');
+    lightboxImg.src = img.src;
+    lightboxImg.alt = img.alt;
+  }
+  function openLightbox(index) {
+    showIndex(index);
     lightbox.classList.add('open');
   }
   function closeLightbox() {
     lightbox.classList.remove('open');
   }
+  function showNext() { showIndex(currentIndex + 1); }
+  function showPrev() { showIndex(currentIndex - 1); }
 
-  document.querySelectorAll('.gallery-item').forEach(function (btn) {
+  items.forEach(function (btn, i) {
     btn.addEventListener('click', function () {
-      var img = btn.querySelector('img');
-      openLightbox(img.src, img.alt);
+      openLightbox(i);
     });
   });
 
   document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+  nextBtn.addEventListener('click', showNext);
+  prevBtn.addEventListener('click', showPrev);
   lightbox.addEventListener('click', function (e) {
     if (e.target === lightbox) closeLightbox();
   });
   document.addEventListener('keydown', function (e) {
+    if (!lightbox.classList.contains('open')) return;
     if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowRight') showNext();
+    if (e.key === 'ArrowLeft') showPrev();
   });
+
+  // Swipe geser di dalam popup (mode digeser) — next/prev berdasar arah geser
+  var touchStartX = null;
+  lightbox.addEventListener('touchstart', function (e) {
+    touchStartX = e.changedTouches[0].clientX;
+  }, { passive: true });
+  lightbox.addEventListener('touchend', function (e) {
+    if (touchStartX === null) return;
+    var deltaX = e.changedTouches[0].clientX - touchStartX;
+    var SWIPE_THRESHOLD = 40;
+    if (deltaX <= -SWIPE_THRESHOLD) showNext();
+    else if (deltaX >= SWIPE_THRESHOLD) showPrev();
+    touchStartX = null;
+  }, { passive: true });
 })();
