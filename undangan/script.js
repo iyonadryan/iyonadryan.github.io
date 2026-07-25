@@ -117,7 +117,7 @@ document.getElementById('musicToggle').addEventListener('click', function () {
 // ---------- ADD TO CALENDAR ----------
 document.getElementById('addCalendarBtn').addEventListener('click', function () {
   var start = '20260802T020000Z';
-  var end = '20260802T070000Z';
+  var end = '20260802T090000Z';
   var url = 'https://calendar.google.com/calendar/render?action=TEMPLATE' +
     '&text=' + encodeURIComponent('Pernikahan Adryan & Suci') +
     '&dates=' + start + '/' + end +
