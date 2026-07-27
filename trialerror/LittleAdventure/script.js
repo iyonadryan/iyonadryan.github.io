@@ -716,11 +716,32 @@
       sp && Number.isInteger(sp.col) && Number.isInteger(sp.row) ? { x: sp.col * TILE_SRC * SCALE, y: sp.row * TILE_SRC * SCALE } : null;
   }
 
+  // DUPLIKAT manual dari `decodeMapTilesFromFirebase()` di tilemap-script.js
+  // (pola sama dgn duplikasi konstanta tileset lain — tidak ada modul/shared
+  // source di project ini). Tilemap Editor sekarang nyimpen `tiles` tiap
+  // layer sbg STRING comma-separated (bukan array) pas save ke Firebase,
+  // krn Firebase RTDB hitung array JS sbg 1-node-per-index — layer 60x60/
+  // Block Layer (grid 4x lebih rapat) gabungan semua layer dlm 1 write bisa
+  // nembak error "WRITE_TOO_BIG" (limit jumlah node, bukan ukuran byte);
+  // string dihitung 1 node berapa pun panjangnya, lihat CLAUDE.md "Konversi
+  // samplemap.tmx" & catatan WRITE_TOO_BIG. Toleran ke bentuk array LAMA jg
+  // (map yg sempat tersimpan sblm fix ini, kebetulan masih di bawah limit).
+  function decodeMapTilesFromFirebase(data) {
+    return {
+      ...data,
+      layers: data.layers.map((l) => ({
+        ...l,
+        tiles: typeof l.tiles === "string" ? l.tiles.split(",").map(Number) : l.tiles,
+      })),
+    };
+  }
+
   async function loadWorldMap() {
     try {
       const snapshot = await db.ref(`${TILEMAPS_PATH}/${WORLD_MAP_NAME}`).once("value");
-      const data = snapshot.val();
-      if (!data || !Array.isArray(data.layers)) throw new Error(`Map "${WORLD_MAP_NAME}" kosong/tidak ditemukan di Firebase`);
+      const rawData = snapshot.val();
+      if (!rawData || !Array.isArray(rawData.layers)) throw new Error(`Map "${WORLD_MAP_NAME}" kosong/tidak ditemukan di Firebase`);
+      const data = decodeMapTilesFromFirebase(rawData);
       await buildWorldFromMapData(data);
     } catch (err) {
       console.warn("Gagal memuat dunia dari Tilemap Editor, pakai fallback samplemap.png:", err);

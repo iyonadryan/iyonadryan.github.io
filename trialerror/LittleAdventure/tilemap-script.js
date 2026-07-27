@@ -1538,7 +1538,13 @@
     pinModalInput.focus();
 
     pinModalResolve = (digits) => {
-      if (!isCreate && Number(digits) !== Number(existingPin)) {
+      // PIN dibandingkan sbg STRING persis (bukan `Number(...)`) — PIN itu
+      // deretan digit (spt PIN ATM/kode akses), bukan kuantitas angka, jadi
+      // "012345" HARUS beda dari "12345"/"12345 " dst., nol di depan tidak
+      // boleh "hilang" krn kebetulan lolos konversi Number. `String(...)`
+      // dipasang di sisi `existingPin` jaga2 map LAMA yg sempat kesimpen
+      // sbg Number (sblm fix ini) — tetap kebandingkan benar apa adanya.
+      if (!isCreate && digits !== String(existingPin)) {
         pinWrongAttempts++;
         if (pinWrongAttempts >= PIN_MAX_ATTEMPTS) {
           openPinLockedModal();
@@ -1549,7 +1555,7 @@
         pinModalInput.focus();
         return false;
       }
-      onConfirm(Number(digits));
+      onConfirm(digits); // STRING, bukan Number — lihat "PIN disimpan sbg string"
       return true;
     };
   }
@@ -1614,6 +1620,33 @@
   // `Date.now()` (epoch ms, client-side) — konsisten dgn konvensi timestamp
   // yg sudah dipakai app lain di repo ini (`created`/`expired` di
   // `24Card/poker.js` dkk), BUKAN `firebase.database.ServerValue.TIMESTAMP`.
+  // Firebase RTDB nyimpen array JS sbg objek 1-child-per-index — layer
+  // 60x60 (3600 tile) apalagi Block Layer (grid 4x lebih rapat, bisa puluhan
+  // ribu elemen) gabungan SEMUA layer dlm 1 `.set()` bisa nembak error
+  // "WRITE_TOO_BIG" (limit jumlah NODE per request, bukan soal ukuran byte).
+  // Fix: encode tiap `tiles` array jd 1 STRING (`join(",")`) SEBELUM ditulis
+  // — string dihitung Firebase sbg SATU node berapa pun panjangnya (limit
+  // sesungguhnya jd ~10MB per value, jauh di atas kebutuhan map manapun di
+  // sini), jadi 1 layer = 1 node bukan ribuan. Cuma dipakai di jalur
+  // Firebase (Save JSON/autosave localStorage TETAP array biasa apa adanya,
+  // dua-duanya tidak kena limit node RTDB ini sama sekali).
+  function encodeMapTilesForFirebase(data) {
+    return { ...data, layers: data.layers.map((l) => ({ ...l, tiles: l.tiles.join(",") })) };
+  }
+
+  // Toleran ke DUA bentuk: string (map yg disimpan SETELAH fix ini) atau
+  // array (map lama yg sempat tersimpan sblm fix, kebetulan masih di bawah
+  // limit WRITE_TOO_BIG pas disimpan dulu) — tidak perlu migrasi data lama.
+  function decodeMapTilesFromFirebase(data) {
+    return {
+      ...data,
+      layers: data.layers.map((l) => ({
+        ...l,
+        tiles: typeof l.tiles === "string" ? l.tiles.split(",").map(Number) : l.tiles,
+      })),
+    };
+  }
+
   function saveMapToFirebase(key, pin, existingCreatedAt) {
     const data = buildMapData();
     data.pin = pin;
@@ -1625,7 +1658,7 @@
     data.createdAt = existingCreatedAt || now;
     data.updatedAt = now;
     db.ref(`${TILEMAP_PATH}/${key}`)
-      .set(data)
+      .set(encodeMapTilesForFirebase(data))
       .then(() => {
         // TIDAK perlu refresh daftar apa pun di sini lagi (beda dari versi
         // dropdown lama) — popup "Muat dari Server" sekarang SELALU fetch
@@ -1689,7 +1722,7 @@
       .then((snap) => {
         const data = snap.val();
         if (!data) return;
-        applyMapData(data);
+        applyMapData(decodeMapTilesFromFirebase(data));
         mapNameInput.value = key;
         showStatusMessage(`Dimuat dari server: "${key}".`);
       })
