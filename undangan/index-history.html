@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4F5B3E">
+<title>Adryan &amp; Suci — Undangan Pernikahan (Arsip Kenangan)</title>
+<meta name="description" content="Arsip kenangan undangan pernikahan Adryan Luthfi Faiz &amp; Suci Wulandari, 2 Agustus 2026.">
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤍</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===================== COVER / GATE ===================== -->
+<div id="cover" class="cover">
+  <div class="cover-petals" id="coverPetals"></div>
+  <img class="cover-floral cover-floral-tl" src="asset/crescent-arch.webp" alt="" aria-hidden="true">
+  <img class="cover-floral cover-floral-br" src="asset/rose-spray.webp" alt="" aria-hidden="true">
+  <div class="cover-inner">
+    <svg viewBox="0 0 160 46" class="gonjong-ornament reveal-in" aria-hidden="true">
+      <path d="M5,42 Q22,4 39,42 Q56,4 73,42 Q80,26 87,42 Q104,4 121,42 Q138,4 155,42"></path>
+    </svg>
+
+    <p class="cover-eyebrow reveal-in">The Wedding Of</p>
+
+    <div class="cover-monogram reveal-in" data-delay="1">
+      <svg viewBox="0 0 120 120" class="monogram-ring" aria-hidden="true">
+        <circle cx="60" cy="60" r="57"></circle>
+      </svg>
+      <span>A&nbsp;&amp;&nbsp;S</span>
+    </div>
+
+    <h1 class="cover-names reveal-in" data-delay="2">Adryan<span class="amp">&amp;</span>Suci</h1>
+
+    <div class="ornament-divider reveal-in" data-delay="3">
+      <span class="line"></span>
+      <svg viewBox="0 0 24 24" class="divider-icon" aria-hidden="true">
+        <path class="divider-icon-outline" d="M12 2 C16.5 8 16.5 16 12 22 C7.5 16 7.5 8 12 2Z"></path>
+        <circle class="divider-icon-dot" cx="12" cy="12" r="1.6"></circle>
+      </svg>
+      <span class="line"></span>
+    </div>
+
+    <p class="cover-date reveal-in" data-delay="4">Minggu, 2 Agustus 2026</p>
+
+    <div class="cover-guest reveal-in" data-delay="5">
+      <p>Kepada Yth. Bapak/Ibu/Saudara/i</p>
+      <p class="guest-name" id="guestName">Tamu Undangan</p>
+    </div>
+
+    <button type="button" id="openInviteBtn" class="btn-open reveal-in" data-delay="6">
+      <svg viewBox="0 0 24 24" class="envelope-icon" aria-hidden="true">
+        <path d="M3 6h18v12H3z"></path>
+        <path d="M3 6l9 7 9-7" class="flap"></path>
+      </svg>
+      <span>Buka Undangan</span>
+    </button>
+  </div>
+</div>
+
+<!-- ===================== MAIN INVITATION (ARSIP, statis — lihat CLAUDE.md "Arsip Kenangan") ===================== -->
+<main id="invite" class="invite" hidden>
+
+  <audio id="bgm" loop preload="none" src="music/Banda%20Neira%20-%20Sampai%20Jadi%20Debu%20(Lirik%20Lagu).mp3"></audio>
+  <button type="button" id="musicToggle" class="music-toggle" aria-label="Putar musik">
+    <span class="music-icon music-icon-play" aria-hidden="true"></span>
+    <span class="music-icon music-icon-pause" aria-hidden="true"></span>
+  </button>
+
+  <!-- ---- Opening quote ---- -->
+  <section class="section quote-section">
+    <img class="quote-gunungan" src="asset/java-heritage-GUNUNGAN.webp" alt="" aria-hidden="true">
+    <p class="quote-mark reveal" aria-hidden="true">“</p>
+    <p class="quote-text reveal" data-delay="1">Dan di antara tanda-tanda kebesaran-Nya ialah diciptakan-Nya untukmu pasangan hidup, agar hati menjadi tenteram karenanya, serta dijadikan-Nya di antaramu rasa kasih dan sayang.</p>
+    <p class="quote-source reveal" data-delay="2">— Untaian Doa Pernikahan</p>
+    <div class="ornament-divider reveal" data-delay="3">
+      <span class="line"></span>
+      <svg viewBox="0 0 24 24" class="divider-icon" aria-hidden="true">
+        <path class="divider-icon-outline" d="M12 2 C16.5 8 16.5 16 12 22 C7.5 16 7.5 8 12 2Z"></path>
+        <circle class="divider-icon-dot" cx="12" cy="12" r="1.6"></circle>
+      </svg>
+      <span class="line"></span>
+    </div>
+  </section>
+
+  <!-- ---- Mempelai ---- -->
+  <section class="section couple-section">
+    <img class="couple-corner couple-corner-tl" src="asset/java-heritage-COUPLE-1.webp" alt="" aria-hidden="true">
+    <img class="couple-corner couple-corner-br" src="asset/java-heritage-COUPLE-3.webp" alt="" aria-hidden="true">
+    <p class="section-eyebrow reveal">Mempelai</p>
+    <h2 class="section-title reveal" data-delay="1">Kedua Mempelai</h2>
+
+    <div class="couple-card reveal" data-delay="2">
+      <div class="couple-photo"><img src="photo2/groom.webp" alt="Adryan Luthfi Faiz"></div>
+      <h3 class="couple-name">Adryan Luthfi Faiz</h3>
+      <p class="couple-parents">Putra dari<br>Bapak Agus Hari Wahyudi &amp; Ibu Henny Yosefa</p>
+      <div class="couple-social">
+        <a href="https://www.instagram.com/iyonadryanlf/" target="_blank" rel="noopener noreferrer" aria-label="Instagram Adryan">IG @iyonadryanlf</a>
+      </div>
+    </div>
+
+    <div class="couple-and reveal" data-delay="3">&amp;</div>
+
+    <div class="couple-card reveal" data-delay="4">
+      <div class="couple-photo"><img src="photo2/bride.webp" alt="Suci Wulandari"></div>
+      <h3 class="couple-name">Suci Wulandari</h3>
+      <p class="couple-parents">Putri dari<br>Bapak Mulyadi &amp; Ibu Kadarsih</p>
+      <div class="couple-social">
+        <a href="https://www.instagram.com/wulanshii/" target="_blank" rel="noopener noreferrer" aria-label="Instagram Suci">IG @wulanshii</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---- "Countdown" (versi arsip — tanggal udah lewat, jadi teks tetap, BUKAN hitung mundur) ---- -->
+  <section class="section countdown-section">
+    <img class="motif-border motif-atas" src="asset/java-heritage-MOTIF-ATAS.webp" alt="" aria-hidden="true">
+    <p class="section-eyebrow reveal">Kenangan</p>
+    <h2 class="section-title reveal" data-delay="1">Hari Bahagia Kami</h2>
+    <p class="countdown-static reveal" data-delay="2">Minggu, 2 Agustus 2026</p>
+    <p class="countdown-static-sub reveal" data-delay="3">Telah menjadi hari pernikahan kami</p>
+  </section>
+
+  <!-- ---- Acara ---- -->
+  <section class="section event-section">
+    <p class="section-eyebrow reveal">Waktu &amp; Tempat</p>
+    <h2 class="section-title reveal" data-delay="1">Rangkaian Acara</h2>
+
+    <div class="event-card reveal" data-delay="2">
+      <p class="event-tag">Akad Nikah</p>
+      <p class="event-datetime">Minggu, 2 Agustus 2026<br>09.00 — 10.30 WIB</p>
+      <p class="event-venue">Masjid Raya Al Ikhlas<br>Asrama Polri Ex Brimob, Jl. Kesatriaan Raya, RT.5/RW.7, Cilincing, Jakarta Utara 14120</p>
+      <a class="btn-outline btn-small" href="https://maps.app.goo.gl/wWomQoFo3YL3nC1aA?g_st=ac" target="_blank" rel="noopener noreferrer">Lihat Lokasi</a>
+    </div>
+
+    <div class="event-card reveal" data-delay="3">
+      <p class="event-tag">Resepsi</p>
+      <p class="event-datetime">Minggu, 2 Agustus 2026<br>11.00 — 16.00 WIB</p>
+      <p class="event-venue">Masjid Raya Al Ikhlas<br>Asrama Polri Ex Brimob, Jl. Kesatriaan Raya, RT.5/RW.7, Cilincing, Jakarta Utara 14120</p>
+      <a class="btn-outline btn-small" href="https://maps.app.goo.gl/wWomQoFo3YL3nC1aA?g_st=ac" target="_blank" rel="noopener noreferrer">Lihat Lokasi</a>
+    </div>
+  </section>
+
+  <!-- ---- Galeri ---- -->
+  <section class="section gallery-section">
+    <p class="section-eyebrow reveal">Momen</p>
+    <h2 class="section-title reveal" data-delay="1">Galeri</h2>
+
+    <div class="gallery-grid">
+      <button type="button" class="gallery-item reveal" data-delay="2"><img src="gallery2/gallery_1.webp" alt="Momen prewedding 1" loading="lazy"></button>
+      <button type="button" class="gallery-item reveal" data-delay="3"><img src="gallery2/gallery_2.webp" alt="Momen prewedding 2" loading="lazy"></button>
+      <button type="button" class="gallery-item reveal" data-delay="4"><img src="gallery2/gallery_3.webp" alt="Momen prewedding 3" loading="lazy"></button>
+      <button type="button" class="gallery-item reveal" data-delay="2"><img src="gallery2/gallery_4.webp" alt="Momen prewedding 4" loading="lazy"></button>
+      <button type="button" class="gallery-item reveal" data-delay="3"><img src="gallery2/gallery_5.webp" alt="Momen prewedding 5" loading="lazy"></button>
+      <button type="button" class="gallery-item reveal" data-delay="4"><img src="gallery2/gallery_6.webp" alt="Momen prewedding 6" loading="lazy"></button>
+    </div>
+  </section>
+
+  <div id="lightbox" class="lightbox">
+    <button type="button" class="lightbox-close" id="lightboxClose" aria-label="Tutup">&times;</button>
+    <button type="button" class="lightbox-nav lightbox-prev" id="lightboxPrev" aria-label="Foto sebelumnya">&#10094;</button>
+    <img id="lightboxImg" src="" alt="">
+    <button type="button" class="lightbox-nav lightbox-next" id="lightboxNext" aria-label="Foto selanjutnya">&#10095;</button>
+  </div>
+
+  <!-- ---- Ucapan & Doa (versi arsip — snapshot BEKU dari Firebase per tanggal dibuatnya arsip ini, lihat CLAUDE.md "Arsip Kenangan". TIDAK ada form isi baru, TIDAK terhubung Firebase sama sekali.) ---- -->
+  <section class="section rsvp-section">
+    <p class="section-eyebrow reveal">Kenangan</p>
+    <h2 class="section-title reveal" data-delay="1">Ucapan &amp; Doa</h2>
+    <p class="countdown-static-sub reveal" data-delay="2" style="margin-bottom:18px;">Ucapan &amp; doa yang tersimpan dari para tamu</p>
+
+    <div id="wishList" class="wish-list">
+      <div class="wish-card wish-card--hadir">
+        <p class="wish-name">Life Seeker Group</p>
+        <p class="wish-text">Gacor terus iyon, sakinah mawaddah warohmah</p>
+      </div>
+      <div class="wish-card wish-card--hadir">
+        <p class="wish-name">RULI FAMILY</p>
+        <p class="wish-text">Semoga dimudahkan dan dilancarkan sampai hari H dan menjadi keluarga SAMAWA unk Ryan beserta istri</p>
+      </div>
+      <div class="wish-card wish-card--hadir">
+        <p class="wish-name">Hj.zaurah</p>
+        <p class="wish-text">Selamet menempuh hidup baru semoga SAMAWA..</p>
+      </div>
+      <div class="wish-card wish-card--hadir">
+        <p class="wish-name">Subcribe</p>
+        <p class="wish-text">bit.ly/prakoop2</p>
+      </div>
+      <div class="wish-card wish-card--hadir">
+        <p class="wish-name">BIGFAM</p>
+        <p class="wish-text">bismillah SAMAWA ryan n suci <br>barokallahu</p>
+      </div>
+      <div class="wish-card wish-card--hadir">
+        <p class="wish-name">Teguh santoso</p>
+        <p class="wish-text">Selamat menempuh hidup baru semoga menjadi pasangan suami istri samaan. Amin</p>
+      </div>
+      <div class="wish-card wish-card--hadir">
+        <p class="wish-name">Elmamo</p>
+        <p class="wish-text">Ma Bestt in MTs, Congrats both of u 🥹 ga nyangka kelean berjodoh pdhl dulu berantem terus di sekolah wkwkw semoga pernikahan kalian selalu happy lucu banyak ketawa 😍</p>
+      </div>
+      <div class="wish-card wish-card--hadir">
+        <p class="wish-name">Nina</p>
+        <p class="wish-text">CIWULLLL GUE KAGET NYA DAPET BANGETTTT. CONGRATS YAAA CII FINALLY 🥹🥹🥹 LANCAR SAMPAI HARI H. LAVVVVV U🤗</p>
+      </div>
+      <div class="wish-card wish-card--hadir">
+        <p class="wish-name">Rifqy</p>
+        <p class="wish-text">Gg iyon</p>
+      </div>
+      <div class="wish-card wish-card--hadir">
+        <p class="wish-name">Your bestur</p>
+        <p class="wish-text">AKHIRNYAAAAAAAAA...... DARI SMP SAMPE PELAMINAN YGY 🥹 SAMAWA BEST</p>
+      </div>
+      <div class="wish-card wish-card--hadir">
+        <p class="wish-name">Selyaaa</p>
+        <p class="wish-text">Akhirnyaaa yang kutunggu tunggu, happy wedding ciwul &amp; iyon. Semoga lancar dan langgeng biar yasmine juga punya temen yaa onty cantikkk🥰</p>
+      </div>
+      <div class="wish-card wish-card--hadir">
+        <p class="wish-name">Puput</p>
+        <p class="wish-text">AAAAKKKK HAPPY WEDDING IYON &amp; SUCI. LANGGENG DAN BAHAGIA SELAMANYAAAA 😭🤍</p>
+      </div>
+      <div class="wish-card wish-card--hadir">
+        <p class="wish-name">Agus Purihanto</p>
+        <p class="wish-text">Semoga sakinah mawadah warahmah,<br>Sehat selalu ,panjang rizki</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---- Amplop Digital ---- -->
+  <section class="section gift-section">
+    <p class="section-eyebrow reveal">Tanda Kasih</p>
+    <h2 class="section-title reveal" data-delay="1">Amplop Digital</h2>
+    <p class="gift-note reveal" data-delay="2">Doa restu Anda adalah karunia terindah bagi kami. Namun jika ingin memberi tanda kasih, kami sediakan amplop digital berikut.</p>
+
+    <div class="gift-card reveal" data-delay="3">
+      <p class="gift-bank">Bank BNI</p>
+      <img class="gift-logo" src="logo/logo-bank-bni.webp" alt="Logo Bank BNI">
+      <p class="gift-number" id="giftNumber1">836097456</p>
+      <p class="gift-owner">a.n. Adryan Luthfi Faiz</p>
+      <button type="button" class="btn-outline btn-small copy-btn" data-copy="836097456">Salin Nomor</button>
+    </div>
+
+    <div class="gift-card reveal" data-delay="4">
+      <p class="gift-bank">Bank BCA</p>
+      <img class="gift-logo" src="logo/logo-bank-bca.webp" alt="Logo Bank BCA">
+      <p class="gift-number" id="giftNumber2">6310363331</p>
+      <p class="gift-owner">a.n. Suci Wulandari</p>
+      <button type="button" class="btn-outline btn-small copy-btn" data-copy="6310363331">Salin Nomor</button>
+    </div>
+
+    <div class="gift-card reveal" data-delay="5">
+      <p class="gift-bank">Kirim Kado Fisik</p>
+      <p class="gift-address-text">Jl. Madrasah No.2 B, RT.10/RW.8, Klender, Kec. Duren Sawit, Kota Jakarta Timur, Daerah Khusus Ibukota Jakarta 13470</p>
+      <p class="gift-owner">Untuk mempelai pria &amp; wanita</p>
+      <div class="gift-actions">
+        <button type="button" class="btn-outline btn-small copy-btn" data-copy="Jl. Madrasah No.2 B, RT.10/RW.8, Klender, Kec. Duren Sawit, Kota Jakarta Timur, Daerah Khusus Ibukota Jakarta 13470" data-copy-label="Alamat">Salin Alamat</button>
+        <a class="btn-outline btn-small" href="https://maps.app.goo.gl/MdepXhS3t4iBDki19" target="_blank" rel="noopener noreferrer">Lihat Lokasi</a>
+      </div>
+    </div>
+
+    <img class="motif-border motif-bawah" src="asset/java-heritage-MOTIF-BAWAH.webp" alt="" aria-hidden="true">
+  </section>
+
+  <!-- ---- Penutup ---- -->
+  <section class="section closing-section">
+    <img class="couple-corner couple-corner-tl" src="asset/java-heritage-COUPLE-2.webp" alt="" aria-hidden="true">
+    <img class="couple-corner couple-corner-br" src="asset/java-heritage-COUPLE-4.webp" alt="" aria-hidden="true">
+    <div class="ornament-divider reveal">
+      <span class="line"></span>
+      <svg viewBox="0 0 24 24" class="divider-icon" aria-hidden="true">
+        <path class="divider-icon-outline" d="M12 2 C16.5 8 16.5 16 12 22 C7.5 16 7.5 8 12 2Z"></path>
+        <circle class="divider-icon-dot" cx="12" cy="12" r="1.6"></circle>
+      </svg>
+      <span class="line"></span>
+    </div>
+    <p class="closing-text reveal" data-delay="1">Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir dan memberikan doa restu.</p>
+    <p class="closing-thanks reveal" data-delay="2">Terima kasih.</p>
+    <p class="closing-names reveal" data-delay="3">Adryan <span class="amp">&amp;</span> Suci</p>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="script-history.js"></script>
+</body>
+</html>

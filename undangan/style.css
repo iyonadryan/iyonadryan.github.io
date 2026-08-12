@@ -451,6 +451,21 @@ a{ color:inherit; }
   transition: transform 0.25s ease;
 }
 .cd-num.tick{ transform: scale(1.18); }
+/* Dipakai KHUSUS `index-history.html` (arsip statis, lihat CLAUDE.md
+   "Arsip Kenangan") gantiin `.countdown`/`.cd-box` yg hitung mundur —
+   tanggal acara udah lewat, jadi cukup teks tetap drpd angka berjalan. */
+.countdown-static{
+  font-family: var(--serif);
+  font-size:26px;
+  color: var(--forest);
+  margin:0 0 4px;
+}
+.countdown-static-sub{
+  font-size:13px;
+  color: var(--muted);
+  letter-spacing:0.04em;
+  margin:0 0 28px;
+}
 .cd-label{
   display:block;
   font-size:10px;
