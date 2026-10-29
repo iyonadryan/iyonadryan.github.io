@@ -351,9 +351,9 @@
   color: var(--color-text-muted);
 }
 
-/* Tanggal dikunci ke "sekarang" (disabled): sembunyikan ikon kalender dan
-   jaga teks tetap terbaca (iOS Safari biasanya memudarkan input disabled).
-   Hanya untuk input yang disabled — input tanggal filter tetap punya picker. */
+/* Tanggal dikunci saat edit transaksi (disabled): sembunyikan ikon kalender
+   dan jaga teks tetap terbaca (iOS Safari biasanya memudarkan input disabled).
+   Hanya untuk input yang disabled — saat tambah transaksi & filter tetap punya picker. */
 .field input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   display: none;
 }

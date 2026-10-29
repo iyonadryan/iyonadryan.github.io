@@ -6,6 +6,10 @@
    ========================================================= */
 
 :root {
+  /* Kontrol native (ikon kalender input date, picker, scrollbar) ikut tema:
+     light → ikon hitam, dark → ikon putih. */
+  color-scheme: light;
+
   /* Surfaces */
   --color-bg: #f4f5f9;
   --color-surface: #ffffff;
@@ -74,6 +78,8 @@
 }
 
 [data-theme="dark"] {
+  color-scheme: dark;
+
   /* Surfaces */
   --color-bg: #14141c;
   --color-surface: #1e1e2a;

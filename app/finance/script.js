@@ -317,6 +317,7 @@
             category: t.category,
             note: t.catatan || "",
             date: t.tanggal || topKey,
+            timestamp: Number(t.timestamp) || Number(ts), // waktu asli saat input
             by: t.by || "ciwul",
           });
         });
@@ -343,18 +344,33 @@
 
   // ---- Operasi tulis ----
 
+  // Key = timestamp jam 00:00:00 (waktu lokal) tanggal yang dipilih, +1 tiap
+  // key itu sudah terpakai, jadi tanggal bisa dipilih bebas tanpa menimpa data
+  // lain. Field `timestamp` tetap waktu asli saat input (kapan dibuat).
   function addTransaction(data) {
     const ym = ymOf(data.date);
-    const ts = Date.now();
-    return db.ref(FINANCE_PATH + "/" + ym + "/" + ts).set({
+    const monthRef = db.ref(FINANCE_PATH + "/" + ym);
+    const payload = {
       transaksi: TYPE_TO_FS[data.type],
       category: data.category,
       nominal: data.amount,
       catatan: data.note || "",
       tanggal: data.date,
-      timestamp: ts,
+      timestamp: Date.now(),
       by: data.by,
-    });
+    };
+    // Kandidat awal dari data lokal (sudah lengkap karena listener realtime),
+    // lalu diklaim lewat transaction() — kalau ternyata sudah diisi HP lain
+    // di saat bersamaan, transaksi batal dan coba key berikutnya.
+    const taken = new Set(transactions.filter((t) => t.ym === ym).map((t) => Number(t.id)));
+    let key = dayStartMs(data.date);
+    while (taken.has(key)) key++;
+    const claim = (k) =>
+      monthRef
+        .child(String(k))
+        .transaction((cur) => (cur === null ? payload : undefined))
+        .then((res) => (res.committed ? k : claim(k + 1)));
+    return claim(key);
   }
 
   // Ubah transaksi yang sudah ada. Saat edit HANYA nominal & catatan yang bisa
@@ -369,7 +385,7 @@
       nominal: data.amount,
       catatan: data.note || "",
       tanggal: oldTx.date,
-      timestamp: Number(oldTx.id) || Date.now(),
+      timestamp: oldTx.timestamp || Number(oldTx.id) || Date.now(),
       by: oldTx.by,
     });
   }
@@ -489,8 +505,18 @@
   // Tanggal hari ini "YYYY-MM-DD" berdasarkan waktu lokal (bukan UTC seperti
   // toISOString(), yang salah tanggal untuk WIB dini hari).
   function todayLocalDateStr() {
-    const d = new Date();
+    return localDateStrOf(Date.now());
+  }
+
+  function localDateStrOf(ms) {
+    const d = new Date(ms);
     return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+  }
+
+  // "YYYY-MM-DD" → ms jam 00:00:00 waktu lokal (basis key transaksi).
+  function dayStartMs(dateStr) {
+    const [y, m, d] = String(dateStr).split("-").map(Number);
+    return new Date(y, m - 1, d).getTime();
   }
 
   // Jam saat transaksi dibuat (dari timestamp). withSeconds → sampai detik.
@@ -501,9 +527,10 @@
     return s;
   }
 
-  // Waktu pembuatan transaksi dalam ms (untuk sorting "paling baru").
+  // Waktu pembuatan transaksi dalam ms (untuk sorting "paling baru"). Pakai
+  // field timestamp, bukan key — key sekarang berbasis tanggal pilihan.
   function txTime(tx) {
-    return Number(tx.id) || Number(tx.timestamp) || new Date(tx.date).getTime();
+    return Number(tx.timestamp) || Number(tx.id) || new Date(tx.date).getTime();
   }
 
   function findCategory(type, id) {
@@ -1265,6 +1292,7 @@
   // diubah). Tanggal memang selalu disabled.
   function setImmutableFieldsLocked(locked) {
     categoryInput.disabled = locked;
+    dateInput.disabled = locked;
     document.querySelectorAll("#transactionTypeToggle .type-btn").forEach((b) => (b.disabled = locked));
     document.getElementById("transactionTypeToggle").classList.toggle("locked", locked);
   }
@@ -1370,6 +1398,10 @@
       alert('Pilih dulu "Dibuat oleh" siapa.');
       return;
     }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateInput.value)) {
+      alert("Pilih dulu tanggalnya.");
+      return;
+    }
 
     const data = {
       type: currentTxType,
@@ -1426,7 +1458,10 @@
 
     document.getElementById("detailNote").textContent = tx.note || "—";
     document.getElementById("detailDate").textContent = formatDateLong(tx.date);
-    document.getElementById("detailTime").textContent = formatTime(txTime(tx), true);
+    // Waktu dibuat = field timestamp (kapan diinput), tanggal + jam lengkap.
+    const created = txTime(tx);
+    document.getElementById("detailTime").textContent =
+      formatDateLong(localDateStrOf(created)) + ", " + formatTime(created, true);
 
     transactionDetailModal.classList.add("open");
   }
