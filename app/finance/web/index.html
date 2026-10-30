@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0E7490">
+<title>Finance Desktop</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪙</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/pages.css">
+
+<!-- Firebase (compat SDK) — config SAMA PERSIS dengan versi mobile (../index.html) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
+    authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
+    databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
+    projectId: "iyon-adryanlf-trialerror",
+    storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
+    messagingSenderId: "519669963248",
+    appId: "1:519669963248:web:feab50008d27c2a7226535",
+    measurementId: "G-4MFLB4B68F"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  // Root data : /finance
+  const FINANCE_PATH = "finance";
+</script>
+</head>
+<body>
+
+<!-- Loading overlay saat menghubungkan ke Firebase -->
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="loading-coins"><span>💰</span><span>💵</span><span>🪙</span></div>
+  <p class="loading-text">Menghubungkan ke server…</p>
+</div>
+
+<div class="app">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h15a3 3 0 0 1 3 3v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7l11-3v3M17 14h.01"/></svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">Finance</span>
+        <span class="brand-sub">Desktop Web Version</span>
+      </div>
+    </div>
+
+    <button type="button" id="addTxBtn" class="btn btn-primary btn-tall">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      Tambah Transaksi
+    </button>
+
+    <nav class="nav" aria-label="Menu utama">
+      <button type="button" class="nav-item" data-view="dashboard">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+        Dashboard
+      </button>
+      <button type="button" class="nav-item" data-view="transactions">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        Transaksi
+      </button>
+      <button type="button" class="nav-item" data-view="analysis">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16M7 20v-9M12 20V5M17 20v-12"/></svg>
+        Analisis
+      </button>
+      <button type="button" class="nav-item" data-view="plans">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0zM16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"/></svg>
+        Rencana
+      </button>
+      <button type="button" class="nav-item" data-view="categories">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8zM7.5 7.5h.01"/></svg>
+        Kategori
+      </button>
+      <button type="button" class="nav-item" data-view="settings">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8h.01M11 12h1v5h1M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
+        Info
+      </button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <button type="button" id="themeToggle" class="nav-item nav-item-muted">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path id="themeIconPath" d=""/></svg>
+        <span id="themeLabel">Mode gelap</span>
+      </button>
+      <div class="me-card">
+        <span id="meAvatar" class="avatar avatar-lg"></span>
+        <div class="me-text">
+          <span id="meLabel" class="me-name"></span>
+          <span class="me-sub">Pengguna aktif</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <main class="main">
+
+    <header class="page-header">
+      <div class="page-title">
+        <h1 id="viewTitle">Dashboard</h1>
+        <span id="viewSub" class="muted"></span>
+      </div>
+      <div class="header-tools">
+        <div id="monthNav" class="month-nav">
+          <button type="button" id="prevMonth" class="month-btn" aria-label="Bulan sebelumnya">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+          </button>
+          <span id="monthLabel" class="month-label"></span>
+          <button type="button" id="nextMonth" class="month-btn" aria-label="Bulan berikutnya">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+        <div id="userTabs" class="seg seg-surface" role="group" aria-label="Tampilkan data milik"></div>
+        <button type="button" id="balanceToggle" class="icon-btn-box">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path id="balanceIconPath" d=""/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ================= DASHBOARD ================= -->
+    <section id="view-dashboard" class="view" hidden>
+      <div class="hero">
+        <div class="hero-grid">
+          <div class="hero-balance">
+            <span class="hero-label">Saldo Bulan Ini</span>
+            <span id="heroBalance" class="hero-amount tnum"></span>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 7 7 17M17 17H7V7"/></svg>
+            </div>
+            <div class="hero-stat-text">
+              <span class="hero-label">Pemasukan</span>
+              <span id="heroIncome" class="hero-value tnum"></span>
+            </div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
+            </div>
+            <div class="hero-stat-text">
+              <span class="hero-label">Pengeluaran</span>
+              <span id="heroExpense" class="hero-value tnum"></span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-ratio">
+          <div class="hero-track"><div id="heroRatioBar" class="hero-fill"></div></div>
+          <span id="heroRatioText" class="hero-ratio-text"></span>
+        </div>
+      </div>
+
+      <section class="card card-chart">
+        <div class="card-head">
+          <h2>Perbandingan Pengeluaran</h2>
+          <div id="dashRangeTabs" class="seg" role="group" aria-label="Rentang waktu"></div>
+        </div>
+        <div id="dashChart" class="chart"></div>
+        <div class="chart-legend">
+          <span><span class="legend-line" style="border-top-color:var(--exp)"></span>Pengeluaran</span>
+          <span><span class="legend-line legend-dotted" style="border-top-color:var(--muted)"></span>Pengeluaran <span id="dashPrevName">7 hari lalu</span></span>
+        </div>
+      </section>
+
+      <div class="dash-cols">
+        <section class="card dash-stats">
+          <div class="card-title">
+            <h2>Statistik Pengeluaran</h2>
+            <span id="statInsight" class="muted"></span>
+          </div>
+          <div id="statSegments" class="seg-bar"></div>
+          <div id="statRows"></div>
+        </section>
+
+        <section class="card dash-recent">
+          <div class="card-head">
+            <h2>Transaksi Terbaru</h2>
+            <button type="button" class="link-btn" data-goto="transactions">Lihat Semua</button>
+          </div>
+          <div id="recentList"></div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ================= TRANSAKSI ================= -->
+    <section id="view-transactions" class="view" hidden>
+      <section class="card card-chart">
+        <div class="card-title">
+          <h2>Pemasukan vs Pengeluaran</h2>
+          <span id="txChartSub" class="muted"></span>
+        </div>
+        <div id="txChart" class="chart"></div>
+        <div class="chart-legend">
+          <span><span class="legend-line" style="border-top-color:var(--inc)"></span>Pemasukan</span>
+          <span><span class="legend-line legend-dotted" style="border-top-color:var(--exp)"></span>Pengeluaran</span>
+        </div>
+      </section>
+
+      <div class="tx-layout">
+        <div class="card tx-table-card">
+          <div class="tx-toolbar">
+            <div id="txTabs" class="seg" role="group" aria-label="Jenis transaksi"></div>
+            <div class="tx-tools">
+              <label class="search-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+                <input id="txSearch" type="search" aria-label="Cari transaksi" placeholder="Cari catatan, kategori, tanggal…" autocomplete="off">
+                <button type="button" id="txSearchClear" class="search-clear" aria-label="Hapus pencarian" hidden>✕</button>
+              </label>
+              <button type="button" id="filterBtn" class="btn btn-outline" aria-haspopup="dialog">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>
+                Filter
+                <span id="filterCount" class="count-badge" hidden></span>
+              </button>
+              <button type="button" id="exportBtn" class="btn btn-outline">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>
+                Export Excel
+              </button>
+            </div>
+          </div>
+
+          <div id="filterChips" class="filter-chips" hidden></div>
+
+          <div class="table-scroll">
+            <div class="tx-table">
+              <div class="tx-grid tx-head">
+                <span>Transaksi</span><span>Tanggal</span><span>Oleh</span><span class="ta-r">Nominal</span><span></span>
+              </div>
+              <div id="txRows"></div>
+            </div>
+          </div>
+          <div class="pager">
+            <div class="pager-info">
+              <span id="txTotal" class="strong small"></span>
+              <span id="txRange" class="item-sub tnum"></span>
+            </div>
+            <div class="pager-limit">
+              <span>Baris per halaman</span>
+              <div id="txLimitOpts" class="seg seg-xs" role="group" aria-label="Baris per halaman"></div>
+            </div>
+            <div class="pager-nav">
+              <button type="button" id="txPrev" class="pager-btn" aria-label="Halaman sebelumnya">‹ Prev</button>
+              <div id="txPages" class="pager-pages"></div>
+              <button type="button" id="txNext" class="pager-btn" aria-label="Halaman berikutnya">Next ›</button>
+            </div>
+          </div>
+        </div>
+
+        <aside id="txDetail" class="card tx-detail" aria-label="Detail transaksi"></aside>
+      </div>
+    </section>
+
+    <!-- ================= ANALISIS ================= -->
+    <section id="view-analysis" class="view" hidden>
+      <div class="card ana-bar">
+        <div id="anaPresets" class="seg" role="group" aria-label="Pilihan cepat rentang waktu"></div>
+        <div class="ana-periods">
+          <button type="button" class="ana-period" data-open-range>
+            <span class="dot" style="background:var(--exp)"></span>
+            <span class="ana-period-text"><span class="ana-period-label">Periode A · saat ini</span><span id="anaRangeA" class="ana-period-range"></span></span>
+            <span id="anaDaysA" class="ana-period-days"></span>
+          </button>
+          <button type="button" id="anaSwap" class="icon-btn-box" aria-label="Tukar periode">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg>
+          </button>
+          <button type="button" class="ana-period" data-open-range>
+            <span class="dot" style="background:var(--muted)"></span>
+            <span class="ana-period-text"><span class="ana-period-label">Periode B · pembanding</span><span id="anaRangeB" class="ana-period-range"></span></span>
+            <span id="anaDaysB" class="ana-period-days"></span>
+          </button>
+        </div>
+      </div>
+
+      <div id="anaKpis" class="ana-kpis"></div>
+
+      <section class="card card-chart">
+        <div class="card-head">
+          <div class="card-title">
+            <h2>Pengeluaran Kumulatif</h2>
+            <span class="muted small">Total pengeluaran yang terkumpul dari hari pertama tiap periode</span>
+          </div>
+          <div class="chart-legend chart-legend-inline">
+            <span><span class="dot" style="background:var(--exp)"></span>A · <span id="anaLegendA"></span></span>
+            <span><span class="dot" style="background:var(--muted)"></span>B · <span id="anaLegendB"></span></span>
+          </div>
+        </div>
+        <div id="anaChart" class="chart"></div>
+      </section>
+
+      <section id="anaProj" class="card ana-proj" hidden></section>
+
+      <div class="grid-2">
+        <section class="card">
+          <div class="card-title card-title-pad">
+            <h2>Perbandingan per Kategori</h2>
+            <span class="muted small">Diurutkan dari total pengeluaran terbesar</span>
+          </div>
+          <div id="anaCats"></div>
+        </section>
+        <div class="stack">
+          <section class="card">
+            <div class="card-title">
+              <h2>Pola per Hari dalam Seminggu</h2>
+              <span id="anaDowNote" class="muted small"></span>
+            </div>
+            <div id="anaDow" class="dow-chart"></div>
+            <div class="mini-legend">
+              <span><span class="dot dot-sm" style="background:var(--exp)"></span>Periode A</span>
+              <span><span class="dot dot-sm" style="background:var(--muted)"></span>Periode B</span>
+            </div>
+          </section>
+          <section class="card">
+            <h2>Ringkasan</h2>
+            <div id="anaInsights" class="insights"></div>
+          </section>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <section class="card">
+          <div class="card-title card-title-pad">
+            <h2>Weekday vs Weekend</h2>
+            <span class="muted small">Rata-rata pengeluaran per hari</span>
+          </div>
+          <div id="anaWk"></div>
+        </section>
+        <section class="card">
+          <div class="card-title card-title-pad">
+            <h2>Ukuran Transaksi</h2>
+            <span class="muted small">Total pengeluaran menurut besar transaksi</span>
+          </div>
+          <div id="anaSize"></div>
+        </section>
+        <section class="card">
+          <h2 class="card-title-pad">Hari Penting</h2>
+          <div class="days-grid days-head">
+            <span></span>
+            <span><span class="dot dot-sm" style="background:var(--exp)"></span>A</span>
+            <span><span class="dot dot-sm" style="background:var(--muted)"></span>B</span>
+          </div>
+          <div id="anaDays"></div>
+        </section>
+      </div>
+
+      <div class="grid-2">
+        <section class="card">
+          <h2 class="h2-dot"><span class="dot" style="background:var(--exp)"></span>Transaksi Terbesar · Periode A</h2>
+          <div id="anaTopA"></div>
+        </section>
+        <section class="card">
+          <h2 class="h2-dot"><span class="dot" style="background:var(--muted)"></span>Transaksi Terbesar · Periode B</h2>
+          <div id="anaTopB"></div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ================= RENCANA ================= -->
+    <section id="view-plans" class="view" hidden>
+      <div class="plans-toolbar">
+        <div id="periodTabs" class="seg seg-surface seg-wrap" role="group" aria-label="Periode rencana"></div>
+        <button type="button" id="addPlanBtn" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          Rencana Baru
+        </button>
+      </div>
+      <span id="periodCaption" class="muted"></span>
+      <div id="planGrid" class="plan-grid"></div>
+    </section>
+
+    <!-- ================= KATEGORI ================= -->
+    <section id="view-categories" class="view" hidden>
+      <div class="cat-cols">
+        <div class="card cat-card">
+          <div class="cat-card-head">
+            <div class="card-title"><h2>Pengeluaran</h2><span id="catExpCount" class="muted"></span></div>
+            <button type="button" class="btn btn-primary btn-sm" data-add-cat="expense">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              Kategori Baru
+            </button>
+          </div>
+          <div id="catExpList"></div>
+        </div>
+        <div class="card cat-card">
+          <div class="cat-card-head">
+            <div class="card-title"><h2>Pemasukan</h2><span id="catIncCount" class="muted"></span></div>
+            <button type="button" class="btn btn-primary btn-sm" data-add-cat="income">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              Kategori Baru
+            </button>
+          </div>
+          <div id="catIncList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= INFO ================= -->
+    <section id="view-settings" class="view" hidden>
+      <div class="info-grid">
+        <div class="card info-card">
+          <h2 class="h2-sm">Tentang</h2>
+          <span class="muted info-text">Finance App v0.1 · Data tersinkronisasi otomatis ke cloud (Firebase) — transaksi &amp; rencana tersimpan di server dan langsung update di semua perangkat. Preferensi tema disimpan di perangkat ini.</span>
+        </div>
+        <div class="card info-card info-card-row">
+          <div class="info-hub-text">
+            <h2 class="h2-sm">Semua Aplikasi (Mobile Version)</h2>
+            <span class="muted small">Lihat daftar aplikasi lainnya</span>
+          </div>
+          <a class="btn-hub" href="../../index.html">Iyon App</a>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ================= MODAL: TAMBAH TRANSAKSI (Manual / Import) ================= -->
+<div id="txModal" class="modal-overlay modal-center" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="txModalTitle">
+    <div class="modal-head">
+      <h2 id="txModalTitle">Tambah Transaksi</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Tutup"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Cara input">
+      <button type="button" role="tab" class="tab" data-tx-tab="manual">Manual</button>
+      <button type="button" role="tab" class="tab" data-tx-tab="import">Import</button>
+    </div>
+
+    <!-- Manual -->
+    <form id="txForm" class="modal-body" data-tx-panel="manual" novalidate>
+      <div id="txTypeToggle" class="toggle-2" role="group" aria-label="Jenis">
+        <button type="button" class="toggle-btn" data-type="expense">Pengeluaran</button>
+        <button type="button" class="toggle-btn" data-type="income">Pemasukan</button>
+      </div>
+      <div class="field">
+        <label for="txCategory">Kategori</label>
+        <select id="txCategory" class="input"></select>
+      </div>
+      <div class="field">
+        <label for="txAmount">Jumlah</label>
+        <div class="money-input">
+          <span>Rp</span>
+          <input id="txAmount" inputmode="numeric" placeholder="0" autocomplete="off">
+        </div>
+      </div>
+      <div class="field">
+        <label for="txNote">Catatan</label>
+        <input id="txNote" class="input" placeholder="mis. Makan siang" autocomplete="off">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="txDate">Tanggal</label>
+          <input id="txDate" type="date" class="input" required>
+        </div>
+        <!-- Default jam sekarang; reset ke 00:00:00 tiap tanggal diganti (sama spt mobile). -->
+        <div class="field">
+          <label for="txTime">Waktu</label>
+          <input id="txTime" type="time" step="1" class="input" required>
+        </div>
+      </div>
+      <div class="field">
+        <span class="field-label" id="txByLabel">Dibuat oleh</span>
+        <div id="txByToggle" class="toggle-2" role="group" aria-label="Dibuat oleh"></div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" data-close>Batal</button>
+        <button type="submit" class="btn btn-primary">Simpan</button>
+      </div>
+    </form>
+
+    <!-- Import -->
+    <div class="modal-body" data-tx-panel="import" hidden>
+      <div class="info-box info-box-row">
+        <div class="info-box-text">
+          <span class="strong">Template import</span>
+          <span class="muted small">Kolom: Tanggal, Waktu, Tipe, Kategori, Nominal, Catatan.</span>
+        </div>
+        <button type="button" id="templateBtn" class="btn btn-outline btn-sm">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>
+          Download Template
+        </button>
+      </div>
+      <button type="button" id="dropZone" class="drop-zone">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V5M7 9l5-5 5 5M5 20h14"/></svg>
+        <span id="dropTitle" class="drop-title">Klik untuk pilih file atau seret ke sini</span>
+        <span id="dropHint" class="muted small">Format .xlsx atau .csv, maksimal 5 MB</span>
+      </button>
+      <input type="file" id="importFile" accept=".xlsx,.xls,.csv" hidden>
+      <div id="importSummary" class="info-box" hidden>
+        <div class="kv"><span class="muted">Baris valid</span><span id="importValid" class="strong" style="color:var(--inc)"></span></div>
+        <div class="kv"><span class="muted">Baris bermasalah</span><span id="importInvalid" class="strong" style="color:var(--warn)"></span></div>
+      </div>
+      <div class="field">
+        <span class="field-label" id="importByLabel">Dibuat oleh</span>
+        <div id="importByToggle" class="toggle-2" role="group" aria-label="Dibuat oleh"></div>
+        <span class="muted small">Berlaku untuk semua transaksi yang diimport.</span>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" data-close>Batal</button>
+        <button type="button" id="importBtn" class="btn btn-primary" disabled>Import</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL: EDIT TRANSAKSI ================= -->
+<div id="editTxModal" class="modal-overlay" hidden>
+  <form id="editTxForm" class="modal" role="dialog" aria-modal="true" aria-labelledby="editTxTitle" novalidate>
+    <div class="modal-head">
+      <h2 id="editTxTitle">Edit Transaksi</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Tutup"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="locked-box">
+      <div class="locked-head">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h12v9H6zM8 11V8a4 4 0 0 1 8 0v3"/></svg>
+        Tidak dapat diubah
+      </div>
+      <div id="editTxInfo"></div>
+    </div>
+    <div class="field">
+      <label for="editTxAmount">Jumlah</label>
+      <div class="money-input money-input-focus">
+        <span>Rp</span>
+        <input id="editTxAmount" inputmode="numeric" autocomplete="off">
+      </div>
+    </div>
+    <div class="field">
+      <label for="editTxNote">Catatan</label>
+      <input id="editTxNote" class="input" autocomplete="off">
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-outline" data-close>Batal</button>
+      <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+    </div>
+  </form>
+</div>
+
+<!-- ================= DIALOG KONFIRMASI HAPUS (transaksi / rencana / kategori) ================= -->
+<div id="confirmModal" class="modal-overlay modal-low" hidden>
+  <div class="modal modal-sm" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="confirm-head">
+      <div class="danger-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg>
+      </div>
+      <h2 id="confirmTitle"></h2>
+      <span id="confirmText" class="muted"></span>
+    </div>
+    <div id="confirmItem" class="info-box info-box-row"></div>
+    <div class="confirm-actions">
+      <button type="button" class="btn btn-outline" data-close>Batal</button>
+      <button type="button" id="confirmOkBtn" class="btn btn-danger">Ya, Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL: FILTER TRANSAKSI ================= -->
+<div id="filterModal" class="modal-overlay" hidden>
+  <div class="modal modal-md" role="dialog" aria-modal="true" aria-labelledby="filterTitle">
+    <div class="modal-head">
+      <h2 id="filterTitle">Filter Transaksi</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Tutup"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="field-group">
+      <span class="overline">Rentang tanggal</span>
+      <div class="field-row">
+        <div class="field">
+          <label for="filterFrom" class="label-muted">Dari tanggal</label>
+          <select id="filterFrom" class="input"></select>
+        </div>
+        <div class="field">
+          <label for="filterTo" class="label-muted">Sampai tanggal</label>
+          <select id="filterTo" class="input"></select>
+        </div>
+      </div>
+    </div>
+    <div class="field-group">
+      <span class="overline">Kategori</span>
+      <div id="filterCatList" class="filter-cat-list"></div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-outline" data-close>Batal</button>
+      <button type="button" id="filterResetBtn" class="btn btn-outline">Reset</button>
+      <button type="button" id="filterApplyBtn" class="btn btn-primary">Terapkan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL: TAMBAH RENCANA ================= -->
+<div id="planModal" class="modal-overlay" hidden>
+  <form id="planForm" class="modal" role="dialog" aria-modal="true" aria-labelledby="planTitle" novalidate>
+    <div class="modal-head">
+      <h2 id="planTitle">Tambah Rencana</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Tutup"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="field">
+      <label for="planPeriod">Periode</label>
+      <select id="planPeriod" class="input"></select>
+    </div>
+    <div class="field">
+      <label for="planCategory">Kategori</label>
+      <select id="planCategory" class="input"></select>
+      <span class="muted small">Hanya kategori yang belum punya rencana di periode ini.</span>
+    </div>
+    <div class="field">
+      <label for="planLimit">Batas anggaran</label>
+      <div class="money-input">
+        <span>Rp</span>
+        <input id="planLimit" inputmode="numeric" placeholder="0" autocomplete="off">
+      </div>
+    </div>
+    <div class="field">
+      <span class="field-label" id="planByLabel">Dibuat oleh</span>
+      <div id="planByToggle" class="toggle-2" role="group" aria-label="Dibuat oleh"></div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-outline" data-close>Batal</button>
+      <button type="submit" class="btn btn-primary">Simpan</button>
+    </div>
+  </form>
+</div>
+
+<!-- ================= MODAL: EDIT RENCANA ================= -->
+<div id="planEditModal" class="modal-overlay" hidden>
+  <form id="planEditForm" class="modal" role="dialog" aria-modal="true" aria-labelledby="planEditTitle" novalidate>
+    <div class="modal-head">
+      <h2 id="planEditTitle">Edit Rencana</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Tutup"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="locked-box">
+      <div class="locked-head">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h12v9H6zM8 11V8a4 4 0 0 1 8 0v3"/></svg>
+        Tidak dapat diubah
+      </div>
+      <div id="planEditInfo"></div>
+    </div>
+    <div class="field">
+      <label for="planEditLimit">Batas anggaran</label>
+      <div class="money-input money-input-focus">
+        <span>Rp</span>
+        <input id="planEditLimit" inputmode="numeric" autocomplete="off">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-outline" data-close>Batal</button>
+      <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+    </div>
+  </form>
+</div>
+
+<!-- ================= MODAL: KATEGORI (BUAT / EDIT) ================= -->
+<div id="catModal" class="modal-overlay modal-high" hidden>
+  <form id="catForm" class="modal" role="dialog" aria-modal="true" aria-labelledby="catTitle" novalidate>
+    <div class="modal-head">
+      <h2 id="catTitle">Tambah Kategori</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Tutup"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="info-box info-box-row">
+      <div id="catPreviewTile"></div>
+      <span id="catPreviewLabel" class="strong cat-preview-label"></span>
+    </div>
+    <div class="field">
+      <label for="catId">ID</label>
+      <input id="catId" class="input" placeholder="mis. kopi" autocomplete="off">
+      <span class="muted small">ID tidak bisa diubah setelah kategori dibuat.</span>
+      <span id="catIdError" class="field-error"></span>
+    </div>
+    <div class="field">
+      <label for="catLabel">Label (yang ditampilkan)</label>
+      <input id="catLabel" class="input" placeholder="mis. Kopi" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="catIcon">Icon (1 karakter / emoji)</label>
+      <input id="catIcon" class="input input-emoji" placeholder="mis. ☕" autocomplete="off">
+    </div>
+    <div class="field">
+      <span class="field-label">Warna</span>
+      <div id="catSlots" class="slot-picker"></div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-outline" data-close>Batal</button>
+      <button type="submit" id="catSaveBtn" class="btn btn-primary">Simpan</button>
+    </div>
+  </form>
+</div>
+
+<!-- ================= POPUP: PILIH RENTANG ANALISIS ================= -->
+<div id="rangeModal" class="modal-overlay modal-center modal-top" hidden>
+  <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="rangeTitle">
+    <div class="modal-head">
+      <div class="card-title">
+        <h2 id="rangeTitle">Pilih Rentang Waktu</h2>
+        <span class="muted">Atur dua rentang yang ingin dibandingkan</span>
+      </div>
+      <button type="button" class="icon-btn" data-close aria-label="Tutup"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="quick-row">
+      <span class="strong">Pilihan cepat</span>
+      <div id="rangeQuick" class="quick-chips"></div>
+    </div>
+    <div class="range-cols">
+      <div class="range-col" data-range="a">
+        <div class="range-col-head"><span class="dot" style="background:var(--exp)"></span><span class="strong">Periode A · saat ini</span></div>
+        <div class="field-row">
+          <div class="field"><label for="rangeAStart" class="label-muted small">Mulai</label><input type="date" id="rangeAStart" class="input"></div>
+          <div class="field"><label for="rangeAEnd" class="label-muted small">Sampai</label><input type="date" id="rangeAEnd" class="input"></div>
+        </div>
+        <div id="rangeCalA" class="calendar"></div>
+      </div>
+      <div class="range-col" data-range="b">
+        <div class="range-col-head"><span class="dot" style="background:var(--muted)"></span><span class="strong">Periode B · pembanding</span></div>
+        <div class="field-row">
+          <div class="field"><label for="rangeBStart" class="label-muted small">Mulai</label><input type="date" id="rangeBStart" class="input"></div>
+          <div class="field"><label for="rangeBEnd" class="label-muted small">Sampai</label><input type="date" id="rangeBEnd" class="input"></div>
+        </div>
+        <div id="rangeCalB" class="calendar"></div>
+      </div>
+    </div>
+    <span id="rangeError" class="field-error"></span>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-outline" data-close>Batal</button>
+      <button type="button" id="rangeApplyBtn" class="btn btn-primary">Terapkan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= POPUP: IMPORT BERHASIL ================= -->
+<div id="importOkModal" class="modal-overlay modal-top" hidden>
+  <div class="modal modal-sm modal-centered-text" role="dialog" aria-modal="true" aria-labelledby="importOkTitle">
+    <div class="result-icon result-ok">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+    </div>
+    <div class="result-text">
+      <h2 id="importOkTitle">Import Berhasil</h2>
+      <span id="importOkDesc" class="muted"></span>
+    </div>
+    <div class="info-box result-box">
+      <div class="kv"><span class="muted">Pengeluaran</span><span id="importOkExp" class="strong" style="color:var(--exp)"></span></div>
+      <div class="kv"><span class="muted">Pemasukan</span><span id="importOkInc" class="strong" style="color:var(--inc)"></span></div>
+      <div class="kv"><span class="muted">Dibuat oleh</span><span id="importOkBy" class="strong"></span></div>
+    </div>
+    <button type="button" class="btn btn-primary btn-block" data-close>Selesai</button>
+  </div>
+</div>
+
+<!-- ================= POPUP: IMPORT GAGAL ================= -->
+<div id="importFailModal" class="modal-overlay modal-top" hidden>
+  <div class="modal modal-md" role="dialog" aria-modal="true" aria-labelledby="importFailTitle">
+    <div class="fail-head">
+      <div class="result-icon result-fail">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </div>
+      <div class="result-text result-text-left">
+        <h2 id="importFailTitle">Import Gagal</h2>
+        <span class="muted">Tidak ada transaksi yang disimpan. Perbaiki file lalu import ulang.</span>
+      </div>
+    </div>
+    <div class="fail-meta">
+      <span id="importFailTotal" class="error-pill"></span>
+      <span class="muted small">Scroll untuk melihat semua</span>
+    </div>
+    <div class="error-table">
+      <div class="error-scroll">
+        <div class="error-row error-head"><span>Row</span><span>Error</span></div>
+        <div id="importFailRows"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-outline" data-close>Tutup</button>
+      <button type="button" id="importRetryBtn" class="btn btn-primary">Import Ulang</button>
+    </div>
+  </div>
+</div>
+
+<!-- SheetJS (baca file import & export .xlsx) + helper export bersama dari versi mobile -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="../generate-excel.js"></script>
+<!-- Template import (.xlsx dgn dropdown) — ExcelJS di-load saat tombol Download Template diklik -->
+<script src="excel-template.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

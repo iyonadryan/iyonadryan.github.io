@@ -27,7 +27,8 @@ iyonadryan.github.io/
       wishlist-app.md      # app baru, langsung dibuat di sini sejak awal (bukan pindahan)
       mobile-app.md        # port Flutter (Android & iOS) dari SEMUA app di atas — lihat "Versi mobile"
     kitchen/
-    finance/
+    finance/             # Web Mobile
+      web/               # Web Desktop Finance (data Firebase sama) — lihat finance-app.md "Versi Web Desktop"
     routine/
     patungan/
     note/

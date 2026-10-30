@@ -1,0 +1,424 @@
+/* =========================================================
+   Finance App (Desktop) — base.css
+   Token warna (light/dark), reset, layout shell (sidebar +
+   main), header halaman, loading overlay.
+   Warna diambil dari desain "Finance App Desktop" (artifact).
+   ========================================================= */
+
+:root {
+  /* Kontrol native (ikon kalender, picker, scrollbar) ikut tema. */
+  color-scheme: light;
+
+  --bg: #F3F5F7;
+  --surface: #FFFFFF;
+  --surface2: #F7F9FA;
+  --border: #E3E8EC;
+  --text: #0E1A21;
+  --muted: #56646E;
+  --accent: #0E7490;
+  --onAccent: #FFFFFF;
+  --inc: #0369A1;
+  --exp: #B94A0E;
+  --onInc: #FFFFFF;
+  --onExp: #FFFFFF;
+  --hero: #0C2A36;
+  --heroText: #FFFFFF;
+  --heroMuted: #A8C3CE;
+  --track: #E6ECF0;
+  --warn: #A16207;
+  --danger: #B91C1C;
+  --dangerSolid: #B91C1C;
+  --avText: #FFFFFF;           /* teks inisial di avatar user */
+  --overlay: rgba(6, 14, 18, 0.55);
+
+  /* Warna kategori (colorSlot 1..10 di Firebase → --series-N) */
+  --series-1: #0E7490;
+  --series-2: #C2410C;
+  --series-3: #6D28D9;
+  --series-4: #A16207;
+  --series-5: #BE185D;
+  --series-6: #4D7C0F;
+  --series-7: #2563EB;
+  --series-8: #0D9488;
+  --series-9: #0891B2;
+  --series-10: #92400E;
+
+  --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Skala seluruh UI (font, spacing, radius, ikon) — ukuran di CSS/JS tetap
+     ditulis sesuai desain (100%), lalu diperkecil serempak di sini.
+     Ganti angka ini saja kalau mau lebih besar/kecil. */
+  --ui-scale: 0.8;
+  /* Tinggi 1 layar penuh dalam koordinat yang sudah di-zoom (100vh ikut
+     mengecil kena zoom, jadi dibagi balik). */
+  --vh-full: calc(100vh / var(--ui-scale));
+}
+
+html {
+  zoom: var(--ui-scale);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0B1216;
+  --surface: #121B21;
+  --surface2: #18242C;
+  --border: #25343D;
+  --text: #E9EFF2;
+  --muted: #9AAAB4;
+  --accent: #2BC4E2;
+  --onAccent: #04222B;
+  --inc: #63B8F5;
+  --exp: #FB9A4B;
+  --onInc: #04131F;
+  --onExp: #1A0D02;
+  --hero: #16313D;
+  --heroText: #F2F8FA;
+  --heroMuted: #A9C0CB;
+  --track: #223039;
+  --warn: #F5B83D;
+  --danger: #F87171;
+  --dangerSolid: #DC2626;
+  --avText: #0B1216;
+
+  --series-1: #2BC4E2;
+  --series-2: #FB9A4B;
+  --series-3: #A78BFA;
+  --series-4: #F5B83D;
+  --series-5: #F472B6;
+  --series-6: #A3E635;
+  --series-7: #60A5FA;
+  --series-8: #2DD4BF;
+  --series-9: #22D3EE;
+  --series-10: #D6A17A;
+}
+
+/* ---------------- Reset ---------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: inherit;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 13px;
+}
+
+.strong {
+  font-weight: 700;
+}
+
+.ta-r {
+  text-align: right;
+}
+
+/* ---------------- Layout shell ---------------- */
+
+.app {
+  display: flex;
+  flex-wrap: wrap;
+  min-height: var(--vh-full);
+}
+
+.sidebar {
+  flex: 0 0 264px;
+  padding: 28px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+
+/* Di layar lebar sidebar ikut menempel saat konten di-scroll. */
+@media (min-width: 900px) {
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: var(--vh-full);
+    overflow-y: auto;
+  }
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px;
+}
+
+.brand-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--onAccent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-name {
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+
+.brand-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 46px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.nav-item:hover {
+  background: var(--surface2);
+}
+
+.nav-item.active {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+.sidebar-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.me-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+.me-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.me-name {
+  font-weight: 700;
+}
+
+.me-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.main {
+  flex: 999 1 640px;
+  min-width: 0;
+  padding: 32px 40px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ---------------- Header halaman ---------------- */
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.page-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.page-title h1 {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.header-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 44px;
+  padding: 0 4px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.month-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+
+.month-btn:hover:not(:disabled) {
+  background: var(--surface2);
+}
+
+.month-btn:disabled {
+  opacity: 0.35;
+}
+
+.month-label {
+  min-width: 128px;
+  text-align: center;
+  font-weight: 700;
+}
+
+/* ---------------- Loading overlay ---------------- */
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: var(--bg);
+  transition: opacity 0.3s;
+}
+
+.loading-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-coins {
+  display: flex;
+  gap: 10px;
+  font-size: 34px;
+}
+
+.loading-coins span {
+  animation: coin-bounce 1s ease-in-out infinite;
+}
+
+.loading-coins span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.loading-coins span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes coin-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.loading-text {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .main {
+    padding: 24px 16px 40px;
+  }
+}

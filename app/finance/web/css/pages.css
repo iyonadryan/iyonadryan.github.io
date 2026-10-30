@@ -1,0 +1,1297 @@
+/* =========================================================
+   Finance App (Desktop) — pages.css
+   Gaya khusus per halaman (Dashboard, Transaksi, Analisis,
+   Rencana, Kategori, Info) + isi modal yang spesifik.
+   ========================================================= */
+
+/* ================= Dashboard ================= */
+
+.hero {
+  background: var(--hero);
+  color: var(--heroText);
+  border-radius: 24px;
+  padding: 32px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 28px 40px;
+  align-items: end;
+}
+
+.hero-balance,
+.hero-stat-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-balance {
+  gap: 6px;
+}
+
+.hero-label {
+  color: var(--heroMuted);
+  font-weight: 600;
+}
+
+.hero-amount {
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.hero-stat {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.hero-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.hero-ratio {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hero-track {
+  height: 10px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+
+.hero-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--accent);
+  filter: brightness(1.25);
+}
+
+.hero-ratio-text {
+  color: var(--heroMuted);
+  font-size: 13px;
+}
+
+.dash-cols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.dash-stats {
+  flex: 1.4 1 480px;
+  padding: 28px;
+  gap: 22px;
+}
+
+.dash-stats .card-title {
+  gap: 6px;
+}
+
+.dash-recent {
+  flex: 1 1 360px;
+  padding: 28px;
+  gap: 12px;
+}
+
+.seg-bar {
+  display: flex;
+  gap: 3px;
+  height: 14px;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.seg-bar:empty {
+  display: none;
+}
+
+.stat-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 0;
+}
+
+.stat-row + .stat-row,
+.list-row + .list-row,
+.cmp-row + .cmp-row,
+.top-row + .top-row,
+.days-grid + .days-grid {
+  border-top: 1px solid var(--border);
+}
+
+.stat-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.stat-row-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+}
+
+.stat-row-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  font-size: 13px;
+}
+
+.stat-note {
+  font-weight: 600;
+}
+
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  width: 100%;
+}
+
+button.list-row:hover .item-title {
+  color: var(--accent);
+}
+
+.amount {
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.amount-income {
+  color: var(--inc);
+}
+
+.amount-expense {
+  color: var(--exp);
+}
+
+/* ================= Transaksi ================= */
+
+.tx-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.tx-table-card {
+  flex: 999 1 560px;
+  padding: 20px 24px 12px;
+  gap: 16px;
+}
+
+.tx-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tx-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  min-width: 220px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+}
+
+.search-box:focus-within {
+  border-color: var(--accent);
+}
+
+.search-box input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  outline: none;
+  color: var(--text);
+}
+
+/* Pakai tombol ✕ sendiri, sembunyikan tombol clear bawaan browser. */
+.search-box input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.search-clear {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+/* Pagination tabel transaksi */
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 4px 12px 10px;
+}
+
+.pager-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pager-limit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.seg-xs {
+  padding: 3px;
+  border-radius: 10px;
+}
+
+.seg-xs .seg-btn {
+  height: 30px;
+  min-width: 38px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.pager-nav,
+.pager-pages {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pager-btn {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.pager-btn:hover:not(:disabled) {
+  background: var(--surface2);
+}
+
+.pager-btn:disabled {
+  opacity: 0.4;
+}
+
+.pager-num {
+  width: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pager-num.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--onAccent);
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-chip {
+  padding: 5px 12px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.tx-table {
+  min-width: 620px;
+}
+
+.tx-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2.6fr) minmax(0, 1.3fr) 64px minmax(0, 1.3fr) 88px;
+  gap: 16px;
+  align-items: center;
+}
+
+.tx-head {
+  padding: 0 12px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+}
+
+.tx-row {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.tx-row.selected {
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+
+.tx-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.tx-date {
+  display: flex;
+  flex-direction: column;
+}
+
+.tx-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.tx-detail {
+  flex: 1 1 320px;
+  max-width: 400px;
+  padding: 28px;
+  gap: 22px;
+}
+
+.tx-detail-amount {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.tx-detail .dl {
+  gap: 12px 20px;
+}
+
+.note-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+.note-box > span:last-child {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Modal filter */
+.filter-cat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 244px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.filter-cat-item {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 56px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  cursor: pointer;
+}
+
+.filter-cat-item.checked {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+
+.filter-cat-item input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.filter-cat-item .strong {
+  flex: 1;
+}
+
+/* Modal tambah transaksi — tab Import */
+.drop-zone {
+  width: 100%;
+  padding: 28px 16px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  border: 2px dashed var(--border);
+  color: var(--muted);
+}
+
+.drop-zone.has-file,
+.drop-zone.dragover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--accent);
+}
+
+.drop-title {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+/* Popup hasil import */
+.modal-centered-text {
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  padding-top: 32px;
+}
+
+.result-icon {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.result-ok {
+  background: color-mix(in srgb, var(--inc) 16%, transparent);
+  color: var(--inc);
+}
+
+.result-fail {
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
+  color: var(--danger);
+}
+
+.result-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  line-height: 1.5;
+}
+
+.result-text h2 {
+  font-size: 22px;
+}
+
+.result-text b {
+  color: var(--text);
+}
+
+.result-box {
+  width: 100%;
+  text-align: left;
+}
+
+.fail-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.result-text-left {
+  gap: 4px;
+}
+
+.fail-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.error-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 99px;
+  font-weight: 800;
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+}
+
+.error-table {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.error-scroll {
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.error-row {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+}
+
+.error-row + .error-row {
+  border-top: 1px solid var(--border);
+}
+
+.error-row > span {
+  padding: 11px 14px;
+}
+
+.error-row > span:first-child {
+  font-weight: 800;
+}
+
+.error-row > span:last-child {
+  border-left: 1px solid var(--border);
+  color: var(--danger);
+  line-height: 1.45;
+}
+
+.error-row.error-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  font-weight: 700;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.error-row.error-head > span {
+  padding: 10px 14px;
+}
+
+.error-row.error-head > span:last-child {
+  color: var(--muted);
+}
+
+/* ================= Analisis ================= */
+
+.ana-bar {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+}
+
+.ana-periods {
+  flex: 1 1 560px;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.ana-periods .icon-btn-box {
+  height: auto;
+  min-height: 44px;
+  background: none;
+}
+
+.ana-period {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+
+.ana-period:hover {
+  background: var(--surface2);
+}
+
+.ana-period-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.ana-period-label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.ana-period-range {
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ana-period-days {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.ana-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
+  gap: 20px;
+}
+
+.kpi {
+  padding: 20px 22px;
+  gap: 8px;
+}
+
+.kpi-value {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.kpi-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.kpi-sub {
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ana-proj {
+  gap: 20px;
+}
+
+.proj-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+.proj-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.proj-value {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.proj-bar {
+  position: relative;
+  height: 14px;
+  border-radius: 99px;
+  background: var(--track);
+  margin: 8px 0 4px;
+}
+
+.proj-bar > div {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.proj-spent {
+  left: 0;
+  border-radius: 99px 0 0 99px;
+  background: var(--exp);
+}
+
+.proj-rest {
+  background: var(--exp);
+  opacity: 0.35;
+  border-radius: 0 99px 99px 0;
+}
+
+.proj-bar > .proj-mark {
+  top: -6px;
+  bottom: -6px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--text);
+}
+
+.proj-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.proj-legend > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+.grid-2 > .card,
+.grid-3 > .card {
+  gap: 0;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Baris perbandingan A vs B (kategori, weekday/weekend, ukuran transaksi) */
+.cmp-row {
+  padding: 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cmp-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cmp-top .strong {
+  flex: 1;
+  min-width: 0;
+}
+
+.cmp-bars {
+  display: grid;
+  grid-template-columns: 44px 1fr 132px;
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.cmp-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.cmp-a {
+  text-align: right;
+  font-weight: 700;
+}
+
+.cmp-b {
+  text-align: right;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.dow-chart {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.dow-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.dow-bars {
+  height: 150px;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+}
+
+.dow-bar {
+  width: 42%;
+  max-width: 26px;
+  border-radius: 6px 6px 2px 2px;
+}
+
+.dow-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.dow-label.top {
+  font-weight: 800;
+  color: var(--exp);
+}
+
+.insights {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.insight {
+  display: flex;
+  gap: 12px;
+  line-height: 1.55;
+}
+
+.insight .dot {
+  width: 8px;
+  height: 8px;
+  flex-basis: 8px;
+  margin-top: 7px;
+  background: var(--accent);
+}
+
+.days-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.days-head {
+  padding: 6px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.days-head > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.days-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.top-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.top-amount {
+  font-weight: 800;
+  color: var(--exp);
+  min-width: 112px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Popup pilih rentang */
+.quick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.quick-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: 4px;
+}
+
+.quick-chip {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.quick-chip:hover {
+  background: var(--surface2);
+}
+
+.quick-chip.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+.range-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+  gap: 24px;
+}
+
+.range-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.range-col-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.range-col .field-row {
+  gap: 10px;
+}
+
+.range-col .input {
+  height: 44px;
+  font-weight: 700;
+}
+
+.calendar {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 800;
+}
+
+.cal-head .icon-btn {
+  width: 32px;
+  height: 32px;
+}
+
+.cal-dow,
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.cal-dow {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.cal-grid {
+  row-gap: 4px;
+}
+
+.cal-cell {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* --cal = warna periode (A: exp, B: muted), di-set inline per kalender. */
+.cal-cell.in-range {
+  background: color-mix(in srgb, var(--cal) 20%, transparent);
+}
+
+.cal-cell.edge {
+  background: var(--cal);
+  color: var(--avText);
+  border-radius: 99px;
+  font-weight: 800;
+}
+
+button.cal-cell:hover:not(.edge) {
+  border-radius: 99px;
+  box-shadow: inset 0 0 0 1px var(--cal);
+}
+
+/* ================= Rencana ================= */
+
+.plans-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#view-plans {
+  gap: 20px;
+}
+
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
+  gap: 20px;
+}
+
+.plan-card {
+  padding: 24px;
+  gap: 18px;
+}
+
+.plan-card.dragging {
+  opacity: 0.45;
+}
+
+.plan-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.plan-drag {
+  color: var(--muted);
+  display: flex;
+  cursor: grab;
+}
+
+.plan-drag.disabled {
+  visibility: hidden;
+}
+
+.plan-title {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-title .strong {
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.plan-spent {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.plan-spent-value {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.plan-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.plan-by {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ================= Kategori ================= */
+
+.cat-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+.cat-card {
+  padding: 24px 28px 16px;
+  gap: 8px;
+}
+
+.cat-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+
+.cat-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+
+.cat-count {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.cat-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  min-width: 76px;
+}
+
+.cat-preview-label {
+  font-size: 16px;
+}
+
+.slot-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 4px;
+}
+
+.slot {
+  width: 32px;
+  height: 32px;
+  border-radius: 99px;
+  background: var(--slot);
+}
+
+.slot.selected {
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--slot);
+}
+
+/* ================= Info ================= */
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+.info-card {
+  padding: 24px;
+  gap: 8px;
+}
+
+.info-card-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+}
+
+.info-hub-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.info-text {
+  line-height: 1.6;
+}
+
+.btn-hub {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #5144A8, #7B52B5);
+  color: #FFFFFF;
+  font-weight: 800;
+  font-size: 17px;
+  text-decoration: none;
+}
