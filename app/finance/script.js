@@ -217,7 +217,6 @@
       financeRef.update(updates).catch((e) => console.error("Backfill pemilik transaksi gagal:", e));
     }
   }
-
   // Backfill field `by` ke rencana lama (sebelum fitur multi-user) — tetap
   // flat (plans/<period>/<category>), `by` cukup jadi field di dalamnya
   // (bukan segmen path baru) — jadi 1 kategori+periode tetap 1 slot bersama,
@@ -317,6 +316,10 @@
             category: t.category,
             note: t.catatan || "",
             date: t.tanggal || topKey,
+            // Jam transaksi "HH:MM:SS". Semua data sudah di-backfill; fallback
+            // ini cuma jaga-jaga kalau ada HP yang masih pakai script lama
+            // (cache) dan menulis tanpa field waktu.
+            time: t.waktu || formatTime(Number(t.timestamp) || Number(ts), true),
             timestamp: Number(t.timestamp) || Number(ts), // waktu asli saat input
             by: t.by || "ciwul",
           });
@@ -344,8 +347,8 @@
 
   // ---- Operasi tulis ----
 
-  // Key = timestamp jam 00:00:00 (waktu lokal) tanggal yang dipilih, +1 tiap
-  // key itu sudah terpakai, jadi tanggal bisa dipilih bebas tanpa menimpa data
+  // Key = timestamp tanggal + waktu yang dipilih (waktu lokal), +1 tiap key itu
+  // sudah terpakai, jadi tanggal/waktu bisa dipilih bebas tanpa menimpa data
   // lain. Field `timestamp` tetap waktu asli saat input (kapan dibuat).
   function addTransaction(data) {
     const ym = ymOf(data.date);
@@ -356,6 +359,7 @@
       nominal: data.amount,
       catatan: data.note || "",
       tanggal: data.date,
+      waktu: data.time,
       timestamp: Date.now(),
       by: data.by,
     };
@@ -363,7 +367,7 @@
     // lalu diklaim lewat transaction() — kalau ternyata sudah diisi HP lain
     // di saat bersamaan, transaksi batal dan coba key berikutnya.
     const taken = new Set(transactions.filter((t) => t.ym === ym).map((t) => Number(t.id)));
-    let key = dayStartMs(data.date);
+    let key = dateTimeMs(data.date, data.time);
     while (taken.has(key)) key++;
     const claim = (k) =>
       monthRef
@@ -385,6 +389,7 @@
       nominal: data.amount,
       catatan: data.note || "",
       tanggal: oldTx.date,
+      waktu: oldTx.time,
       timestamp: oldTx.timestamp || Number(oldTx.id) || Date.now(),
       by: oldTx.by,
     });
@@ -502,21 +507,23 @@
     return String(n).padStart(2, "0");
   }
 
-  // Tanggal hari ini "YYYY-MM-DD" berdasarkan waktu lokal (bukan UTC seperti
-  // toISOString(), yang salah tanggal untuk WIB dini hari).
-  function todayLocalDateStr() {
-    return localDateStrOf(Date.now());
-  }
-
+  // "YYYY-MM-DD" berdasarkan waktu lokal (bukan UTC seperti toISOString(),
+  // yang salah tanggal untuk WIB dini hari).
   function localDateStrOf(ms) {
     const d = new Date(ms);
     return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
   }
 
-  // "YYYY-MM-DD" → ms jam 00:00:00 waktu lokal (basis key transaksi).
-  function dayStartMs(dateStr) {
+  // "YYYY-MM-DD" + "HH:MM:SS" → ms waktu lokal (basis key transaksi).
+  function dateTimeMs(dateStr, timeStr) {
     const [y, m, d] = String(dateStr).split("-").map(Number);
-    return new Date(y, m - 1, d).getTime();
+    const [h, mi, s] = String(timeStr).split(":").map(Number);
+    return new Date(y, m - 1, d, h || 0, mi || 0, s || 0).getTime();
+  }
+
+  // "HH:MM:SS" → "HH:MM" kalau tanpa detik (tampilan Dashboard).
+  function formatTxTime(tx, withSeconds) {
+    return withSeconds ? tx.time : tx.time.slice(0, 5);
   }
 
   // Jam saat transaksi dibuat (dari timestamp). withSeconds → sampai detik.
@@ -531,6 +538,12 @@
   // field timestamp, bukan key — key sekarang berbasis tanggal pilihan.
   function txTime(tx) {
     return Number(tx.timestamp) || Number(tx.id) || new Date(tx.date).getTime();
+  }
+
+  // Urut kronologis berdasarkan tanggal + waktu transaksi (bukan waktu input),
+  // tie-break key (+1 per transaksi di tanggal+waktu yang sama).
+  function compareTxMoment(a, b) {
+    return a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || Number(a.id) - Number(b.id);
   }
 
   function findCategory(type, id) {
@@ -667,7 +680,7 @@
 
     const recent = monthTx
       .slice()
-      .sort((a, b) => txTime(b) - txTime(a)) // paling baru (jam) di atas
+      .sort((a, b) => txTime(b) - txTime(a)) // paling baru diinput di atas
       .slice(0, 3);
     renderTransactionList(document.getElementById("recentTransactions"), recent, "Belum ada transaksi bulan ini.");
 
@@ -764,10 +777,7 @@
 
     let list = visibleTransactions()
       .filter((t) => isSameMonth(t.date, viewDate))
-      .sort((a, b) => {
-        const byDate = new Date(b.date) - new Date(a.date);
-        return byDate !== 0 ? byDate : txTime(b) - txTime(a);
-      });
+      .sort((a, b) => compareTxMoment(b, a));
     if (currentFilter !== "all") {
       list = list.filter((t) => t.type === currentFilter);
     }
@@ -803,9 +813,8 @@
       const cat = findCategory(tx.type, tx.category);
       // Halaman Transaksi (detailed): tanggal + tahun & jam:menit:detik.
       // Dashboard: tanggal singkat & jam:menit.
-      const ts = txTime(tx);
       const dateText = detailed ? formatDateLong(tx.date) : formatDateShort(tx.date);
-      const timeText = formatTime(ts, detailed);
+      const timeText = formatTxTime(tx, detailed);
       // Badge kecil penunjuk pembuat (Iyon/Ciwul) — cuma tampil mode "Both",
       // ditumpuk di pojok tx-icon. Klik → openCreatorInfo().
       const badgeHtml =
@@ -1279,6 +1288,7 @@
   const transactionModalTitle = document.getElementById("transactionModalTitle");
   const categoryInput = document.getElementById("categoryInput");
   const dateInput = document.getElementById("dateInput");
+  const timeInput = document.getElementById("timeInput");
 
   let editingTx = null; // null = mode tambah; berisi tx = mode edit
 
@@ -1293,6 +1303,7 @@
   function setImmutableFieldsLocked(locked) {
     categoryInput.disabled = locked;
     dateInput.disabled = locked;
+    timeInput.disabled = locked;
     document.querySelectorAll("#transactionTypeToggle .type-btn").forEach((b) => (b.disabled = locked));
     document.getElementById("transactionTypeToggle").classList.toggle("locked", locked);
   }
@@ -1359,7 +1370,9 @@
     transactionForm.reset();
     setImmutableFieldsLocked(false);
     setTxType("expense");
-    dateInput.value = todayLocalDateStr();
+    const now = Date.now();
+    dateInput.value = localDateStrOf(now);
+    timeInput.value = formatTime(now, true);
     setupByFieldForCreate("transactionByField", "transactionByLabel", "transactionByToggle");
     transactionModal.classList.add("open");
   }
@@ -1373,6 +1386,7 @@
     categoryInput.value = tx.category;
     document.getElementById("noteInput").value = tx.note || "";
     dateInput.value = tx.date;
+    timeInput.value = tx.time;
     setImmutableFieldsLocked(true); // kunci tipe & kategori setelah prefill
     setupByFieldForEdit("transactionByField", "transactionByLabel", "transactionByToggle", tx.by);
     transactionModal.classList.add("open");
@@ -1402,6 +1416,12 @@
       alert("Pilih dulu tanggalnya.");
       return;
     }
+    // Sebagian browser mengembalikan "HH:MM" kalau detiknya 00 → lengkapi.
+    const time = /^\d{2}:\d{2}$/.test(timeInput.value) ? timeInput.value + ":00" : timeInput.value;
+    if (!/^\d{2}:\d{2}:\d{2}$/.test(time)) {
+      alert("Pilih dulu waktunya.");
+      return;
+    }
 
     const data = {
       type: currentTxType,
@@ -1409,6 +1429,7 @@
       category: categoryInput.value,
       note: document.getElementById("noteInput").value.trim(),
       date: dateInput.value,
+      time,
       by,
     };
 
@@ -1420,6 +1441,11 @@
     });
     closeTransactionModal();
     if (isAdd) goToPage("dashboard"); // habis tambah transaksi → ke Dashboard (edit tetap di halaman asal)
+  });
+
+  // Ganti tanggal → waktu reset ke awal hari (key mulai dari 00:00:00).
+  dateInput.addEventListener("change", () => {
+    timeInput.value = "00:00:00";
   });
 
   document.getElementById("cancelTransactionBtn").addEventListener("click", closeTransactionModal);
@@ -1458,6 +1484,7 @@
 
     document.getElementById("detailNote").textContent = tx.note || "—";
     document.getElementById("detailDate").textContent = formatDateLong(tx.date);
+    document.getElementById("detailTxTime").textContent = tx.time;
     // Waktu dibuat = field timestamp (kapan diinput), tanggal + jam lengkap.
     const created = txTime(tx);
     document.getElementById("detailTime").textContent =
@@ -2097,17 +2124,14 @@
     if (!excelReady()) return;
     const monthTx = visibleTransactions()
       .filter((t) => t.ym === ym)
-      .sort((a, b) => {
-        const byDate = new Date(a.date) - new Date(b.date);
-        return byDate !== 0 ? byDate : txTime(a) - txTime(b);
-      });
+      .sort(compareTxMoment);
     if (monthTx.length === 0) {
       alert("Tidak ada data untuk diekspor.");
       return;
     }
     const rows = monthTx.map((t) => ({
       Tanggal: t.date,
-      Waktu: formatTime(txTime(t), true),
+      Waktu: t.time,
       Tipe: t.type === "income" ? "Pemasukan" : "Pengeluaran",
       Kategori: findCategory(t.type, t.category).label,
       Nominal: t.amount,

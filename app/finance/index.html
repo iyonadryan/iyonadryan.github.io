@@ -289,6 +289,12 @@
           <input type="date" id="dateInput" required>
         </label>
 
+        <!-- Default jam sekarang; reset ke 00:00:00 tiap tanggal diganti. -->
+        <label class="field">
+          <span>Waktu</span>
+          <input type="time" id="timeInput" step="1" required>
+        </label>
+
         <!-- Saat TAMBAH: selalu tampil. Mode "Both" → harus dipilih manual;
              mode Iyon/Ciwul → dikunci otomatis ke user aktif ("(otomatis)").
              Saat EDIT: cuma tampil kalau mode "Both" (pembuat data lama tidak
@@ -331,6 +337,10 @@
       <div class="detail-row">
         <span class="detail-row-label">Tanggal</span>
         <p class="detail-row-value" id="detailDate">&mdash;</p>
+      </div>
+      <div class="detail-row">
+        <span class="detail-row-label">Waktu</span>
+        <p class="detail-row-value" id="detailTxTime">&mdash;</p>
       </div>
       <div class="detail-row">
         <span class="detail-row-label">Waktu dibuat</span>

@@ -351,14 +351,16 @@
   color: var(--color-text-muted);
 }
 
-/* Tanggal dikunci saat edit transaksi (disabled): sembunyikan ikon kalender
-   dan jaga teks tetap terbaca (iOS Safari biasanya memudarkan input disabled).
+/* Tanggal & waktu dikunci saat edit transaksi (disabled): sembunyikan ikon
+   picker dan jaga teks tetap terbaca (iOS Safari biasanya memudarkan input disabled).
    Hanya untuk input yang disabled — saat tambah transaksi & filter tetap punya picker. */
-.field input[type="date"]:disabled::-webkit-calendar-picker-indicator {
+.field input[type="date"]:disabled::-webkit-calendar-picker-indicator,
+.field input[type="time"]:disabled::-webkit-calendar-picker-indicator {
   display: none;
 }
 
-.field input[type="date"]:disabled {
+.field input[type="date"]:disabled,
+.field input[type="time"]:disabled {
   opacity: 1;
   color: var(--color-text);
   -webkit-text-fill-color: var(--color-text);
