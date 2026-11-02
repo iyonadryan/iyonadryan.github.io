@@ -357,12 +357,12 @@ button.list-row:hover .item-title {
 }
 
 .tx-table {
-  min-width: 620px;
+  min-width: 760px; /* kolom tidak terjepit; tabel di-scroll di layar sempit */
 }
 
 .tx-grid {
   display: grid;
-  grid-template-columns: minmax(0, 2.6fr) minmax(0, 1.3fr) 64px minmax(0, 1.3fr) 88px;
+  grid-template-columns: minmax(0, 2.6fr) minmax(0, 1.3fr) 64px minmax(0, 1.3fr) 124px; /* aksi: buka item nota + edit + hapus */
   gap: 16px;
   align-items: center;
 }
@@ -1294,4 +1294,643 @@ button.cal-cell:hover:not(.edge) {
   font-weight: 800;
   font-size: 17px;
   text-decoration: none;
+}
+
+/* Info V2: kartu Account Type & Format Kode Transaksi (lebar penuh), lalu
+   baris Tentang (1) + Semua Aplikasi (2) spt desain. */
+.info-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1000px) {
+  .info-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.info-wide {
+  grid-column: 1 / -1;
+  gap: 16px;
+}
+
+.acct-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  gap: 12px;
+}
+
+.acct-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+.acct-info-icon {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.acct-info-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.code-chip {
+  align-self: flex-start;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.kode-format {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.kode-big {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 18px;
+  font-weight: 800;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+.kode-examples {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: 10px;
+}
+
+.kode-example {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+.kode-example > span:first-child {
+  font-size: 18px;
+}
+
+.kode-example .kode {
+  margin-left: auto;
+  font-size: 12px;
+}
+
+/* ================= Nota (V2) ================= */
+
+/* Popup: penjelasan mode Nota */
+.nota-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+.nota-intro-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.nota-intro-icon {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 auto;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.check-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.check-list li {
+  display: flex;
+  gap: 10px;
+}
+
+.check-list li > span:first-child {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+/* Halaman Nota */
+#view-nota {
+  gap: 20px;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.crumb-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px 0 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.crumb-back:hover {
+  background: var(--surface2);
+}
+
+.crumb-current {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.nota-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.nota-main {
+  flex: 999 1 560px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.nota-main .card {
+  gap: 18px;
+}
+
+.nota-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 16px;
+}
+
+.span-all {
+  grid-column: 1 / -1;
+}
+
+.nota-aside {
+  flex: 1 1 340px;
+  max-width: 400px;
+  min-width: 0;
+}
+
+.nota-items {
+  flex: 1 1 100%;
+  gap: 16px;
+}
+
+.nota-table {
+  min-width: 860px;
+}
+
+.nota-grid {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 2fr) minmax(0, 1.5fr) 72px 92px minmax(0, 1.2fr) minmax(0, 1.2fr) 40px;
+  gap: 12px;
+  align-items: center;
+}
+
+.nota-head {
+  padding: 0 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+}
+
+.nota-row {
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.nota-num {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.nota-row .input,
+.adj-row .input {
+  height: 44px;
+}
+
+.input-center {
+  text-align: center;
+}
+
+.money-sm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  min-width: 0;
+}
+
+.money-sm:focus-within {
+  border-color: var(--accent);
+}
+
+.money-sm > span {
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.money-sm input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  outline: none;
+  text-align: right;
+  font-weight: 600;
+}
+
+.nota-sub {
+  text-align: right;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Penyesuaian */
+.adj-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px dashed var(--border);
+}
+
+.adj-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) 120px 92px minmax(0, 1.2fr) minmax(0, 1fr) 40px;
+  gap: 12px;
+  align-items: center;
+}
+
+.adj-result {
+  text-align: right;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.adj-result.kurang {
+  color: var(--accent);
+}
+
+.adj-result.tambah {
+  color: var(--exp);
+}
+
+.nota-total {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+.nota-total-lines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.nota-total-lines b {
+  color: var(--text);
+}
+
+.nota-total-main {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+#notaTotal {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+#notaTotal.negative {
+  color: var(--danger);
+}
+
+/* Struk (pratinjau di halaman Nota & panel detail Transaksi) */
+.receipt {
+  padding: 28px;
+  gap: 16px;
+}
+
+.receipt-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.receipt-kicker {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+
+.receipt-title {
+  font-weight: 800;
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+
+.receipt-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.receipt-kode {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+.receipt-cut {
+  border-top: 2px dashed var(--border);
+}
+
+.receipt-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.receipt-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.receipt-line-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.receipt-line-text > span:first-child {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.receipt-line > .tnum {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+}
+
+.receipt-row > span:last-child {
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.receipt-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.receipt-total > span:first-child {
+  font-weight: 800;
+}
+
+.receipt-total > span:last-child {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.receipt-cats {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.receipt-cat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.receipt-cat > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Struk ringkas di panel detail Transaksi */
+.receipt-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+.receipt-mini .receipt-total > span:last-child {
+  font-size: 18px;
+}
+
+/* Nota di tabel Transaksi: badge "N item" + expand daftar item */
+.tx-title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tx-expand {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tx-expand svg {
+  transition: transform 0.15s;
+}
+
+.tx-expand.open svg {
+  transform: rotate(180deg);
+}
+
+.tx-items {
+  margin: 0 12px 8px 66px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.tx-item {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.tx-item.adj {
+  color: var(--muted);
+}
+
+/* ================= Pindah account (V2) ================= */
+
+.tf-swap-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: -6px 0;
+}
+
+.tf-line {
+  flex: 1;
+  border-top: 1px dashed var(--border);
+}
+
+.tf-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+.tf-route {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.tf-note {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.amount-transfer {
+  color: var(--accent);
+}
+
+.hero-transfer {
+  color: var(--heroMuted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tf-summary .kv > span:last-child {
+  white-space: nowrap;
+}
+
+/* Layar sempit: baris penyesuaian di-scroll horizontal (spt tabel item),
+   bukan dijepit sampai input tidak terbaca. */
+#notaAdjRows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-x: auto;
+}
+
+#notaAdjRows .adj-row {
+  min-width: 620px;
+}
+
+.adj-result {
+  white-space: nowrap;
 }

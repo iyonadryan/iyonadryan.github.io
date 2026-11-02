@@ -41,8 +41,9 @@ window.FinanceTemplate = (function () {
     row.height = 22;
   }
 
-  // opts = { types: ["Pengeluaran", "Pemasukan"], categories: ["Makanan (keluar)", ...],
-  //          examples: [[tanggal, waktu, tipe, kategori, nominal, catatan], ...] }
+  // opts = { accounts: ["bank", "cash", "e_money"], types: ["Pengeluaran", "Pemasukan"],
+  //          categories: ["Makanan (keluar)", ...],
+  //          examples: [[tanggal, waktu, account, tipe, kategori, nominal, catatan], ...] }
   async function download(fileName, opts) {
     await loadExcelJS();
     const wb = new ExcelJS.Workbook();
@@ -53,6 +54,7 @@ window.FinanceTemplate = (function () {
     ws.columns = [
       { header: "Tanggal", key: "tanggal", width: 14 },
       { header: "Waktu", key: "waktu", width: 12 },
+      { header: "Account Type", key: "account_type", width: 15 },
       { header: "Tipe", key: "tipe", width: 16 },
       { header: "Kategori", key: "kategori", width: 28 },
       { header: "Nominal", key: "nominal", width: 14 },
@@ -63,38 +65,52 @@ window.FinanceTemplate = (function () {
     // angka serial (importer tetap menerima serial kalau terlanjur).
     ws.getColumn(1).numFmt = "@";
     ws.getColumn(2).numFmt = "@";
-    ws.getColumn(5).numFmt = "0";
+    ws.getColumn(6).numFmt = "0";
 
     // --- Sheet 2: Panduan ---
     const guide = wb.addWorksheet("Panduan");
-    guide.columns = [{ width: 26 }, { width: 16 }, { width: 16 }, { width: 28 }, { width: 14 }, { width: 36 }];
+    guide.columns = [{ width: 26 }, { width: 12 }, { width: 15 }, { width: 16 }, { width: 28 }, { width: 14 }, { width: 36 }];
+    const exampleHeader = ["Tanggal", "Waktu", "Account Type", "Tipe", "Kategori", "Nominal", "Catatan"];
     const lines = [
       ["Cara mengisi template import transaksi"],
       [],
       ["1. Isi data di sheet \"Transaksi\", satu baris = satu transaksi, mulai baris 2."],
       ["2. Tanggal: format YYYY-MM-DD, contoh 2026-10-30."],
       ["3. Waktu: format HH:MM:SS (24 jam), contoh 08:00:00."],
-      ["4. Tipe & Kategori: pilih dari dropdown. Kategori harus sesuai tipenya (keluar = Pengeluaran, masuk = Pemasukan)."],
-      ["5. Nominal: angka saja tanpa titik/koma/Rp, contoh 35000."],
-      ["6. Catatan: boleh dikosongkan."],
-      ["7. Kalau ada satu baris saja yang salah, tidak ada transaksi yang disimpan — perbaiki lalu import ulang."],
+      ["4. Account Type: pilih dari dropdown — bank (rekening), cash (tunai), e_money (dompet digital). Kosong = bank."],
+      ["5. Tipe & Kategori: pilih dari dropdown. Kategori harus sesuai tipenya (keluar = Pengeluaran, masuk = Pemasukan)."],
+      ["6. Nominal: angka saja tanpa titik/koma/Rp, contoh 35000."],
+      ["7. Catatan: boleh dikosongkan."],
+      ["8. Kode transaksi dibuat otomatis per baris (urut sesuai urutan baris), tidak perlu diisi."],
+      ["9. Kalau ada satu baris saja yang salah, tidak ada transaksi yang disimpan — perbaiki lalu import ulang."],
       [],
       ["Contoh pengisian:"],
-      ["Tanggal", "Waktu", "Tipe", "Kategori", "Nominal", "Catatan"],
+      exampleHeader,
     ].concat(opts.examples || []);
     lines.forEach((l) => guide.addRow(l));
     guide.getRow(1).font = { bold: true, size: 14 };
-    styleHeader(guide.getRow(12));
+    styleHeader(guide.getRow(lines.indexOf(exampleHeader) + 1));
 
     // --- Sheet 3 (tersembunyi): sumber daftar dropdown ---
     const list = wb.addWorksheet("Daftar", { state: "hidden" });
     opts.types.forEach((t, i) => (list.getCell(i + 1, 1).value = t));
     opts.categories.forEach((c, i) => (list.getCell(i + 1, 2).value = c));
+    opts.accounts.forEach((a, i) => (list.getCell(i + 1, 3).value = a));
 
     const typeRef = "Daftar!$A$1:$A$" + opts.types.length;
     const catRef = "Daftar!$B$1:$B$" + Math.max(1, opts.categories.length);
+    const acctRef = "Daftar!$C$1:$C$" + opts.accounts.length;
     for (let r = 2; r <= MAX_ROWS + 1; r++) {
       ws.getCell("C" + r).dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: [acctRef],
+        showErrorMessage: true,
+        errorStyle: "stop",
+        errorTitle: "Account Type tidak valid",
+        error: "Pilih bank, cash, atau e_money dari daftar.",
+      };
+      ws.getCell("D" + r).dataValidation = {
         type: "list",
         allowBlank: true,
         formulae: [typeRef],
@@ -103,7 +119,7 @@ window.FinanceTemplate = (function () {
         errorTitle: "Tipe tidak valid",
         error: "Pilih Pengeluaran atau Pemasukan dari daftar.",
       };
-      ws.getCell("D" + r).dataValidation = {
+      ws.getCell("E" + r).dataValidation = {
         type: "list",
         allowBlank: true,
         formulae: [catRef],

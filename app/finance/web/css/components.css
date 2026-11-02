@@ -871,3 +871,141 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------------- V2: Account Type & kode transaksi ---------------- */
+
+/* Tab Account Type (Semua | Bank | Cash | E-Money) di Dashboard & Transaksi. */
+.acct-tabs {
+  align-self: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 5px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.acct-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.acct-tab > span {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.acct-tab:hover:not(.active) {
+  background: var(--surface2);
+}
+
+.acct-tab.active {
+  background: var(--accent);
+  color: var(--onAccent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Pemilih 3 account di form. */
+.toggle-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+.toggle-3 .toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.kode {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.kode-sm {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0.85;
+}
+
+/* Mode Tambah Transaksi: Satuan | Nota | Pindah */
+.mode-toggle {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+.mode-btn {
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--muted);
+}
+
+.mode-btn > span {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.mode-btn.active {
+  background: var(--accent);
+  color: var(--onAccent);
+}
+
+.btn-lg {
+  height: 48px;
+  padding: 0 28px;
+}
+
+.error-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+}
+
+.nota-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  white-space: nowrap;
+}

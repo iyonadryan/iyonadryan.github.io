@@ -52,9 +52,16 @@
   const DOW_SHORT = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
   const DOW_LONG = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
 
-  const TYPE_TO_FS = { income: "pemasukan", expense: "pengeluaran" };
-  const FS_TO_TYPE = { pemasukan: "income", pengeluaran: "expense" };
-  const TYPE_LABELS = { income: "Pemasukan", expense: "Pengeluaran" };
+  const TYPE_LABELS = { income: "Pemasukan", expense: "Pengeluaran", transfer: "Pindah account" };
+
+  // Account type (V2) — sumber uang tiap transaksi. Record lama = bank.
+  const ACCOUNTS = [
+    { id: "bank", label: "Bank", icon: "🏦", desc: "Rekening bank (BCA, Mandiri, dll)" },
+    { id: "cash", label: "Cash", icon: "💵", desc: "Uang tunai / dompet fisik" },
+    { id: "e_money", label: "E-Money", icon: "📱", desc: "Dompet digital (GoPay, OVO, DANA, dll)" },
+  ];
+  const ACCOUNT_BY_ID = ACCOUNTS.reduce((m, a) => ((m[a.id] = a), m), {});
+  const ACCOUNT_TABS = [{ id: "all", label: "Semua", icon: "🗂️" }].concat(ACCOUNTS);
 
   const MASKED_AMOUNT = "Rp ••••••";
 
@@ -65,7 +72,13 @@
     plans: ["Rencana Anggaran", "Batas pengeluaran per kategori dan periode"],
     categories: ["Kategori", "Kelola kategori pengeluaran dan pemasukan"],
     settings: ["Info", "Tentang aplikasi dan daftar aplikasi lainnya"],
+    nota: ["Nota Baru", "Satu transaksi berisi banyak item"],
   };
+  // Pindah account AKTIF (keputusan user, 2 Nov 2026) walau web mobile & APK
+  // belum diperbarui — di klien lama transaksi "pindah" terbaca sbg
+  // pengeluaran sebesar nominal (risiko diterima). Set ke false untuk
+  // mengunci lagi. Record pindah yang sudah ada tetap dibaca walau false.
+  const ENABLE_TRANSFER = true;
   // Halaman yang datanya terikat ke bulan terpilih (tampilkan navigasi bulan).
   const MONTH_VIEWS = ["dashboard", "transactions", "plans"];
 
@@ -96,6 +109,7 @@
   let balanceVisible = false; // tersembunyi tiap buka app (sama spt mobile)
 
   let dashRange = "week"; // grafik Perbandingan Pengeluaran: "week" | "month"
+  let acctFilter = "all"; // tab Account Type — dibagi Dashboard & Transaksi
 
   let txTypeFilter = "all";
   let filterCats = [];
@@ -116,7 +130,26 @@
 
   /* ================= Firebase data layer ================= */
 
+  // V2: perhitungan murni di FinanceCore (finance-core.js), tulis record
+  // berkode lewat FinanceData (finance-data.js). Lihat docs/v2-plan.md.
+  const Core = window.FinanceCore;
+  const Data = FinanceData.create(db, FINANCE_PATH);
   const financeRef = db.ref(FINANCE_PATH);
+
+  let counters = {}; // /finance/counters — hanya utk pratinjau kode di form
+
+  // Status koneksi: counter kode butuh server (transaction()), jadi simpan
+  // diblokir dgn pesan jelas kalau sedang offline. null = belum diketahui.
+  let online = null;
+  db.ref(".info/connected").on("value", (s) => (online = !!s.val()));
+
+  function requireOnline() {
+    if (online === false) {
+      alert("Butuh koneksi internet untuk membuat kode transaksi. Coba lagi setelah online.");
+      return false;
+    }
+    return true;
+  }
 
   function subscribeFinance() {
     financeRef.on(
@@ -125,6 +158,11 @@
         rebuildFromSnapshot(snapshot.val() || {});
         renderAll();
         hideLoading();
+        if (pendingNotaHash) {
+          const h = pendingNotaHash;
+          pendingNotaHash = null;
+          openNotaFromHash(h);
+        }
       },
       (err) => {
         console.error("Gagal membaca data dari Firebase:", err);
@@ -151,28 +189,19 @@
           });
         });
       } else if (/^\d{4}-\d{2}$/.test(topKey)) {
+        // Record V1 (key timestamp) & V2 (key kode) dinormalisasi jadi satu
+        // bentuk: account_type kosong → bank, bentuk kosong → satuan, dst.
         const monthObj = root[topKey] || {};
         Object.keys(monthObj).forEach((key) => {
-          const t = monthObj[key] || {};
-          txs.push({
-            id: key,
-            ym: topKey,
-            type: FS_TO_TYPE[t.transaksi] || "expense",
-            amount: Number(t.nominal) || 0,
-            category: t.category,
-            note: t.catatan || "",
-            date: t.tanggal || topKey,
-            // Fallback jaga-jaga kalau ada data tanpa field waktu (lihat mobile).
-            time: t.waktu || formatTime(Number(t.timestamp) || Number(key)),
-            timestamp: Number(t.timestamp) || Number(key),
-            by: t.by || "ciwul",
-          });
+          const t = monthObj[key];
+          if (t && typeof t === "object") txs.push(Core.normalizeRecord(topKey, key, t));
         });
       }
     });
 
     transactions = txs;
     plans = pl;
+    counters = root.counters || {};
 
     const categoriesObj = root.categories || {};
     const bySlot = (a, b) => (Number(a.colorSlot) || 0) - (Number(b.colorSlot) || 0);
@@ -182,57 +211,33 @@
     };
   }
 
-  // Key = timestamp tanggal + waktu yang dipilih (waktu lokal), +1 tiap key
-  // sudah terpakai — aturan sama dgn mobile. `reserved` (opsional) dipakai
-  // import massal supaya baris-baris dalam satu batch tidak saling rebut key.
-  function addTransaction(data, reserved) {
-    const ym = ymOf(data.date);
-    const monthRef = db.ref(FINANCE_PATH + "/" + ym);
-    const payload = {
-      transaksi: TYPE_TO_FS[data.type],
-      category: data.category,
-      nominal: data.amount,
-      catatan: data.note || "",
-      tanggal: data.date,
-      waktu: data.time,
-      timestamp: Date.now(),
-      by: data.by,
-    };
-    const taken = new Set(transactions.filter((t) => t.ym === ym).map((t) => Number(t.id)));
-    const isTaken = (k) => taken.has(k) || (reserved && reserved.has(ym + "/" + k));
-    let key = dateTimeMs(data.date, data.time);
-    while (isTaken(key)) key++;
-    // Diklaim lewat transaction(): kalau ternyata sudah diisi perangkat lain
-    // di saat bersamaan, transaksi batal dan coba key berikutnya.
-    const claim = (k) =>
-      monthRef
-        .child(String(k))
-        .transaction((cur) => (cur === null ? payload : undefined))
-        .then((res) => {
-          if (!res.committed) return claim(k + 1);
-          if (reserved) reserved.add(ym + "/" + k);
-          return k;
-        });
-    return claim(key);
+  // Transaksi satuan baru → key = kode (TB-202611-000001, dst). Nomor urut
+  // atomik lewat counter; bulan kode & node ikut `tanggal`. Resolve → kode.
+  function addSatuan(f) {
+    const { errors, record } = Core.buildSatuan(Object.assign({ timestamp: Date.now() }, f));
+    if (errors.length) return Promise.reject(new Error(errors.join(" ")));
+    return Data.saveNew(record);
   }
 
-  // Edit: HANYA nominal & catatan; path/key, tipe, kategori, tanggal, waktu,
-  // timestamp & by tetap (sama spt mobile).
-  function updateTransaction(tx, amount, note) {
-    return db.ref(FINANCE_PATH + "/" + tx.ym + "/" + tx.id).set({
-      transaksi: TYPE_TO_FS[tx.type],
-      category: tx.category,
-      nominal: amount,
-      catatan: note || "",
-      tanggal: tx.date,
-      waktu: tx.time,
-      timestamp: tx.timestamp,
-      by: tx.by,
-    });
+  // Edit = update field yang berubah saja (bukan .set()), jadi field V2 lain
+  // tidak hilang. kode/tanggal/account_type/bentuk dikunci di FinanceData.
+  function updateTransaction(tx, fields) {
+    return Data.update(tx.ym, tx.id, fields);
   }
 
   function deleteTransaction(tx) {
-    return db.ref(FINANCE_PATH + "/" + tx.ym + "/" + tx.id).remove();
+    return Data.remove(tx.ym, tx.id);
+  }
+
+  // Pratinjau kode di form (counter saat ini + 1 — bukan jaminan, kode final
+  // ditentukan saat simpan).
+  function previewKode(rec) {
+    try {
+      const key = Core.counterKey(Core.kodePrefix(rec), Core.yyyymmOf(rec.tanggal));
+      return Core.previewKode(rec, counters[key]);
+    } catch (e) {
+      return "—";
+    }
   }
 
   function savePlan(period, category, limit, sort, by) {
@@ -315,12 +320,6 @@
     return pad2(d.getHours()) + ":" + pad2(d.getMinutes()) + ":" + pad2(d.getSeconds());
   }
 
-  function dateTimeMs(dateStr, timeStr) {
-    const [y, m, d] = String(dateStr).split("-").map(Number);
-    const [h, mi, s] = String(timeStr).split(":").map(Number);
-    return new Date(y, m - 1, d, h || 0, mi || 0, s || 0).getTime();
-  }
-
   function ymOf(dateStr) {
     return String(dateStr).slice(0, 7);
   }
@@ -367,7 +366,8 @@
   }
 
   function formatCurrency(value) {
-    return "Rp " + Math.round(value).toLocaleString("id-ID");
+    const n = Math.round(value);
+    return (n < 0 ? "−" : "") + "Rp " + Math.abs(n).toLocaleString("id-ID");
   }
 
   function money(value) {
@@ -404,7 +404,11 @@
     input.value = n ? n.toLocaleString("id-ID") : "";
   }
 
+  // Tile/label untuk transaksi pindah (tidak punya kategori).
+  const TRANSFER_CATEGORY = { id: "__transfer__", label: "Pindah account", icon: "⇄", colorSlot: 9 };
+
   function findCategory(type, id) {
+    if (type === "transfer") return TRANSFER_CATEGORY;
     if (id === ALL_CATEGORY.id) return ALL_CATEGORY;
     return CATEGORIES[type].find((c) => c.id === id) || { id, label: id || "Tanpa kategori", icon: "❓", colorSlot: 1 };
   }
@@ -445,26 +449,81 @@
     return currentUser === "both" ? transactions : transactions.filter((t) => t.by === currentUser);
   }
 
+  // + filter tab Account Type (Dashboard & Transaksi). Pindah tampil di tab
+  // asal & tujuan; record lama tanpa account_type = bank.
+  function scopedTransactions() {
+    return visibleTransactions().filter((t) => Core.matchesAccount(t, acctFilter));
+  }
+
   // Waktu input (field timestamp) — dipakai "Transaksi Terbaru".
   function txTime(tx) {
-    return tx.timestamp || Number(tx.id) || 0;
+    return tx.timestamp || 0;
   }
 
-  // Urut kronologis tanggal + waktu transaksi, tie-break key.
-  function compareTxMoment(a, b) {
-    return a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || Number(a.id) - Number(b.id);
+  // Urut kronologis tanggal + waktu transaksi, tie-break timestamp (key kode
+  // dikelompokkan per prefix, jadi tidak bisa dipakai sbg urutan).
+  const compareTxMoment = Core.compareChrono;
+
+  function accountLabel(id) {
+    return ACCOUNT_BY_ID[id] ? ACCOUNT_BY_ID[id].label : id || "—";
   }
 
+  // Tab Account Type (Semua | Bank | Cash | E-Money) — satu state dipakai
+  // bareng Dashboard & Transaksi.
+  function renderAccountTabs(container, onChange) {
+    container.innerHTML = ACCOUNT_TABS.map((a) => {
+      const on = a.id === acctFilter;
+      return '<button type="button" role="tab" class="acct-tab' + (on ? " active" : "") + '" aria-selected="' + on + '" data-acct="' + a.id + '">' +
+        '<span aria-hidden="true">' + a.icon + "</span>" + a.label + "</button>";
+    }).join("");
+    container.querySelectorAll("[data-acct]").forEach((b) =>
+      b.addEventListener("click", () => {
+        acctFilter = b.dataset.acct;
+        txPage = 1;
+        selectedTxId = null;
+        onChange();
+      })
+    );
+  }
+
+  // Pindah: di tab account asal tampil keluar (nominal + biaya admin), di tab
+  // tujuan tampil masuk, di "Semua" netral (⇄).
   function signedAmount(tx) {
+    if (tx.type === "transfer") {
+      if (acctFilter === tx.dari) return "− " + money(tx.amount + tx.fee);
+      if (acctFilter === tx.ke) return "+ " + money(tx.amount);
+      return "⇄ " + money(tx.amount);
+    }
     return (tx.type === "income" ? "+ " : "− ") + money(tx.amount);
   }
 
   function amountClass(tx) {
+    if (tx.type === "transfer") return acctFilter === tx.dari ? "amount-expense" : acctFilter === tx.ke ? "amount-income" : "amount-transfer";
     return tx.type === "income" ? "amount-income" : "amount-expense";
   }
 
+  function transferRoute(tx) {
+    return accountLabel(tx.dari) + " → " + accountLabel(tx.ke);
+  }
+
   function txTitle(tx) {
-    return tx.note || findCategory(tx.type, tx.category).label;
+    if (tx.type === "transfer") return tx.note || "Pindah " + transferRoute(tx);
+    return tx.title || tx.note || findCategory(tx.type, tx.category).label;
+  }
+
+  // Kategori yg dikandung transaksi (nota: semua kategori item).
+  function txCategoryIds(tx) {
+    const keys = Object.keys(tx.rincian || {});
+    return keys.length ? keys : [tx.category];
+  }
+
+  // Nota "beneran" (≥ 2 item) dapat badge & bisa dibuka; nota 1 item tampil spt satuan.
+  function isMultiNota(tx) {
+    return tx.bentuk === "nota" && tx.items.length > 1;
+  }
+
+  function formatQty(q) {
+    return Number(q).toLocaleString("id-ID", { maximumFractionDigits: 3 });
   }
 
   /* ================= Shell: tema, user, navigasi, bulan ================= */
@@ -498,8 +557,10 @@
 
   function setView(view) {
     if (!VIEWS[view]) view = "dashboard";
+    if (currentView === "nota" && view !== "nota" && !leaveNotaOk()) return;
     currentView = view;
-    if (location.hash !== "#" + view) history.replaceState(null, "", "#" + view);
+    // Hash halaman nota di-set openNota() (bisa "#nota/<ym>/<kode>" saat edit).
+    if (view !== "nota" && location.hash !== "#" + view) history.replaceState(null, "", "#" + view);
     renderAll();
     window.scrollTo(0, 0);
   }
@@ -512,7 +573,9 @@
   });
   window.addEventListener("hashchange", () => {
     const v = location.hash.slice(1);
-    if (VIEWS[v] && v !== currentView) setView(v);
+    if (v.split("/")[0] === "nota") {
+      if (currentView !== "nota") openNotaFromHash(v);
+    } else if (VIEWS[v] && v !== currentView) setView(v);
   });
 
   $("balanceToggle").addEventListener("click", () => {
@@ -534,8 +597,9 @@
   $("nextMonth").addEventListener("click", () => changeMonth(1));
 
   function renderShell() {
+    const navView = currentView === "nota" ? "transactions" : currentView;
     document.querySelectorAll(".nav-item[data-view]").forEach((btn) => {
-      const on = btn.dataset.view === currentView;
+      const on = btn.dataset.view === navView;
       btn.classList.toggle("active", on);
       if (on) btn.setAttribute("aria-current", "page");
       else btn.removeAttribute("aria-current");
@@ -544,9 +608,11 @@
       el.hidden = el.id !== "view-" + currentView;
     });
 
-    $("viewTitle").textContent = VIEWS[currentView][0];
+    const title = currentView === "nota" && nota && nota.tx ? "Edit Nota" : VIEWS[currentView][0];
+    $("viewTitle").textContent = title;
     $("viewSub").textContent = VIEWS[currentView][1];
-    document.title = VIEWS[currentView][0] + " · Finance Desktop";
+    document.title = title + " · Finance Desktop";
+    $("userTabs").hidden = currentView === "nota"; // spt desain: halaman nota tanpa ganti user
 
     // Navigasi bulan, dibatasi ke rentang ym yang punya transaksi (spt mobile).
     $("monthNav").hidden = MONTH_VIEWS.indexOf(currentView) === -1;
@@ -595,6 +661,7 @@
     else if (currentView === "analysis") renderAnalysis();
     else if (currentView === "plans") renderPlans();
     else if (currentView === "categories") renderCategories();
+    else if (currentView === "nota") renderNotaSummary(); // form tidak di-render ulang (input sedang diketik)
   }
 
   function segTabsHtml(items, active, attr) {
@@ -681,6 +748,15 @@
     if (!locked) {
       container.querySelectorAll("[data-by]").forEach((b) => b.addEventListener("click", () => onPick(b.dataset.by)));
     }
+  }
+
+  function renderAccountPicker(container, value, onPick, locked) {
+    container.innerHTML = ACCOUNTS.map((a) => {
+      const on = a.id === value;
+      return '<button type="button" class="toggle-btn' + (on ? " active" : "") + '" data-account="' + a.id + '" aria-pressed="' + on + '"' + (locked ? " disabled" : "") + ">" +
+        '<span aria-hidden="true">' + a.icon + "</span>" + a.label + "</button>";
+    }).join("");
+    if (!locked) container.querySelectorAll("[data-account]").forEach((b) => b.addEventListener("click", () => onPick(b.dataset.account)));
   }
 
   function byLabelText() {
@@ -837,6 +913,12 @@
       const ty = Math.max(0, minY - (cfg.tipOffset || 78));
       tip.style.left = tx / 7.6 + "%";
       tip.style.top = ty / 2.3 + "%";
+      // Di layar sempit lebar minimum tooltip (150px) bisa melewati tepi
+      // kanan grafik → geser balik supaya tetap di dalam kotak grafik.
+      const plotW = tip.parentNode.clientWidth;
+      if (plotW && tip.offsetLeft + tip.offsetWidth > plotW) {
+        tip.style.left = Math.max(0, plotW - tip.offsetWidth) + "px";
+      }
     }
 
     el.querySelectorAll(".chart-hit").forEach((b) => {
@@ -855,13 +937,33 @@
 
   /* ================= Dashboard ================= */
 
+  // Record yang dihitung sbg arus (pemasukan/pengeluaran/kategori) utk tab
+  // account aktif. Pindah cuma menyumbang biaya admin, dan itu milik account
+  // asal — di tab account tujuan tidak dihitung.
+  function flowTransactions(list) {
+    return list.filter((t) => t.type !== "transfer" || acctFilter === "all" || t.dari === acctFilter);
+  }
+
+  function expenseOf(tx) {
+    return Core.flowOf(tx).expense;
+  }
+
   function renderDashboard() {
     const ym = viewYm();
-    const monthTx = visibleTransactions().filter((t) => ymOf(t.date) === ym);
-    const income = sumAmount(monthTx.filter((t) => t.type === "income"));
-    const expense = sumAmount(monthTx.filter((t) => t.type === "expense"));
+    const monthTx = scopedTransactions().filter((t) => ymOf(t.date) === ym);
+    const sum = Core.summarize(monthTx, acctFilter);
+    const income = sum.income;
+    const expense = sum.expense;
 
-    $("heroBalance").textContent = money(income - expense);
+    renderAccountTabs($("dashAcctTabs"), renderDashboard);
+    const acct = ACCOUNT_BY_ID[acctFilter];
+    $("heroBalanceLabel").textContent = acct ? "Saldo " + acct.label + " Bulan Ini" : "Saldo Bulan Ini";
+    $("heroBalance").textContent = money(sum.balance);
+    // Di tab account tertentu, saldo ikut pindah masuk/keluar (bukan pemasukan/
+    // pengeluaran) — ditampilkan supaya saldo ≠ pemasukan − pengeluaran tetap jelas.
+    const hasTf = !!acct && (sum.transferIn || sum.transferOut);
+    $("heroTransfer").hidden = !hasTf;
+    if (hasTf) $("heroTransfer").textContent = "Pindah masuk " + money(sum.transferIn) + " · keluar " + money(sum.transferOut);
     $("heroIncome").textContent = money(income);
     $("heroExpense").textContent = money(expense);
     const ratio = income > 0 ? Math.round((expense / income) * 100) : 0;
@@ -881,7 +983,7 @@
       })
     );
     renderDashChart();
-    renderStats(monthTx, expense);
+    renderStats(flowTransactions(monthTx), expense);
     renderRecent(monthTx);
   }
 
@@ -897,8 +999,9 @@
 
   function renderDashChart() {
     const expenseByDate = {};
-    visibleTransactions().forEach((t) => {
-      if (t.type === "expense") expenseByDate[t.date] = (expenseByDate[t.date] || 0) + t.amount;
+    flowTransactions(scopedTransactions()).forEach((t) => {
+      const v = expenseOf(t);
+      if (v) expenseByDate[t.date] = (expenseByDate[t.date] || 0) + v;
     });
     const valueOn = (iso) => expenseByDate[iso] || 0;
 
@@ -958,12 +1061,11 @@
 
   // Breakdown pengeluaran per kategori + catatan terhadap rencana bulanan
   // kategori itu (aturan sama dgn mobile).
+  // Nota dihitung per kategori lewat rincian_kategori (Core.totalsByCategory).
   function renderStats(monthTx, totalExpense) {
-    const byCat = {};
-    monthTx.filter((t) => t.type === "expense").forEach((t) => {
-      byCat[t.category] = (byCat[t.category] || 0) + t.amount;
-    });
+    const byCat = Core.totalsByCategory(monthTx, "expense");
     const rows = Object.keys(byCat)
+      .filter((id) => byCat[id] > 0)
       .map((id) => ({ cat: findCategory("expense", id), amount: byCat[id] }))
       .sort((a, b) => b.amount - a.amount);
 
@@ -1029,16 +1131,17 @@
 
   /* ================= Transaksi ================= */
 
-  // Teks yang dicocokkan pencarian: catatan, kategori, tanggal, pembuat (spt desain).
+  // Teks yang dicocokkan pencarian: catatan/judul, kategori, tanggal, pembuat, kode.
   function txSearchText(tx) {
     const by = USERS[tx.by] ? USERS[tx.by].label : tx.by;
-    return [tx.note, findCategory(tx.type, tx.category).label, shortDate(tx.date), longDate(tx.date), by].join(" ").toLowerCase();
+    const itemNames = (tx.items || []).map((i) => i.nama).join(" ") + (tx.type === "transfer" ? " pindah " + transferRoute(tx) : "");
+    return [tx.note, tx.title, findCategory(tx.type, tx.category).label, shortDate(tx.date), longDate(tx.date), by, tx.kode || "", itemNames].join(" ").toLowerCase();
   }
 
   function filteredTransactions() {
     const ym = viewYm();
     const q = txSearch.trim().toLowerCase();
-    return visibleTransactions()
+    return scopedTransactions()
       .filter((t) => {
         if (ymOf(t.date) !== ym) return false;
         if (txTypeFilter !== "all" && t.type !== txTypeFilter) return false;
@@ -1046,8 +1149,12 @@
         if (filterFrom && day < filterFrom) return false;
         if (filterTo && day > filterTo) return false;
         if (filterCats.length) {
-          const known = categoryExists(t.type, t.category);
-          if (!(filterCats.indexOf(t.category) !== -1 && known) && !(filterCats.indexOf(UNKNOWN_CATEGORY_ID) !== -1 && !known)) return false;
+          // Nota cocok kalau salah satu kategori item-nya dipilih. Pindah tidak
+          // punya kategori → tidak ikut saat filter kategori aktif.
+          if (t.type === "transfer") return false;
+          const cats = txCategoryIds(t);
+          const hit = cats.some((c) => (categoryExists(t.type, c) ? filterCats.indexOf(c) !== -1 : filterCats.indexOf(UNKNOWN_CATEGORY_ID) !== -1));
+          if (!hit) return false;
         }
         if (q && txSearchText(t).indexOf(q) === -1) return false;
         return true;
@@ -1056,6 +1163,7 @@
   }
 
   function renderTransactions() {
+    renderAccountTabs($("txAcctTabs"), renderTransactions);
     renderTxChart();
 
     $("txTabs").innerHTML = segTabsHtml([["all", "Semua"], ["income", "Pemasukan"], ["expense", "Pengeluaran"]], txTypeFilter, "data-txtype");
@@ -1086,7 +1194,7 @@
 
     const rows = $("txRows");
     if (!list.length) {
-      const hasMonthData = visibleTransactions().some((t) => ymOf(t.date) === viewYm());
+      const hasMonthData = scopedTransactions().some((t) => ymOf(t.date) === viewYm());
       rows.innerHTML = '<p class="empty-state">' + (hasMonthData ? "Tidak ada transaksi yang cocok." : "Belum ada transaksi bulan ini.") + "</p>";
     } else {
       rows.innerHTML = pageList.map(txRowHtml).join("");
@@ -1146,24 +1254,60 @@
     $("txSearch").focus();
   });
 
+  const expandedNota = new Set(); // id nota yg item-nya sedang dibuka di tabel
+
   function txRowHtml(tx) {
     const cat = findCategory(tx.type, tx.category);
     const sel = tx.id === selectedTxId;
     const id = escapeHtml(tx.id);
+    const multi = isMultiNota(tx);
+    const open = multi && expandedNota.has(tx.id);
+    const sub = tx.type === "transfer"
+      ? "Pindah account · " + transferRoute(tx)
+      : multi ? cat.label + " · " + Object.keys(tx.rincian).length + " kategori" : tx.note || tx.title ? cat.label : TYPE_LABELS[tx.type];
+    const expandBtn = multi
+      ? '<button type="button" class="icon-btn tx-expand' + (open ? " open" : "") + '" data-expand="' + id + '" aria-expanded="' + open + '" aria-label="' + (open ? "Tutup" : "Lihat") + ' item nota">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>'
+      : "";
     return '<div class="tx-grid tx-row' + (sel ? " selected" : "") + '">' +
       '<button type="button" class="tx-main" data-select="' + id + '" aria-pressed="' + sel + '">' + tileHtml(cat, 40) +
-      '<span class="item-text"><span class="item-title">' + escapeHtml(txTitle(tx)) + "</span>" +
-      '<span class="item-sub">' + escapeHtml(tx.note ? cat.label : TYPE_LABELS[tx.type]) + "</span></span></button>" +
+      '<span class="item-text"><span class="tx-title-line"><span class="item-title">' + escapeHtml(txTitle(tx)) + "</span>" +
+      (multi ? '<span class="nota-badge">' + tx.items.length + " item</span>" : "") + "</span>" +
+      '<span class="item-sub">' + escapeHtml(sub) + "</span>" +
+      '<span class="kode-sm tnum">' + escapeHtml(tx.kode || "—") + "</span></span></button>" +
       '<div class="tx-date"><span style="font-weight:600">' + shortDate(tx.date) + '</span><span class="item-sub tnum">' + tx.time + "</span></div>" +
       "<div>" + avatarHtml(tx.by, 32) + "</div>" +
       '<span class="amount ta-r ' + amountClass(tx) + '">' + signedAmount(tx) + "</span>" +
-      '<div class="tx-actions">' +
+      '<div class="tx-actions">' + expandBtn +
       '<button type="button" class="icon-btn" data-edit="' + id + '" aria-label="Edit transaksi">' + svgIcon(ICON.edit, 17) + "</button>" +
       '<button type="button" class="icon-btn" data-del="' + id + '" aria-label="Hapus transaksi">' + svgIcon(ICON.trash, 17) + "</button>" +
-      "</div></div>";
+      "</div></div>" + (open ? notaItemsRowHtml(tx) : "");
+  }
+
+  // Daftar item (+ penyesuaian) di bawah baris nota yg dibuka.
+  function notaItemsRowHtml(tx) {
+    const items = tx.items.map((it) => {
+      const c = findCategory(tx.type, it.category);
+      return '<div class="tx-item"><span class="item-title">' + escapeHtml(it.nama) + '</span><span class="item-sub">' + escapeHtml(c.icon + " " + c.label) + "</span>" +
+        '<span class="item-sub tnum">' + formatQty(it.qty) + " " + escapeHtml(it.satuan || "") + " × " + money(it.harga) + "</span>" +
+        '<span class="tnum ta-r strong">' + money(it.subtotal) + "</span></div>";
+    });
+    const adj = tx.penyesuaian.map((p) =>
+      '<div class="tx-item adj"><span>' + escapeHtml(p.label) + "</span><span></span><span>" + (p.mode === "persen" ? formatQty(p.nilai) + "% dari subtotal" : "") + "</span>" +
+      '<span class="tnum ta-r">' + (p.efek === "kurang" ? "− " : "+ ") + money(p.jumlah) + "</span></div>"
+    );
+    return '<div class="tx-items">' + items.concat(adj).join("") + "</div>";
   }
 
   $("txRows").addEventListener("click", (e) => {
+    const exp = e.target.closest("[data-expand]");
+    if (exp) {
+      const id = exp.dataset.expand;
+      if (expandedNota.has(id)) expandedNota.delete(id);
+      else expandedNota.add(id);
+      renderTransactions();
+      return;
+    }
     const sel = e.target.closest("[data-select]");
     const edit = e.target.closest("[data-edit]");
     const del = e.target.closest("[data-del]");
@@ -1185,18 +1329,55 @@
       el.innerHTML = '<p class="empty-state">Pilih transaksi untuk melihat detailnya.</p>';
       return;
     }
+    if (tx.type === "transfer") {
+      el.innerHTML = transferDetailHtml(tx);
+      return;
+    }
     const cat = findCategory(tx.type, tx.category);
+    const isNota = tx.bentuk === "nota";
+    const head = isNota
+      ? '<div class="item-text"><span style="font-weight:800;font-size:16px">' + escapeHtml(tx.title || "Nota") + '</span><span class="muted">Nota ' + TYPE_LABELS[tx.type].toLowerCase() + " · " + tx.items.length + " item</span></div>"
+      : '<div class="item-text"><span style="font-weight:800;font-size:16px">' + escapeHtml(cat.label) + '</span><span class="muted">' + TYPE_LABELS[tx.type] + "</span></div>";
     el.innerHTML =
-      '<div class="item-line" style="gap:14px">' + tileHtml(cat, 56) +
-      '<div class="item-text"><span style="font-weight:800;font-size:16px">' + escapeHtml(cat.label) + '</span><span class="muted">' + TYPE_LABELS[tx.type] + "</span></div></div>" +
+      '<div class="item-line" style="gap:14px">' + tileHtml(cat, 56) + head + "</div>" +
       '<span class="tx-detail-amount tnum ' + amountClass(tx) + '">' + signedAmount(tx) + "</span>" +
-      '<div class="note-box"><span class="overline">Catatan</span><span>' + escapeHtml(tx.note || "—") + "</span></div>" +
+      (isNota
+        ? '<div class="receipt-mini">' + receiptBodyHtml(tx.type, tx.items, tx.penyesuaian, tx.subtotal, tx.amount, tx.rincian, money) + "</div>"
+        : '<div class="note-box"><span class="overline">Catatan</span><span>' + escapeHtml(tx.note || "—") + "</span></div>") +
       '<dl class="dl">' +
+      '<dt>Kode</dt><dd class="kode">' + escapeHtml(tx.kode || "—") + "</dd>" +
+      "<dt>Account</dt><dd>" + accountChipHtml(tx.account_type) + "</dd>" +
       "<dt>Tanggal</dt><dd>" + longDate(tx.date) + "</dd>" +
       "<dt>Waktu</dt><dd>" + tx.time + "</dd>" +
-      "<dt>Waktu dibuat</dt><dd>" + shortDateYear(localDateStrOf(tx.timestamp)) + ", " + formatTime(tx.timestamp) + "</dd>" +
+      "<dt>Waktu dibuat</dt><dd>" + (tx.timestamp ? shortDateYear(localDateStrOf(tx.timestamp)) + ", " + formatTime(tx.timestamp) : "—") + "</dd>" +
       '<dt>Dibuat oleh</dt><dd class="dd-user">' + avatarHtml(tx.by, 24) + (USERS[tx.by] ? USERS[tx.by].label : escapeHtml(tx.by)) + "</dd>" +
       "</dl>";
+  }
+
+  function transferDetailHtml(tx) {
+    const from = ACCOUNT_BY_ID[tx.dari] || {}, to = ACCOUNT_BY_ID[tx.ke] || {};
+    return '<div class="item-line" style="gap:14px">' + tileHtml(TRANSFER_CATEGORY, 56) +
+      '<div class="item-text"><span style="font-weight:800;font-size:16px">' + escapeHtml(transferRoute(tx)) + '</span><span class="muted">Pindah account</span></div></div>' +
+      '<span class="tx-detail-amount tnum amount-transfer">⇄ ' + money(tx.amount) + "</span>" +
+      '<div class="tf-summary">' +
+      '<div class="kv"><span class="muted">' + (from.icon || "") + " " + escapeHtml(accountLabel(tx.dari)) + ' berkurang</span><span class="strong tnum amount-expense">− ' + money(tx.amount + tx.fee) + "</span></div>" +
+      '<div class="kv"><span class="muted">' + (to.icon || "") + " " + escapeHtml(accountLabel(tx.ke)) + ' bertambah</span><span class="strong tnum amount-income">+ ' + money(tx.amount) + "</span></div>" +
+      '<div class="kv"><span class="muted">Biaya admin</span><span class="strong tnum">' + (tx.fee ? money(tx.fee) : "—") + "</span></div>" +
+      '<span class="tf-note">Bukan pemasukan/pengeluaran. Hanya biaya admin yang dihitung sebagai pengeluaran (kategori Lainnya) di account asal.</span>' +
+      "</div>" +
+      '<div class="note-box"><span class="overline">Catatan</span><span>' + escapeHtml(tx.note || "—") + "</span></div>" +
+      '<dl class="dl">' +
+      '<dt>Kode</dt><dd class="kode">' + escapeHtml(tx.kode || "—") + "</dd>" +
+      "<dt>Tanggal</dt><dd>" + longDate(tx.date) + "</dd>" +
+      "<dt>Waktu</dt><dd>" + tx.time + "</dd>" +
+      "<dt>Waktu dibuat</dt><dd>" + (tx.timestamp ? shortDateYear(localDateStrOf(tx.timestamp)) + ", " + formatTime(tx.timestamp) : "—") + "</dd>" +
+      '<dt>Dibuat oleh</dt><dd class="dd-user">' + avatarHtml(tx.by, 24) + (USERS[tx.by] ? USERS[tx.by].label : escapeHtml(tx.by)) + "</dd>" +
+      "</dl>";
+  }
+
+  function accountChipHtml(id) {
+    const a = ACCOUNT_BY_ID[id];
+    return a ? '<span aria-hidden="true">' + a.icon + "</span> " + a.label : "—";
   }
 
   function renderTxChart() {
@@ -1204,12 +1385,13 @@
     const nd = daysInMonth(y, m);
     const inc = new Array(nd).fill(0), exp = new Array(nd).fill(0);
     const ym = viewYm();
-    visibleTransactions().forEach((t) => {
+    flowTransactions(scopedTransactions()).forEach((t) => {
       if (ymOf(t.date) !== ym) return;
       const i = Number(t.date.slice(8, 10)) - 1;
       if (i < 0 || i >= nd) return;
-      if (t.type === "income") inc[i] += t.amount;
-      else exp[i] += t.amount;
+      const f = Core.flowOf(t);
+      inc[i] += f.income;
+      exp[i] += f.expense;
     });
     $("txChartSub").textContent = "Per hari, " + monthLabel(viewDate);
     const today = todayStr();
@@ -1290,7 +1472,7 @@
         .forEach((cat) => items.push({ id: cat.id, cat, tag: TYPE_LABELS[type] }));
     });
     const hasUnknown = visibleTransactions().some(
-      (t) => (txTypeFilter === "all" || t.type === txTypeFilter) && !categoryExists(t.type, t.category)
+      (t) => t.type !== "transfer" && (txTypeFilter === "all" || t.type === txTypeFilter) && txCategoryIds(t).some((c) => !categoryExists(t.type, c))
     );
     if (hasUnknown) items.push({ id: UNKNOWN_CATEGORY_ID, cat: { icon: "❓", label: "Kategori Terhapus", colorSlot: 1 }, tag: "" });
 
@@ -1355,14 +1537,20 @@
       alert("Tidak ada data untuk diekspor.");
       return;
     }
-    // Kolom sama dgn template import, jadi file hasil export bisa diimport lagi.
+    // Kolom sama dgn template import (+ Kode & Dibuat oleh, diabaikan importer),
+    // jadi file hasil export bisa diimport lagi.
     const rows = list.map((t) => ({
+      Kode: t.kode || "",
       Tanggal: t.date,
       Waktu: t.time,
+      "Account Type": t.type === "transfer" ? t.dari + " → " + t.ke : t.account_type || "",
       Tipe: TYPE_LABELS[t.type],
-      Kategori: categoryExcelLabel(t.type, t.category),
+      Kategori: t.type === "transfer" ? "" : categoryExcelLabel(t.type, t.category),
       Nominal: t.amount,
-      Catatan: t.note || "",
+      Catatan:
+        t.bentuk === "nota" ? t.title + " (nota " + t.items.length + " item)"
+        : t.type === "transfer" ? (t.note || "Pindah " + transferRoute(t)) + (t.fee ? " (biaya admin " + t.fee + ")" : "")
+        : t.note || "",
       "Dibuat oleh": USERS[t.by] ? USERS[t.by].label : t.by,
     }));
     FinanceExcel.download("transaksi-" + viewYm() + ".xlsx", "Transaksi", rows);
@@ -1370,37 +1558,105 @@
 
   /* ---------- Edit & hapus transaksi ---------- */
 
+  // Edit V2 (satuan): boleh ubah kategori, jumlah, catatan, waktu, dibuat oleh.
+  // Terkunci: kode, account type, tanggal, jenis (kode bergantung padanya —
+  // salah tanggal/account = hapus lalu buat baru).
   let editingTx = null;
+  let editBy = null;
 
   function openEditTx(tx) {
+    if (tx.bentuk === "nota") {
+      openNota(tx);
+      return;
+    }
+    // Pindah: dari/ke ikut terkunci (kode TF-{asal}{tujuan}); yang bisa diubah
+    // jumlah, biaya admin, catatan, waktu, dibuat oleh.
+    const isTf = tx.type === "transfer";
     editingTx = tx;
-    const cat = findCategory(tx.type, tx.category);
+    editBy = tx.by;
     $("editTxInfo").innerHTML =
-      '<div class="item-line">' + tileHtml(cat, 40) + '<div class="item-text"><span class="strong">' + escapeHtml(cat.label) + '</span><span class="item-sub">' + TYPE_LABELS[tx.type] + "</span></div></div>" +
-      '<dl class="dl" style="margin-top:14px">' +
+      '<dl class="dl">' +
+      '<dt>Kode</dt><dd class="kode">' + escapeHtml(tx.kode || "—") + "</dd>" +
+      (isTf
+        ? "<dt>Pindah</dt><dd>" + accountChipHtml(tx.dari) + " → " + accountChipHtml(tx.ke) + "</dd>"
+        : "<dt>Account</dt><dd>" + accountChipHtml(tx.account_type) + "</dd>") +
       "<dt>Tanggal</dt><dd>" + longDate(tx.date) + "</dd>" +
-      "<dt>Waktu</dt><dd>" + tx.time + "</dd>" +
-      '<dt>Dibuat oleh</dt><dd class="dd-user">' + avatarHtml(tx.by, 24) + (USERS[tx.by] ? USERS[tx.by].label : escapeHtml(tx.by)) + "</dd>" +
+      "<dt>Jenis</dt><dd>" + TYPE_LABELS[tx.type] + "</dd>" +
       "</dl>";
+    $("editTxCategoryField").hidden = isTf;
+    $("editTxFeeField").hidden = !isTf;
     $("editTxAmount").value = Math.round(tx.amount).toLocaleString("id-ID");
     $("editTxNote").value = tx.note || "";
+    $("editTxTime").value = tx.time;
+    renderEditBy();
+    if (isTf) {
+      $("editTxFee").value = tx.fee ? tx.fee.toLocaleString("id-ID") : "";
+      openModal("editTxModal");
+      $("editTxAmount").focus();
+      return;
+    }
+    const sel = $("editTxCategory");
+    sel.innerHTML = CATEGORIES[tx.type]
+      .map((c) => '<option value="' + escapeHtml(c.id) + '">' + escapeHtml(c.icon + " " + c.label) + "</option>")
+      .join("");
+    if (!categoryExists(tx.type, tx.category)) {
+      // Kategori sudah dihapus — tetap bisa disimpan apa adanya.
+      sel.insertAdjacentHTML("afterbegin", '<option value="' + escapeHtml(tx.category) + '">❓ ' + escapeHtml(tx.category || "Tanpa kategori") + " (terhapus)</option>");
+    }
+    sel.value = tx.category;
+    $("editTxAmount").value = Math.round(tx.amount).toLocaleString("id-ID");
+    $("editTxNote").value = tx.note || "";
+    $("editTxTime").value = tx.time;
+    renderEditBy();
     openModal("editTxModal");
     $("editTxAmount").focus();
+  }
+
+  function renderEditBy() {
+    renderByToggle($("editTxByToggle"), editBy, false, (by) => {
+      editBy = by;
+      renderEditBy();
+    });
   }
 
   $("editTxAmount").addEventListener("input", function () {
     formatAmountInput(this);
   });
+  $("editTxFee").addEventListener("input", function () {
+    formatAmountInput(this);
+  });
 
   $("editTxForm").addEventListener("submit", (e) => {
     e.preventDefault();
-    if (!editingTx) return;
+    const tx = editingTx;
+    if (!tx) return;
     const amount = parseAmount($("editTxAmount").value);
+    const rawTime = $("editTxTime").value;
+    const time = /^\d{2}:\d{2}$/.test(rawTime) ? rawTime + ":00" : rawTime;
     if (amount <= 0) {
       alert("Jumlah harus lebih dari 0.");
       return;
     }
-    updateTransaction(editingTx, amount, $("editTxNote").value.trim()).catch(reportWriteError("menyimpan transaksi"));
+    if (!Core.isTime(time)) {
+      alert("Waktu tidak valid.");
+      return;
+    }
+    // Hanya field yang berubah yang dikirim.
+    const isTf = tx.type === "transfer";
+    const next = { nominal: amount, catatan: $("editTxNote").value.trim(), waktu: time, by: editBy };
+    const prev = { nominal: tx.amount, catatan: tx.note, waktu: tx.time, by: tx.by };
+    if (isTf) {
+      next.biaya_admin = parseAmount($("editTxFee").value);
+      prev.biaya_admin = tx.fee;
+    } else {
+      next.category = $("editTxCategory").value;
+      prev.category = tx.category;
+    }
+    const fields = {};
+    Object.keys(next).forEach((k) => {
+      if (next[k] !== prev[k]) fields[k] = next[k];
+    });
+    if (Object.keys(fields).length) updateTransaction(tx, fields).catch(reportWriteError("menyimpan transaksi"));
     editingTx = null;
     closeModal("editTxModal");
   });
@@ -1455,7 +1711,8 @@
     list.forEach((t) => {
       const i = dayNum(t.date) - d0;
       if (i < el) daily[i] += t.amount;
-      byCat[t.category] = (byCat[t.category] || 0) + t.amount;
+      const c = Core.categoryAmounts(t).byCat; // nota → rincian_kategori
+      Object.keys(c).forEach((k) => (byCat[k] = (byCat[k] || 0) + c[k]));
     });
     const cum = [];
     daily.reduce((run, v, i) => (cum[i] = run + v), 0);
@@ -1500,7 +1757,10 @@
 
   function renderAnalysis() {
     const { a: ra, b: rb } = currentRanges();
-    const pool = visibleTransactions().filter((t) => t.type === "expense");
+    // Pengeluaran saja; pindah ikut hanya sebesar biaya admin (kategori Lainnya).
+    const pool = visibleTransactions()
+      .filter((t) => Core.flowOf(t).expense > 0)
+      .map((t) => (t.type === "transfer" ? Object.assign({}, t, { amount: t.fee, category: Core.TRANSFER_FEE_CATEGORY }) : t));
     const sa = periodStats(ra, pool), sb = periodStats(rb, pool);
 
     // --- Bar atas: preset + Periode A/B ---
@@ -1853,12 +2113,13 @@
     return ymOf(tx.date) === viewYm();
   }
 
+  // Pemakaian per kategori: nota lewat rincian_kategori, pindah cuma biaya
+  // admin (Core.expenseInCategory). "semua" = total pengeluaran.
   function planSpent(plan) {
     const now = new Date();
-    const isAll = plan.category === ALL_CATEGORY.id;
-    return sumAmount(
-      visibleTransactions().filter((t) => t.type === "expense" && (isAll || t.category === plan.category) && txInPlanPeriod(t, plan.period, now))
-    );
+    return visibleTransactions()
+      .filter((t) => txInPlanPeriod(t, plan.period, now))
+      .reduce((s, t) => s + Core.expenseInCategory(t, plan.category), 0);
   }
 
   function planCategoryPool() {
@@ -2121,8 +2382,9 @@
     });
   }
 
+  // Termasuk nota yang salah satu item-nya berkategori ini (rincian_kategori).
   function categoryTxCount(type, id) {
-    return visibleTransactions().filter((t) => t.type === type && t.category === id).length;
+    return visibleTransactions().filter((t) => t.type === type && (t.category === id || (t.rincian && id in t.rincian))).length;
   }
 
   function renderCategories() {
@@ -2262,17 +2524,21 @@
 
   /* ================= Tambah transaksi (Manual / Import) ================= */
 
-  const txState = { tab: "manual", type: "expense", by: null };
+  const txState = { tab: "manual", mode: "satuan", type: "expense", by: null, account: "bank" };
 
   function openTxModal(tab) {
     txState.tab = tab || "manual";
+    txState.mode = "satuan";
     txState.type = "expense";
     txState.by = currentUser === "both" ? null : currentUser;
+    // Default account = tab yang sedang dibuka (kalau bukan "Semua").
+    txState.account = ACCOUNT_BY_ID[acctFilter] ? acctFilter : "bank";
     $("txForm").reset();
     const now = Date.now();
     $("txDate").value = localDateStrOf(now);
     $("txTime").value = formatTime(now);
     resetImport();
+    resetTransferForm();
     fillTxCategories();
     renderTxModal();
     openModal("txModal");
@@ -2292,6 +2558,13 @@
       b.setAttribute("aria-selected", on);
     });
     document.querySelectorAll("[data-tx-panel]").forEach((p) => (p.hidden = p.dataset.txPanel !== txState.tab));
+    document.querySelectorAll("[data-tx-mode]").forEach((p) => (p.hidden = p.dataset.txMode !== txState.mode));
+    $("txModeToggle").querySelectorAll("[data-mode]").forEach((b) => {
+      if (b.dataset.mode === "pindah") b.hidden = !ENABLE_TRANSFER;
+      const on = b.dataset.mode === txState.mode;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-pressed", on);
+    });
     $("txTypeToggle").querySelectorAll("[data-type]").forEach((b) => {
       const on = b.dataset.type === txState.type;
       b.classList.toggle("active", on);
@@ -2306,10 +2579,33 @@
     $("importByLabel").textContent = byLabelText();
     renderByToggle($("txByToggle"), txState.by, locked, pick);
     renderByToggle($("importByToggle"), txState.by, locked, pick);
+    $("tfByLabel").textContent = byLabelText();
+    renderByToggle($("tfByToggle"), txState.by, locked, pick);
+    renderTransferForm();
+    renderAccountPicker($("txAcctToggle"), txState.account, (id) => {
+      txState.account = id;
+      renderTxModal();
+    });
+    renderTxKodePreview();
     renderImport();
   }
 
+  function renderTxKodePreview() {
+    $("txKodePreview").textContent = previewKode({ bentuk: "satuan", account_type: txState.account, tanggal: $("txDate").value });
+  }
+
   $("addTxBtn").addEventListener("click", () => openTxModal("manual"));
+  $("txModeToggle").querySelectorAll("[data-mode]").forEach((b) =>
+    b.addEventListener("click", () => {
+      txState.mode = b.dataset.mode;
+      renderTxModal();
+    })
+  );
+  // Mode Nota: tutup popup → halaman Nota (bawa jenis/account/pembuat dari popup).
+  $("openNotaBtn").addEventListener("click", () => {
+    closeModal("txModal");
+    openNota(null, { type: txState.type, account: txState.account, by: txState.by });
+  });
   document.querySelectorAll("[data-tx-tab]").forEach((b) =>
     b.addEventListener("click", () => {
       txState.tab = b.dataset.txTab;
@@ -2329,6 +2625,7 @@
   // Ganti tanggal → waktu reset ke awal hari (aturan sama dgn mobile).
   $("txDate").addEventListener("change", () => {
     $("txTime").value = "00:00:00";
+    renderTxKodePreview(); // bulan kode ikut tanggal
   });
 
   $("txForm").addEventListener("submit", (e) => {
@@ -2359,13 +2656,15 @@
       alert('Pilih dulu "Dibuat oleh" siapa.');
       return;
     }
-    addTransaction({
+    if (!requireOnline()) return;
+    addSatuan({
       type: txState.type,
-      amount,
+      account_type: txState.account,
       category,
-      note: $("txNote").value.trim(),
-      date,
-      time,
+      nominal: amount,
+      catatan: $("txNote").value.trim(),
+      tanggal: date,
+      waktu: time,
       by: txState.by,
     }).catch(reportWriteError("menyimpan transaksi"));
     closeModal("txModal");
@@ -2471,10 +2770,20 @@
     return null;
   }
 
+  // Kosong → bank. Terima id (bank/cash/e_money) & label (Bank/Cash/E-Money).
+  function parseImportAccount(v) {
+    const s = String(v).trim().toLowerCase().replace(/[\s-]+/g, "_");
+    if (!s) return "bank";
+    if (s === "emoney") return "e_money";
+    return ACCOUNT_BY_ID[s] ? s : null;
+  }
+
   function parseImportRows(aoa) {
     const header = (aoa[0] || []).map((h) => String(h).trim().toLowerCase());
     const col = (name) => header.indexOf(name);
-    const cols = { tanggal: col("tanggal"), waktu: col("waktu"), tipe: col("tipe"), kategori: col("kategori"), nominal: col("nominal"), catatan: col("catatan") };
+    // Account Type opsional (file lama tanpa kolom ini → semua bank).
+    const acctCol = ["account type", "account_type", "account"].map(col).find((i) => i !== -1);
+    const cols = { tanggal: col("tanggal"), waktu: col("waktu"), account: acctCol === undefined ? -1 : acctCol, tipe: col("tipe"), kategori: col("kategori"), nominal: col("nominal"), catatan: col("catatan") };
     const missing = ["Tanggal", "Waktu", "Tipe", "Kategori", "Nominal"].filter((h) => cols[h.toLowerCase()] === -1);
     if (missing.length) {
       return { rows: [], total: Math.max(0, aoa.length - 1), errors: [{ row: 1, msgs: missing.map((h) => 'Kolom "' + h + '" tidak ditemukan di baris judul') }] };
@@ -2504,6 +2813,9 @@
       const time = parseImportTime(cell("waktu"));
       if (!time) msgs.push("Format Waktu harus sesuai (contoh : 08:00:00)");
 
+      const account = parseImportAccount(cell("account"));
+      if (!account) msgs.push('Account Type harus bank, cash, atau e_money (kosong = bank), bukan "' + String(cell("account")).trim() + '"');
+
       const typeRaw = String(cell("tipe")).trim().toLowerCase();
       const type = typeRaw === "pengeluaran" ? "expense" : typeRaw === "pemasukan" ? "income" : null;
       if (!type) msgs.push("Tipe harus Pengeluaran atau Pemasukan");
@@ -2529,7 +2841,7 @@
       }
 
       if (msgs.length) errors.push({ row: r + 1, msgs });
-      else rows.push({ date, time, type, amount, category, note: String(cell("catatan")).trim() });
+      else rows.push({ date, time, account_type: account, type, amount, category, note: String(cell("catatan")).trim() });
     }
     if (!total) errors.push({ row: 2, msgs: ["File tidak berisi transaksi"] });
     return { rows, errors, total };
@@ -2546,16 +2858,26 @@
       alert('Pilih dulu "Dibuat oleh" siapa.');
       return;
     }
+    if (!requireOnline()) return;
     const by = txState.by;
     const { rows, name } = importState;
     importBusy = true;
     renderImport();
-    const reserved = new Set();
     let saved = 0;
     try {
-      // Berurutan supaya key (tanggal+waktu+1) tidak saling rebut.
+      // Berurutan supaya nomor kode urut sesuai urutan baris (per prefix
+      // account per bulan).
       for (const row of rows) {
-        await addTransaction(Object.assign({}, row, { by }), reserved);
+        await addSatuan({
+          type: row.type,
+          account_type: row.account_type,
+          category: row.category,
+          nominal: row.amount,
+          catatan: row.note,
+          tanggal: row.date,
+          waktu: row.time,
+          by,
+        });
         saved++;
       }
     } catch (err) {
@@ -2571,6 +2893,10 @@
     $("importOkExp").textContent = rows.filter((r) => r.type === "expense").length + " transaksi";
     $("importOkInc").textContent = rows.filter((r) => r.type === "income").length + " transaksi";
     $("importOkBy").textContent = USERS[by].label;
+    $("importOkAcct").textContent = ACCOUNTS.map((a) => [a.label, rows.filter((r) => r.account_type === a.id).length])
+      .filter((x) => x[1])
+      .map((x) => x[0] + " " + x[1])
+      .join(" · ");
     openModal("importOkModal");
   });
 
@@ -2593,10 +2919,11 @@
     const today = todayStr();
     const exp = CATEGORIES.expense[0], inc = CATEGORIES.income[0];
     const examples = [];
-    if (exp) examples.push([today, "12:30:00", "Pengeluaran", exp.label + " (keluar)", 35000, "Makan siang"]);
-    if (inc) examples.push([today, "08:00:00", "Pemasukan", inc.label + " (masuk)", 8500000, "Gaji bulan ini"]);
+    if (exp) examples.push([today, "12:30:00", "cash", "Pengeluaran", exp.label + " (keluar)", 35000, "Makan siang"]);
+    if (inc) examples.push([today, "08:00:00", "bank", "Pemasukan", inc.label + " (masuk)", 8500000, "Gaji bulan ini"]);
     btn.disabled = true;
     FinanceTemplate.download("template-import-transaksi.xlsx", {
+      accounts: ACCOUNTS.map((a) => a.id),
       types: ["Pengeluaran", "Pemasukan"],
       categories: CATEGORIES.expense.map((c) => c.label + " (keluar)").concat(CATEGORIES.income.map((c) => c.label + " (masuk)")),
       examples,
@@ -2608,11 +2935,546 @@
       .finally(() => (btn.disabled = false));
   });
 
+  /* ================= Halaman Nota (V2) ================= */
+
+  // State form nota. Angka (qty/harga/nilai) disimpan sbg TEKS input dan baru
+  // di-parse saat dihitung, supaya mengetik "0," atau "2,5" tidak terganggu.
+  // Perhitungan (subtotal, penyesuaian, alokasi kategori) → Core.computeNota.
+  let nota = null; // { tx (null = baru), type, account, by, items, adj, dirty, showErrors }
+  let pendingNotaHash = null; // "#nota…" dibuka sebelum data pertama tiba
+  let notaSaving = false;
+
+  // Tombol cepat penyesuaian: [label, efek, mode, nilai awal].
+  const ADJ_PRESETS = {
+    expense: [
+      ["Diskon", "kurang", "persen", ""],
+      ["Promo", "kurang", "nominal", ""],
+      ["Voucher", "kurang", "nominal", ""],
+      ["Cashback", "kurang", "nominal", ""],
+      ["PPN", "tambah", "persen", "11"],
+      ["Ongkir", "tambah", "nominal", ""],
+      ["Biaya layanan", "tambah", "nominal", ""],
+    ],
+    income: [
+      ["Pajak", "kurang", "persen", ""],
+      ["PPh", "kurang", "persen", ""],
+      ["Biaya admin", "kurang", "nominal", ""],
+    ],
+  };
+
+  // "2,5" / "2.5" / "1.250,5" → angka. Koma ada → titik = pemisah ribuan.
+  function parseDecimal(str) {
+    const s = String(str).trim();
+    const n = Number(s.indexOf(",") !== -1 ? s.replace(/\./g, "").replace(",", ".") : s);
+    return s && isFinite(n) ? n : NaN;
+  }
+
+  function blankItem(type) {
+    const first = CATEGORIES[type][0];
+    return { nama: "", category: first ? first.id : "", qty: "1", satuan: "pcs", harga: "" };
+  }
+
+  function openNota(tx, defaults) {
+    const now = Date.now();
+    if (tx) {
+      nota = {
+        tx,
+        type: tx.type,
+        account: tx.account_type,
+        by: tx.by,
+        items: tx.items.map((i) => ({
+          nama: i.nama || "",
+          category: i.category || "",
+          qty: formatQty(i.qty || 0),
+          satuan: i.satuan || "",
+          harga: Number(i.harga || 0).toLocaleString("id-ID"),
+        })),
+        adj: tx.penyesuaian.map((p) => ({
+          label: p.label || "",
+          efek: p.efek === "tambah" ? "tambah" : "kurang",
+          mode: p.mode === "persen" ? "persen" : "nominal",
+          nilai: p.mode === "persen" ? formatQty(p.nilai || 0) : Number(p.nilai || 0).toLocaleString("id-ID"),
+        })),
+        dirty: false,
+        showErrors: false,
+      };
+      $("notaTitle").value = tx.title || "";
+      $("notaDate").value = tx.date;
+      $("notaTime").value = tx.time;
+    } else {
+      const d = defaults || {};
+      const type = d.type || "expense";
+      nota = {
+        tx: null,
+        type,
+        account: d.account || (ACCOUNT_BY_ID[acctFilter] ? acctFilter : "bank"),
+        by: currentUser === "both" ? d.by || null : currentUser,
+        items: [blankItem(type)],
+        adj: [],
+        dirty: false,
+        showErrors: false,
+      };
+      $("notaTitle").value = "";
+      $("notaDate").value = localDateStrOf(now);
+      $("notaTime").value = formatTime(now);
+    }
+    if (!nota.items.length) nota.items.push(blankItem(nota.type));
+    history.replaceState(null, "", tx ? "#nota/" + tx.ym + "/" + encodeURIComponent(tx.id) : "#nota");
+    renderNotaForm();
+    setView("nota");
+    if (!tx) $("notaTitle").focus();
+  }
+
+  // "#nota" = nota baru, "#nota/<ym>/<id>" = edit. Sebelum data pertama tiba
+  // (kategori & transaksi belum ada) dibuka belakangan oleh subscribeFinance.
+  function openNotaFromHash(v) {
+    if (!loadingHidden) {
+      pendingNotaHash = v;
+      return;
+    }
+    const parts = v.split("/");
+    if (parts.length < 3) {
+      openNota(null);
+      return;
+    }
+    const ym = parts[1], id = decodeURIComponent(parts[2]);
+    const tx = transactions.find((t) => t.ym === ym && t.id === id && t.bentuk === "nota");
+    if (tx) openNota(tx);
+    else {
+      alert("Nota tidak ditemukan (mungkin sudah dihapus).");
+      setView("transactions");
+    }
+  }
+
+  function leaveNotaOk() {
+    if (!nota || !nota.dirty || notaSaving) return true;
+    return confirm("Perubahan nota belum disimpan. Tinggalkan halaman ini?");
+  }
+
+  function renderNotaForm() {
+    const editing = !!nota.tx;
+    $("notaCrumb").textContent = editing ? "Edit Nota" : "Nota Baru";
+    $("notaDate").disabled = editing;
+    $("notaLockedHint").hidden = !editing;
+    $("notaTypeToggle").querySelectorAll("[data-type]").forEach((b) => {
+      const on = b.dataset.type === nota.type;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-pressed", on);
+      b.disabled = editing;
+    });
+    $("notaByLabel").textContent = editing ? "Dibuat oleh" : byLabelText();
+    renderNotaBy();
+    renderAccountPicker(
+      $("notaAcctToggle"),
+      nota.account,
+      (id) => {
+        nota.account = id;
+        nota.dirty = true;
+        renderNotaForm();
+      },
+      editing
+    );
+    $("notaKodeSuffix").textContent = editing ? " · tidak bisa diubah" : " · dibuat otomatis saat disimpan";
+    $("notaQuickAdj").innerHTML = ADJ_PRESETS[nota.type]
+      .map((p, i) => '<button type="button" class="quick-chip" data-preset="' + i + '">+ ' + p[0] + "</button>")
+      .join("");
+    renderNotaItems();
+    renderNotaAdj();
+    renderNotaSummary();
+  }
+
+  function renderNotaBy() {
+    const locked = !nota.tx && currentUser !== "both";
+    renderByToggle($("notaByToggle"), nota.by, locked, (by) => {
+      nota.by = by;
+      nota.dirty = true;
+      renderNotaBy();
+      renderNotaSummary();
+    });
+  }
+
+  function categoryOptionsHtml(type, selected) {
+    let html = CATEGORIES[type]
+      .map((c) => '<option value="' + escapeHtml(c.id) + '"' + (c.id === selected ? " selected" : "") + ">" + escapeHtml(c.icon + " " + c.label) + "</option>")
+      .join("");
+    if (selected && !categoryExists(type, selected)) {
+      html = '<option value="' + escapeHtml(selected) + '" selected>❓ ' + escapeHtml(selected) + " (terhapus)</option>" + html;
+    }
+    return html;
+  }
+
+  function renderNotaItems() {
+    const only = nota.items.length === 1;
+    $("notaItemRows").innerHTML = nota.items
+      .map((it, i) => {
+        const n = i + 1;
+        return '<div class="nota-grid nota-row" data-i="' + i + '">' +
+          '<span class="nota-num tnum">' + n + "</span>" +
+          '<input class="input" data-f="nama" aria-label="Nama item ' + n + '" placeholder="Nama item" value="' + escapeHtml(it.nama) + '">' +
+          '<select class="input" data-f="category" aria-label="Kategori item ' + n + '">' + categoryOptionsHtml(nota.type, it.category) + "</select>" +
+          '<input class="input input-center tnum" data-f="qty" inputmode="decimal" aria-label="Qty item ' + n + '" value="' + escapeHtml(it.qty) + '">' +
+          '<input class="input" data-f="satuan" list="unitList" aria-label="Satuan item ' + n + '" placeholder="pcs" value="' + escapeHtml(it.satuan) + '">' +
+          '<div class="money-sm"><span>Rp</span><input class="tnum" data-f="harga" inputmode="numeric" aria-label="Harga satuan item ' + n + '" placeholder="0" value="' + escapeHtml(it.harga) + '"></div>' +
+          '<span class="nota-sub" data-sub="' + i + '"></span>' +
+          '<button type="button" class="icon-btn" data-del-item="' + i + '" aria-label="Hapus item ' + n + '"' + (only ? " disabled" : "") + ">" + svgIcon(ICON.trash, 17) + "</button>" +
+          "</div>";
+      })
+      .join("");
+  }
+
+  function renderNotaAdj() {
+    const opt = (v, label, cur) => '<option value="' + v + '"' + (v === cur ? " selected" : "") + ">" + label + "</option>";
+    $("notaAdjRows").innerHTML = nota.adj
+      .map((p, j) => {
+        const n = j + 1;
+        return '<div class="adj-row" data-j="' + j + '">' +
+          '<input class="input" data-f="label" aria-label="Label penyesuaian ' + n + '" placeholder="mis. Diskon member" value="' + escapeHtml(p.label) + '">' +
+          '<select class="input" data-f="efek" aria-label="Efek penyesuaian ' + n + '">' + opt("kurang", "Kurangi", p.efek) + opt("tambah", "Tambah", p.efek) + "</select>" +
+          '<select class="input" data-f="mode" aria-label="Mode penyesuaian ' + n + '">' + opt("nominal", "Rp", p.mode) + opt("persen", "%", p.mode) + "</select>" +
+          '<div class="money-sm"><span>' + (p.mode === "persen" ? "%" : "Rp") + '</span><input class="tnum" data-f="nilai" inputmode="decimal" aria-label="Nilai penyesuaian ' + n + '" placeholder="0" value="' + escapeHtml(p.nilai) + '"></div>' +
+          '<span class="adj-result ' + p.efek + '" data-res="' + j + '"></span>' +
+          '<button type="button" class="icon-btn" data-del-adj="' + j + '" aria-label="Hapus penyesuaian ' + n + '">' + svgIcon(ICON.trash, 17) + "</button>" +
+          "</div>";
+      })
+      .join("");
+  }
+
+  function notaInput() {
+    return {
+      items: nota.items.map((it) => ({ nama: it.nama, category: it.category, qty: parseDecimal(it.qty), satuan: it.satuan, harga: parseAmount(it.harga) })),
+      penyesuaian: nota.adj.map((p) => ({ label: p.label, efek: p.efek, mode: p.mode, nilai: p.mode === "persen" ? parseDecimal(p.nilai || "0") : parseAmount(p.nilai) })),
+    };
+  }
+
+  function notaFields() {
+    const raw = $("notaTime").value;
+    return Object.assign(notaInput(), {
+      type: nota.type,
+      account_type: nota.account,
+      judul: $("notaTitle").value,
+      by: nota.by,
+      tanggal: $("notaDate").value,
+      waktu: /^\d{2}:\d{2}$/.test(raw) ? raw + ":00" : raw,
+      timestamp: nota.tx ? nota.tx.timestamp : Date.now(),
+    });
+  }
+
+  // Hitung ulang & perbarui angka/struk TANPA me-render ulang input.
+  function renderNotaSummary() {
+    if (!nota || currentView !== "nota") return;
+    const calc = Core.computeNota(notaInput());
+    calc.items.forEach((it, i) => {
+      const el = document.querySelector('#notaItemRows [data-sub="' + i + '"]');
+      if (el) el.textContent = formatCurrency(it.subtotal);
+    });
+    calc.penyesuaian.forEach((p, j) => {
+      const el = document.querySelector('#notaAdjRows [data-res="' + j + '"]');
+      if (!el) return;
+      el.textContent = (p.efek === "kurang" ? "− " : "+ ") + formatCurrency(p.jumlah);
+      el.className = "adj-result " + p.efek;
+    });
+    $("notaItemCount").textContent = "· " + nota.items.length + " item";
+    $("notaSubtotal").textContent = formatCurrency(calc.subtotal);
+    $("notaAdjTotal").textContent = (calc.total_penyesuaian < 0 ? "− " : "+ ") + formatCurrency(Math.abs(calc.total_penyesuaian));
+    $("notaTotalLabel").textContent = nota.type === "income" ? "Total diterima" : "Total dibayar";
+    $("notaTotal").textContent = formatCurrency(calc.nominal);
+    $("notaTotal").classList.toggle("negative", calc.nominal <= 0);
+
+    const kode = nota.tx ? nota.tx.kode || "—" : previewKode({ bentuk: "nota", account_type: nota.account, tanggal: $("notaDate").value });
+    $("notaKode").textContent = kode;
+    $("notaReceipt").innerHTML = notaReceiptHtml(calc, kode);
+
+    // Peringatan langsung kalau total ≤ 0; daftar error lengkap muncul setelah
+    // tombol Simpan ditekan (dan ikut diperbarui saat isian dibetulkan).
+    let msgs = [];
+    if (nota.showErrors) msgs = Core.buildNota(notaFields()).errors;
+    else if (calc.nominal <= 0 && (calc.subtotal > 0 || calc.penyesuaian.length)) {
+      msgs = ["Total nota " + (calc.nominal < 0 ? "negatif" : "Rp 0") + " — cek potongan/biaya."];
+    }
+    $("notaErrors").hidden = !msgs.length;
+    $("notaErrors").innerHTML = msgs.map((m) => "<span>" + escapeHtml(m) + "</span>").join("");
+  }
+
+  function notaReceiptHtml(calc, kode) {
+    const acct = ACCOUNT_BY_ID[nota.account];
+    const date = $("notaDate").value, time = $("notaTime").value;
+    const meta = [date ? shortDateYear(date) : "", time.slice(0, 5), acct ? acct.label : "", USERS[nota.by] ? USERS[nota.by].label : ""].filter(Boolean).join(" · ");
+    return '<div class="receipt-head"><span class="receipt-kicker">NOTA</span>' +
+      '<span class="receipt-title">' + escapeHtml($("notaTitle").value.trim() || "Judul nota") + "</span>" +
+      '<span class="receipt-meta tnum">' + escapeHtml(meta) + "</span>" +
+      '<span class="receipt-kode">' + escapeHtml(kode) + "</span></div>" +
+      '<div class="receipt-cut"></div>' +
+      receiptBodyHtml(nota.type, calc.items, calc.penyesuaian, calc.subtotal, calc.nominal, calc.rincian_kategori, formatCurrency);
+  }
+
+  // Isi struk: item, subtotal, penyesuaian, total, rincian per kategori.
+  // Dipakai halaman Nota (fmt = formatCurrency) & panel detail (fmt = money).
+  function receiptBodyHtml(type, items, adj, subtotal, nominal, rincian, fmt) {
+    const lines = items
+      .map((it) =>
+        '<div class="receipt-line"><div class="receipt-line-text"><span>' + escapeHtml(it.nama || "Item tanpa nama") + "</span>" +
+        '<span class="item-sub tnum">' + formatQty(it.qty || 0) + (it.satuan ? " " + escapeHtml(it.satuan) : "") + " × " + fmt(it.harga || 0) + "</span></div>" +
+        '<span class="tnum">' + fmt(it.subtotal || 0) + "</span></div>"
+      )
+      .join("");
+    const adjRows = adj
+      .map((p) =>
+        '<div class="receipt-row"><span>' + escapeHtml(p.label || "Penyesuaian") + (p.mode === "persen" ? " (" + formatQty(p.nilai || 0) + "%)" : "") + "</span>" +
+        "<span>" + (p.efek === "kurang" ? "− " : "+ ") + fmt(p.jumlah || 0) + "</span></div>"
+      )
+      .join("");
+    const cats = Object.keys(rincian || {})
+      .filter((k) => rincian[k] > 0)
+      .sort((a, b) => rincian[b] - rincian[a])
+      .map((k) => {
+        const c = findCategory(type, k);
+        const pct = nominal > 0 ? Math.round((rincian[k] / nominal) * 100) : 0;
+        return '<div class="receipt-cat"><div><span style="font-weight:600">' + escapeHtml(c.icon + " " + c.label) + "</span>" +
+          '<span class="tnum strong">' + fmt(rincian[k]) + "</span></div>" +
+          '<div class="track" style="height:6px"><div class="fill" style="width:' + pct + "%;background:" + catColor(c) + '"></div></div></div>';
+      })
+      .join("");
+    return '<div class="receipt-lines">' + lines + "</div>" +
+      '<div class="receipt-cut"></div>' +
+      '<div class="receipt-row"><span>Subtotal · ' + items.length + " item</span><span>" + fmt(subtotal) + "</span></div>" +
+      adjRows +
+      '<div class="receipt-total"><span>' + (type === "income" ? "TOTAL DITERIMA" : "TOTAL DIBAYAR") + "</span><span>" + fmt(nominal) + "</span></div>" +
+      (cats ? '<div class="receipt-cut"></div><div class="receipt-cats"><span class="overline">Per kategori</span>' + cats + "</div>" : "");
+  }
+
+  function saveNota() {
+    if (notaSaving) return;
+    const built = Core.buildNota(notaFields());
+    if (built.errors.length) {
+      nota.showErrors = true;
+      renderNotaSummary();
+      $("notaErrors").scrollIntoView({ block: "nearest" });
+      return;
+    }
+    const tx = nota.tx;
+    if (!tx && !requireOnline()) return;
+    notaSaving = true;
+    $("notaSaveBtn").disabled = true;
+    $("notaSaveBtn").textContent = "Menyimpan…";
+    // Baru: kode atomik (Data.saveNew). Edit: update parsial — kode, tanggal,
+    // account type & jenis tidak ikut dikirim (terkunci).
+    const op = tx ? Data.updateNota(tx.ym, tx.id, built.record).then(() => tx.id) : Data.saveNew(built.record);
+    op.then((id) => {
+      nota.dirty = false;
+      selectedTxId = id;
+      txJumpToSelected = true;
+      const d = built.record.tanggal;
+      viewDate = new Date(Number(d.slice(0, 4)), Number(d.slice(5, 7)) - 1, 1);
+      if (acctFilter !== "all" && acctFilter !== built.record.account_type) acctFilter = "all";
+      setView("transactions");
+    })
+      .catch(reportWriteError("menyimpan nota"))
+      .finally(() => {
+        notaSaving = false;
+        $("notaSaveBtn").disabled = false;
+        $("notaSaveBtn").textContent = "Simpan Nota";
+      });
+  }
+
+  /* ---------- Event halaman Nota ---------- */
+
+  function markNotaDirty() {
+    nota.dirty = true;
+    renderNotaSummary();
+  }
+
+  $("notaTitle").addEventListener("input", markNotaDirty);
+  $("notaTime").addEventListener("input", markNotaDirty);
+  // Ganti tanggal → waktu reset ke awal hari (aturan sama dgn form satuan);
+  // bulan kode ikut tanggal.
+  $("notaDate").addEventListener("change", () => {
+    $("notaTime").value = "00:00:00";
+    markNotaDirty();
+  });
+
+  $("notaTypeToggle").querySelectorAll("[data-type]").forEach((b) =>
+    b.addEventListener("click", () => {
+      if (nota.tx || b.dataset.type === nota.type) return;
+      nota.type = b.dataset.type;
+      // Kategori item ikut jenis nota → reset ke kategori pertama jenis baru.
+      nota.items.forEach((it) => {
+        if (!categoryExists(nota.type, it.category)) it.category = blankItem(nota.type).category;
+      });
+      nota.dirty = true;
+      renderNotaForm();
+    })
+  );
+
+  $("notaItemRows").addEventListener("input", (e) => {
+    const f = e.target.dataset.f;
+    const row = e.target.closest("[data-i]");
+    if (!f || !row) return;
+    if (f === "harga") formatAmountInput(e.target);
+    nota.items[Number(row.dataset.i)][f] = e.target.value;
+    markNotaDirty();
+  });
+  $("notaItemRows").addEventListener("click", (e) => {
+    const del = e.target.closest("[data-del-item]");
+    if (!del || nota.items.length <= 1) return;
+    nota.items.splice(Number(del.dataset.delItem), 1);
+    renderNotaItems();
+    markNotaDirty();
+  });
+  $("notaAddItem").addEventListener("click", () => {
+    const last = nota.items[nota.items.length - 1];
+    const it = blankItem(nota.type);
+    if (last && last.category) it.category = last.category; // item baru biasanya sejenis
+    nota.items.push(it);
+    renderNotaItems();
+    markNotaDirty();
+    $("notaItemRows").querySelector('[data-i="' + (nota.items.length - 1) + '"] [data-f="nama"]').focus();
+  });
+
+  function addNotaAdj(p) {
+    nota.adj.push(p);
+    renderNotaAdj();
+    markNotaDirty();
+    const row = $("notaAdjRows").querySelector('[data-j="' + (nota.adj.length - 1) + '"]');
+    row.querySelector(p.label ? '[data-f="nilai"]' : '[data-f="label"]').focus();
+  }
+
+  $("notaAddAdj").addEventListener("click", () => addNotaAdj({ label: "", efek: "kurang", mode: "nominal", nilai: "" }));
+  $("notaQuickAdj").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-preset]");
+    if (!b) return;
+    const p = ADJ_PRESETS[nota.type][Number(b.dataset.preset)];
+    addNotaAdj({ label: p[0], efek: p[1], mode: p[2], nilai: p[3] });
+  });
+  $("notaAdjRows").addEventListener("input", (e) => {
+    const f = e.target.dataset.f;
+    const row = e.target.closest("[data-j]");
+    if (!f || !row || e.target.tagName === "SELECT") return;
+    const p = nota.adj[Number(row.dataset.j)];
+    if (f === "nilai" && p.mode === "nominal") formatAmountInput(e.target);
+    p[f] = e.target.value;
+    markNotaDirty();
+  });
+  $("notaAdjRows").addEventListener("change", (e) => {
+    const f = e.target.dataset.f;
+    const row = e.target.closest("[data-j]");
+    if (!row || (f !== "efek" && f !== "mode")) return;
+    const p = nota.adj[Number(row.dataset.j)];
+    p[f] = e.target.value;
+    if (f === "mode") p.nilai = p.mode === "nominal" ? (parseAmount(p.nilai) ? parseAmount(p.nilai).toLocaleString("id-ID") : "") : String(p.nilai).replace(/\./g, "");
+    renderNotaAdj();
+    markNotaDirty();
+  });
+  $("notaAdjRows").addEventListener("click", (e) => {
+    const del = e.target.closest("[data-del-adj]");
+    if (!del) return;
+    nota.adj.splice(Number(del.dataset.delAdj), 1);
+    renderNotaAdj();
+    markNotaDirty();
+  });
+
+  $("notaSaveBtn").addEventListener("click", saveNota);
+  $("notaCancelBtn").addEventListener("click", () => setView("transactions"));
+  $("notaBackBtn").addEventListener("click", () => setView("transactions"));
+
+  /* ================= Pindah account (V2, di balik ENABLE_TRANSFER) ================= */
+
+  // Form mode "Pindah" di popup Tambah Transaksi. Pembuat (by) memakai
+  // txState.by yang sama dgn mode Satuan/Import.
+  const tfState = { from: "bank", to: "cash" };
+
+  function resetTransferForm() {
+    tfState.from = ACCOUNT_BY_ID[acctFilter] ? acctFilter : "bank";
+    tfState.to = tfState.from === "cash" ? "bank" : "cash";
+    const now = Date.now();
+    $("tfForm").reset();
+    $("tfDate").value = localDateStrOf(now);
+    $("tfTime").value = formatTime(now);
+  }
+
+  // Pemilih account dgn satu opsi bisa dinonaktifkan (Ke ≠ Dari).
+  function renderTransferPicker(container, value, disabledId, onPick) {
+    container.innerHTML = ACCOUNTS.map((a) => {
+      const on = a.id === value;
+      return '<button type="button" class="toggle-btn' + (on ? " active" : "") + '" data-account="' + a.id + '" aria-pressed="' + on + '"' + (a.id === disabledId ? " disabled" : "") + ">" +
+        '<span aria-hidden="true">' + a.icon + "</span>" + a.label + "</button>";
+    }).join("");
+    container.querySelectorAll("[data-account]:not([disabled])").forEach((b) => b.addEventListener("click", () => onPick(b.dataset.account)));
+  }
+
+  function renderTransferForm() {
+    // Memilih Dari = Ke saat ini → otomatis ditukar.
+    renderTransferPicker($("tfFrom"), tfState.from, null, (id) => {
+      if (id === tfState.to) tfState.to = tfState.from;
+      tfState.from = id;
+      renderTransferForm();
+    });
+    renderTransferPicker($("tfTo"), tfState.to, tfState.from, (id) => {
+      tfState.to = id;
+      renderTransferForm();
+    });
+    renderTransferSummary();
+  }
+
+  function renderTransferSummary() {
+    const amount = parseAmount($("tfAmount").value);
+    const fee = parseAmount($("tfFee").value);
+    const from = ACCOUNT_BY_ID[tfState.from], to = ACCOUNT_BY_ID[tfState.to];
+    $("tfSummary").innerHTML =
+      '<div class="tf-route"><span>' + from.icon + " " + from.label + '</span><span aria-hidden="true">→</span><span>' + to.icon + " " + to.label + "</span></div>" +
+      '<div class="kv"><span class="muted">' + from.label + ' berkurang</span><span class="strong tnum amount-expense">− ' + formatCurrency(amount + fee) + "</span></div>" +
+      '<div class="kv"><span class="muted">' + to.label + ' bertambah</span><span class="strong tnum amount-income">+ ' + formatCurrency(amount) + "</span></div>" +
+      '<span class="tf-note">Pemindahan tidak dihitung sebagai pemasukan atau pengeluaran. Hanya biaya admin yang tercatat sebagai pengeluaran (kategori Lainnya).</span>';
+    $("tfKodePreview").textContent = previewKode({ bentuk: "pindah", dari: tfState.from, ke: tfState.to, tanggal: $("tfDate").value });
+  }
+
+  $("tfSwap").addEventListener("click", () => {
+    const x = tfState.from;
+    tfState.from = tfState.to;
+    tfState.to = x;
+    renderTransferForm();
+  });
+  ["tfAmount", "tfFee"].forEach((id) =>
+    $(id).addEventListener("input", function () {
+      formatAmountInput(this);
+      renderTransferSummary();
+    })
+  );
+  // Ganti tanggal → waktu reset ke awal hari (sama dgn satuan/nota).
+  $("tfDate").addEventListener("change", () => {
+    $("tfTime").value = "00:00:00";
+    renderTransferSummary();
+  });
+
+  $("tfForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!ENABLE_TRANSFER) return;
+    const rawTime = $("tfTime").value;
+    const { errors, record } = Core.buildPindah({
+      dari: tfState.from,
+      ke: tfState.to,
+      nominal: parseAmount($("tfAmount").value),
+      biaya_admin: parseAmount($("tfFee").value),
+      catatan: $("tfNote").value.trim(),
+      by: txState.by,
+      tanggal: $("tfDate").value,
+      waktu: /^\d{2}:\d{2}$/.test(rawTime) ? rawTime + ":00" : rawTime,
+      timestamp: Date.now(),
+    });
+    if (errors.length) {
+      alert(errors.join("\n"));
+      return;
+    }
+    if (!requireOnline()) return;
+    Data.saveNew(record).catch(reportWriteError("memindahkan saldo"));
+    closeModal("txModal");
+  });
+
   /* ================= Init ================= */
 
   initTheme();
   const initialView = location.hash.slice(1);
-  currentView = VIEWS[initialView] ? initialView : "dashboard";
+  currentView = VIEWS[initialView] && initialView !== "nota" ? initialView : "dashboard";
   renderAll();
   subscribeFinance();
+  if (initialView.split("/")[0] === "nota") openNotaFromHash(initialView);
 })();

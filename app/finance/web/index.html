@@ -129,11 +129,13 @@
 
     <!-- ================= DASHBOARD ================= -->
     <section id="view-dashboard" class="view" hidden>
+      <div id="dashAcctTabs" class="acct-tabs" role="tablist" aria-label="Account type"></div>
       <div class="hero">
         <div class="hero-grid">
           <div class="hero-balance">
-            <span class="hero-label">Saldo Bulan Ini</span>
+            <span id="heroBalanceLabel" class="hero-label">Saldo Bulan Ini</span>
             <span id="heroBalance" class="hero-amount tnum"></span>
+            <span id="heroTransfer" class="hero-transfer tnum" hidden></span>
           </div>
           <div class="hero-stat">
             <div class="hero-icon">
@@ -194,6 +196,7 @@
 
     <!-- ================= TRANSAKSI ================= -->
     <section id="view-transactions" class="view" hidden>
+      <div id="txAcctTabs" class="acct-tabs" role="tablist" aria-label="Account type"></div>
       <section class="card card-chart">
         <div class="card-title">
           <h2>Pemasukan vs Pengeluaran</h2>
@@ -259,10 +262,117 @@
       </div>
     </section>
 
+    <!-- ================= NOTA (buat / edit) ================= -->
+    <section id="view-nota" class="view" hidden>
+      <div class="breadcrumb">
+        <button type="button" class="crumb-back" id="notaBackBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+          Transaksi
+        </button>
+        <span aria-hidden="true">/</span><span id="notaCrumb" class="crumb-current">Nota Baru</span>
+      </div>
+
+      <div class="nota-layout">
+        <div class="nota-main">
+          <div class="card">
+            <h2 class="h2-sm">Informasi Nota</h2>
+            <div class="nota-info-grid">
+              <div class="field span-all">
+                <label for="notaTitle">Judul nota</label>
+                <input id="notaTitle" class="input" placeholder="mis. Belanja bulanan Alfamart" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="notaDate">Tanggal</label>
+                <input id="notaDate" type="date" class="input">
+              </div>
+              <div class="field">
+                <label for="notaTime">Waktu</label>
+                <input id="notaTime" type="time" step="1" class="input">
+              </div>
+              <div class="field">
+                <span class="field-label">Jenis</span>
+                <div id="notaTypeToggle" class="toggle-2" role="group" aria-label="Jenis">
+                  <button type="button" class="toggle-btn" data-type="expense">Pengeluaran</button>
+                  <button type="button" class="toggle-btn" data-type="income">Pemasukan</button>
+                </div>
+              </div>
+              <div class="field">
+                <span class="field-label" id="notaByLabel">Dibuat oleh</span>
+                <div id="notaByToggle" class="toggle-2" role="group" aria-label="Dibuat oleh"></div>
+              </div>
+              <div class="field span-all">
+                <span class="field-label">Account type</span>
+                <div id="notaAcctToggle" class="toggle-3" role="group" aria-label="Account type"></div>
+                <span class="muted small">Kode transaksi: <span id="notaKode" class="kode"></span><span id="notaKodeSuffix"> · dibuat otomatis saat disimpan</span></span>
+              </div>
+            </div>
+            <span id="notaLockedHint" class="muted small" hidden>Tanggal, account type, dan jenis tidak bisa diubah setelah nota disimpan (kode bergantung padanya). Salah isi? Hapus nota lalu buat baru.</span>
+          </div>
+        </div>
+
+        <aside class="nota-aside" aria-label="Pratinjau nota">
+          <div id="notaReceipt" class="card receipt"></div>
+        </aside>
+
+        <div class="card nota-items">
+          <div class="card-head">
+            <h2 class="h2-sm">Item Nota <span id="notaItemCount" class="muted tnum" style="font-weight:600"></span></h2>
+            <button type="button" id="notaAddItem" class="btn btn-primary btn-sm">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              Tambah item
+            </button>
+          </div>
+          <div class="table-scroll">
+            <div class="nota-table">
+              <div class="nota-grid nota-head">
+                <span>#</span><span>Nama item</span><span>Kategori</span><span>Qty</span><span>Satuan</span><span class="ta-r">Harga satuan</span><span class="ta-r">Subtotal</span><span></span>
+              </div>
+              <div id="notaItemRows"></div>
+            </div>
+          </div>
+          <datalist id="unitList">
+            <option value="pcs"></option><option value="kg"></option><option value="gram"></option><option value="liter"></option>
+            <option value="pak"></option><option value="dus"></option><option value="botol"></option><option value="porsi"></option>
+          </datalist>
+
+          <div class="adj-section">
+            <div class="card-head">
+              <div class="card-title">
+                <span class="strong">Penyesuaian</span>
+                <span class="muted small">Diskon, promo, pajak, ongkir, dan biaya lain. Persen dihitung dari subtotal item.</span>
+              </div>
+              <button type="button" id="notaAddAdj" class="btn btn-outline btn-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                Potongan/Biaya
+              </button>
+            </div>
+            <div id="notaQuickAdj" class="quick-chips"></div>
+            <div id="notaAdjRows"></div>
+          </div>
+
+          <div class="nota-total">
+            <div class="nota-total-lines tnum">
+              <span>Subtotal <b id="notaSubtotal"></b></span>
+              <span>Penyesuaian <b id="notaAdjTotal"></b></span>
+            </div>
+            <div class="nota-total-main">
+              <span id="notaTotalLabel" class="muted strong">Total nota</span>
+              <span id="notaTotal" class="tnum"></span>
+            </div>
+          </div>
+          <div id="notaErrors" class="error-box" role="alert" hidden></div>
+          <div class="modal-actions">
+            <button type="button" id="notaCancelBtn" class="btn btn-outline btn-lg">Batal</button>
+            <button type="button" id="notaSaveBtn" class="btn btn-primary btn-lg">Simpan Nota</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ================= ANALISIS ================= -->
     <section id="view-analysis" class="view" hidden>
       <div class="card ana-bar">
-        <div id="anaPresets" class="seg" role="group" aria-label="Pilihan cepat rentang waktu"></div>
+        <div id="anaPresets" class="seg seg-wrap" role="group" aria-label="Pilihan cepat rentang waktu"></div>
         <div class="ana-periods">
           <button type="button" class="ana-period" data-open-range>
             <span class="dot" style="background:var(--exp)"></span>
@@ -405,6 +515,34 @@
     <!-- ================= INFO ================= -->
     <section id="view-settings" class="view" hidden>
       <div class="info-grid">
+        <div class="card info-card info-wide">
+          <div class="card-title">
+            <h2 class="h2-sm">Account Type</h2>
+            <span class="muted small">Jenis tempat uang disimpan. Dipakai untuk memisahkan saldo di Dashboard (kolom <code class="kode">account_type</code>).</span>
+          </div>
+          <div class="acct-info-grid">
+            <div class="acct-info"><div class="acct-info-icon" aria-hidden="true">🏦</div><div class="acct-info-text"><span class="strong">Bank</span><span class="item-sub">Rekening bank (BCA, Mandiri, dll)</span><code class="code-chip">bank</code></div></div>
+            <div class="acct-info"><div class="acct-info-icon" aria-hidden="true">💵</div><div class="acct-info-text"><span class="strong">Cash</span><span class="item-sub">Uang tunai / dompet fisik</span><code class="code-chip">cash</code></div></div>
+            <div class="acct-info"><div class="acct-info-icon" aria-hidden="true">📱</div><div class="acct-info-text"><span class="strong">E-Money</span><span class="item-sub">Dompet digital (GoPay, OVO, DANA, dll)</span><code class="code-chip">e_money</code></div></div>
+          </div>
+        </div>
+        <div class="card info-card info-wide">
+          <div class="card-title">
+            <h2 class="h2-sm">Format Kode Transaksi</h2>
+            <span class="muted small">Dibuat otomatis. Urutan dimulai dari 000001 untuk setiap account type di setiap bulan (bulan mengikuti tanggal transaksi). Kode tidak bisa diubah.</span>
+          </div>
+          <div class="kode-format">
+            <code class="kode-big">T<span style="color:var(--accent)">B</span>-<span style="color:var(--exp)">202611</span>-<span style="color:var(--inc)">000001</span></code>
+            <span class="muted small"><b style="color:var(--accent)">B</b> kode account · <b style="color:var(--exp)">202611</b> tahun &amp; bulan · <b style="color:var(--inc)">000001</b> nomor urut</span>
+          </div>
+          <div class="kode-examples">
+            <div class="kode-example"><span aria-hidden="true">🏦</span><span class="strong">Bank</span><code class="kode">TB-202611-000001</code></div>
+            <div class="kode-example"><span aria-hidden="true">💵</span><span class="strong">Cash</span><code class="kode">TC-202611-000001</code></div>
+            <div class="kode-example"><span aria-hidden="true">📱</span><span class="strong">E-Money</span><code class="kode">TE-202611-000001</code></div>
+          </div>
+          <span class="muted small">Transaksi lama (sebelum V2) tidak punya kode dan tampil "—"; dianggap account Bank.</span>
+        </div>
+        <div class="info-row">
         <div class="card info-card">
           <h2 class="h2-sm">Tentang</h2>
           <span class="muted info-text">Finance App v0.1 · Data tersinkronisasi otomatis ke cloud (Firebase) — transaksi &amp; rencana tersimpan di server dan langsung update di semua perangkat. Preferensi tema disimpan di perangkat ini.</span>
@@ -415,6 +553,7 @@
             <span class="muted small">Lihat daftar aplikasi lainnya</span>
           </div>
           <a class="btn-hub" href="../../index.html">Iyon App</a>
+        </div>
         </div>
       </div>
     </section>
@@ -433,8 +572,20 @@
       <button type="button" role="tab" class="tab" data-tx-tab="import">Import</button>
     </div>
 
-    <!-- Manual -->
-    <form id="txForm" class="modal-body" data-tx-panel="manual" novalidate>
+    <!-- Manual: 3 mode — Satuan | Nota | Pindah (Pindah di balik ENABLE_TRANSFER) -->
+    <div class="modal-body" data-tx-panel="manual">
+    <div id="txModeToggle" class="mode-toggle" role="group" aria-label="Bentuk transaksi">
+      <button type="button" class="mode-btn" data-mode="satuan">Satuan<span>1 transaksi</span></button>
+      <button type="button" class="mode-btn" data-mode="nota">Nota<span>Banyak item</span></button>
+      <button type="button" class="mode-btn" data-mode="pindah" hidden>Pindah<span>Antar account</span></button>
+    </div>
+
+    <form id="txForm" class="modal-body" data-tx-mode="satuan" novalidate>
+      <div class="field">
+        <span class="field-label">Account type</span>
+        <div id="txAcctToggle" class="toggle-3" role="group" aria-label="Account type"></div>
+        <span class="muted small">Kode transaksi: <span id="txKodePreview" class="kode"></span> · dibuat otomatis</span>
+      </div>
       <div id="txTypeToggle" class="toggle-2" role="group" aria-label="Jenis">
         <button type="button" class="toggle-btn" data-type="expense">Pengeluaran</button>
         <button type="button" class="toggle-btn" data-type="income">Pemasukan</button>
@@ -475,12 +626,87 @@
       </div>
     </form>
 
+    <div class="modal-body" data-tx-mode="nota" hidden>
+      <div class="nota-intro">
+        <div class="nota-intro-head">
+          <div class="nota-intro-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h3"/></svg>
+          </div>
+          <div class="card-title"><span class="strong" style="font-size:16px">Nota dibuat di halaman tersendiri</span><span class="muted small">Ruang kerja lebih luas untuk mengisi banyak item.</span></div>
+        </div>
+        <ul class="check-list">
+          <li><span>✓</span><span>Setiap item punya <b>nama, kategori, qty, satuan, dan harga satuan</b></span></li>
+          <li><span>✓</span><span>Subtotal, potongan/biaya, dan <b>total nota dihitung otomatis</b></span></li>
+          <li><span>✓</span><span>Satu nota = satu account type &amp; satu tanggal</span></li>
+        </ul>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" data-close>Batal</button>
+        <button type="button" id="openNotaBtn" class="btn btn-primary">Buka Halaman Nota
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <form id="tfForm" class="modal-body" data-tx-mode="pindah" hidden novalidate>
+      <div class="field">
+        <span class="field-label">Dari</span>
+        <div id="tfFrom" class="toggle-3" role="group" aria-label="Dari account"></div>
+      </div>
+      <div class="tf-swap-row">
+        <span class="tf-line"></span>
+        <button type="button" id="tfSwap" class="icon-btn-box" aria-label="Tukar asal dan tujuan">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg>
+        </button>
+        <span class="tf-line"></span>
+      </div>
+      <div class="field">
+        <span class="field-label">Ke</span>
+        <div id="tfTo" class="toggle-3" role="group" aria-label="Ke account"></div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="tfAmount">Jumlah dipindah</label>
+          <div class="money-input"><span>Rp</span><input id="tfAmount" inputmode="numeric" placeholder="0" autocomplete="off"></div>
+        </div>
+        <div class="field">
+          <label for="tfFee">Biaya admin <span class="muted small">(opsional)</span></label>
+          <div class="money-input"><span>Rp</span><input id="tfFee" inputmode="numeric" placeholder="0" autocomplete="off"></div>
+        </div>
+      </div>
+      <div id="tfSummary" class="tf-summary"></div>
+      <div class="field">
+        <label for="tfNote">Catatan</label>
+        <input id="tfNote" class="input" placeholder="mis. Tarik tunai ATM" autocomplete="off">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="tfDate">Tanggal</label>
+          <input id="tfDate" type="date" class="input" required>
+        </div>
+        <div class="field">
+          <label for="tfTime">Waktu</label>
+          <input id="tfTime" type="time" step="1" class="input" required>
+        </div>
+      </div>
+      <div class="field">
+        <span class="field-label" id="tfByLabel">Dibuat oleh</span>
+        <div id="tfByToggle" class="toggle-2" role="group" aria-label="Dibuat oleh"></div>
+      </div>
+      <span class="muted small">Kode transaksi: <span id="tfKodePreview" class="kode"></span> · dibuat otomatis</span>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" data-close>Batal</button>
+        <button type="submit" class="btn btn-primary">Pindahkan</button>
+      </div>
+    </form>
+    </div>
+
     <!-- Import -->
     <div class="modal-body" data-tx-panel="import" hidden>
       <div class="info-box info-box-row">
         <div class="info-box-text">
           <span class="strong">Template import</span>
-          <span class="muted small">Kolom: Tanggal, Waktu, Tipe, Kategori, Nominal, Catatan.</span>
+          <span class="muted small">Kolom: Tanggal, Waktu, Account Type, Tipe, Kategori, Nominal, Catatan. Kode dibuat otomatis per baris.</span>
         </div>
         <button type="button" id="templateBtn" class="btn btn-outline btn-sm">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>
@@ -524,6 +750,10 @@
       </div>
       <div id="editTxInfo"></div>
     </div>
+    <div class="field" id="editTxCategoryField">
+      <label for="editTxCategory">Kategori</label>
+      <select id="editTxCategory" class="input"></select>
+    </div>
     <div class="field">
       <label for="editTxAmount">Jumlah</label>
       <div class="money-input money-input-focus">
@@ -531,9 +761,23 @@
         <input id="editTxAmount" inputmode="numeric" autocomplete="off">
       </div>
     </div>
+    <div class="field" id="editTxFeeField" hidden>
+      <label for="editTxFee">Biaya admin</label>
+      <div class="money-input"><span>Rp</span><input id="editTxFee" inputmode="numeric" placeholder="0" autocomplete="off"></div>
+    </div>
     <div class="field">
       <label for="editTxNote">Catatan</label>
       <input id="editTxNote" class="input" autocomplete="off">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="editTxTime">Waktu</label>
+        <input id="editTxTime" type="time" step="1" class="input">
+      </div>
+      <div class="field">
+        <span class="field-label">Dibuat oleh</span>
+        <div id="editTxByToggle" class="toggle-2" role="group" aria-label="Dibuat oleh"></div>
+      </div>
     </div>
     <div class="modal-actions">
       <button type="button" class="btn btn-outline" data-close>Batal</button>
@@ -743,6 +987,7 @@
     <div class="info-box result-box">
       <div class="kv"><span class="muted">Pengeluaran</span><span id="importOkExp" class="strong" style="color:var(--exp)"></span></div>
       <div class="kv"><span class="muted">Pemasukan</span><span id="importOkInc" class="strong" style="color:var(--inc)"></span></div>
+      <div class="kv"><span class="muted">Account</span><span id="importOkAcct" class="strong"></span></div>
       <div class="kv"><span class="muted">Dibuat oleh</span><span id="importOkBy" class="strong"></span></div>
     </div>
     <button type="button" class="btn btn-primary btn-block" data-close>Selesai</button>
@@ -783,6 +1028,9 @@
 <script src="../generate-excel.js"></script>
 <!-- Template import (.xlsx dgn dropdown) — ExcelJS di-load saat tombol Download Template diklik -->
 <script src="excel-template.js"></script>
+<!-- V2: logika murni (kode, nota, saldo) + layer tulis Firebase berkode -->
+<script src="finance-core.js"></script>
+<script src="finance-data.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
