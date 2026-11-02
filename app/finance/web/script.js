@@ -2867,7 +2867,9 @@
   }
 
   function parseImportRows(aoa) {
-    const header = (aoa[0] || []).map((h) => String(h).trim().toLowerCase());
+    // Keterangan format dalam kurung diabaikan: "Tanggal (yyyy-mm-dd)" = "tanggal"
+    // (header template), "Tanggal" (header export) tetap cocok.
+    const header = (aoa[0] || []).map((h) => String(h).trim().toLowerCase().replace(/\s*\(.*\)$/, ""));
     const col = (name) => header.indexOf(name);
     // Account Type opsional (file lama tanpa kolom ini → semua bank).
     const acctCol = ["account type", "account_type", "account"].map(col).find((i) => i !== -1);
@@ -2891,7 +2893,9 @@
     let total = 0;
     for (let r = 1; r < aoa.length; r++) {
       const line = aoa[r] || [];
-      if (line.every((v) => String(v).trim() === "")) continue;
+      // Baris kosong dilewati — termasuk baris contoh template yang cuma berisi
+      // Tanggal & Waktu (belum ditimpa user).
+      if (line.every((v, i) => i === cols.tanggal || i === cols.waktu || String(v).trim() === "")) continue;
       total++;
       const msgs = [];
       const cell = (k) => (cols[k] === -1 ? "" : line[cols[k]]);
@@ -3015,6 +3019,8 @@
       types: ["Pengeluaran", "Pemasukan"],
       categories: CATEGORIES.expense.map((c) => c.label + " (keluar)").concat(CATEGORIES.income.map((c) => c.label + " (masuk)")),
       examples,
+      // Baris 2 sheet Transaksi: contoh Tanggal & Waktu saat ini (format yang benar).
+      now: [today, formatTime(Date.now())],
     })
       .catch((err) => {
         console.error("Gagal membuat template:", err);

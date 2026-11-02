@@ -41,9 +41,14 @@ window.FinanceTemplate = (function () {
     row.height = 22;
   }
 
+  // Header Tanggal/Waktu menyertakan format; importer mengabaikan teks dalam kurung.
+  const HEADER_TANGGAL = "Tanggal (yyyy-mm-dd)";
+  const HEADER_WAKTU = "Waktu (hh:mm:ss)";
+
   // opts = { accounts: ["bank", "cash", "e_money"], types: ["Pengeluaran", "Pemasukan"],
   //          categories: ["Makanan (keluar)", ...],
-  //          examples: [[tanggal, waktu, account, tipe, kategori, nominal, catatan], ...] }
+  //          examples: [[tanggal, waktu, account, tipe, kategori, nominal, catatan], ...],
+  //          now: [tanggal, waktu] — diisi di baris 2 sheet Transaksi sbg contoh format }
   async function download(fileName, opts) {
     await loadExcelJS();
     const wb = new ExcelJS.Workbook();
@@ -52,8 +57,8 @@ window.FinanceTemplate = (function () {
     // --- Sheet 1: Transaksi (yang diisi user) ---
     const ws = wb.addWorksheet("Transaksi", { views: [{ state: "frozen", ySplit: 1 }] });
     ws.columns = [
-      { header: "Tanggal", key: "tanggal", width: 14 },
-      { header: "Waktu", key: "waktu", width: 12 },
+      { header: HEADER_TANGGAL, key: "tanggal", width: 22 },
+      { header: HEADER_WAKTU, key: "waktu", width: 18 },
       { header: "Account Type", key: "account_type", width: 15 },
       { header: "Tipe", key: "tipe", width: 16 },
       { header: "Kategori", key: "kategori", width: 28 },
@@ -66,15 +71,21 @@ window.FinanceTemplate = (function () {
     ws.getColumn(1).numFmt = "@";
     ws.getColumn(2).numFmt = "@";
     ws.getColumn(6).numFmt = "0";
+    // Baris 2: Tanggal & Waktu saat template diunduh, cuma contoh format —
+    // ditimpa user. Kalau dibiarkan (kolom lain kosong), importer melewatinya.
+    if (opts.now) {
+      ws.getCell("A2").value = opts.now[0];
+      ws.getCell("B2").value = opts.now[1];
+    }
 
     // --- Sheet 2: Panduan ---
     const guide = wb.addWorksheet("Panduan");
     guide.columns = [{ width: 26 }, { width: 12 }, { width: 15 }, { width: 16 }, { width: 28 }, { width: 14 }, { width: 36 }];
-    const exampleHeader = ["Tanggal", "Waktu", "Account Type", "Tipe", "Kategori", "Nominal", "Catatan"];
+    const exampleHeader = [HEADER_TANGGAL, HEADER_WAKTU, "Account Type", "Tipe", "Kategori", "Nominal", "Catatan"];
     const lines = [
       ["Cara mengisi template import transaksi"],
       [],
-      ["1. Isi data di sheet \"Transaksi\", satu baris = satu transaksi, mulai baris 2."],
+      ["1. Isi data di sheet \"Transaksi\", satu baris = satu transaksi, mulai baris 2. Baris 2 sudah berisi contoh Tanggal & Waktu (saat template diunduh) — timpa dengan data kamu. Baris yang cuma berisi Tanggal & Waktu diabaikan saat import."],
       ["2. Tanggal: format YYYY-MM-DD, contoh 2026-10-30."],
       ["3. Waktu: format HH:MM:SS (24 jam), contoh 08:00:00."],
       ["4. Account Type: pilih dari dropdown — bank (rekening), cash (tunai), e_money (dompet digital). Kosong = bank."],
@@ -83,6 +94,7 @@ window.FinanceTemplate = (function () {
       ["7. Catatan: boleh dikosongkan."],
       ["8. Kode transaksi dibuat otomatis per baris (urut sesuai urutan baris), tidak perlu diisi."],
       ["9. Kalau ada satu baris saja yang salah, tidak ada transaksi yang disimpan — perbaiki lalu import ulang."],
+      ["10. Import hanya untuk transaksi SATUAN (satu baris = satu transaksi). Nota (banyak item) dan pindah account tidak bisa diimport — buat lewat tab Manual di aplikasi."],
       [],
       ["Contoh pengisian:"],
       exampleHeader,
