@@ -273,7 +273,7 @@
   box-shadow: 0 0 0 2px var(--color-surface) inset;
 }
 
-/* ---------- Info V2: Account Type & Format Kode ---------- */
+/* ---------- Info V2: Account Type (Format Kode cuma di web desktop) ---------- */
 
 .settings-info-body {
   display: flex;
@@ -303,15 +303,3 @@
 .info-list b {
   color: var(--color-text);
 }
-
-.kode-big {
-  margin: 2px 0 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.k-acct { color: var(--color-primary); }
-.k-ym { color: var(--color-expense); }
-.k-seq { color: var(--color-income); }
