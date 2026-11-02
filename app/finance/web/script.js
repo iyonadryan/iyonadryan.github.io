@@ -2986,7 +2986,7 @@
           nama: i.nama || "",
           category: i.category || "",
           qty: formatQty(i.qty || 0),
-          satuan: i.satuan || "",
+          satuan: i.satuan || "pcs",
           harga: Number(i.harga || 0).toLocaleString("id-ID"),
         })),
         adj: tx.penyesuaian.map((p) => ({
@@ -3093,6 +3093,15 @@
     });
   }
 
+  // Satuan item nota: pcs (jumlah barang), kg & liter (qty boleh desimal,
+  // mis. 250 gram → 0.25 kg). Satuan lain dari nota lama tetap dipertahankan.
+  const NOTA_UNITS = ["pcs", "kg", "liter"];
+
+  function unitOptionsHtml(selected) {
+    const units = selected && NOTA_UNITS.indexOf(selected) === -1 ? [selected].concat(NOTA_UNITS) : NOTA_UNITS;
+    return units.map((u) => '<option value="' + escapeHtml(u) + '"' + (u === (selected || "pcs") ? " selected" : "") + ">" + escapeHtml(u) + "</option>").join("");
+  }
+
   function categoryOptionsHtml(type, selected) {
     let html = CATEGORIES[type]
       .map((c) => '<option value="' + escapeHtml(c.id) + '"' + (c.id === selected ? " selected" : "") + ">" + escapeHtml(c.icon + " " + c.label) + "</option>")
@@ -3113,7 +3122,7 @@
           '<input class="input" data-f="nama" aria-label="Nama item ' + n + '" placeholder="Nama item" value="' + escapeHtml(it.nama) + '">' +
           '<select class="input" data-f="category" aria-label="Kategori item ' + n + '">' + categoryOptionsHtml(nota.type, it.category) + "</select>" +
           '<input class="input input-center tnum" data-f="qty" inputmode="decimal" aria-label="Qty item ' + n + '" value="' + escapeHtml(it.qty) + '">' +
-          '<input class="input" data-f="satuan" list="unitList" aria-label="Satuan item ' + n + '" placeholder="pcs" value="' + escapeHtml(it.satuan) + '">' +
+          '<select class="input" data-f="satuan" aria-label="Satuan item ' + n + '">' + unitOptionsHtml(it.satuan) + "</select>" +
           '<div class="money-sm"><span>Rp</span><input class="tnum" data-f="harga" inputmode="numeric" aria-label="Harga satuan item ' + n + '" placeholder="0" value="' + escapeHtml(it.harga) + '"></div>' +
           '<span class="nota-sub" data-sub="' + i + '"></span>' +
           '<button type="button" class="icon-btn" data-del-item="' + i + '" aria-label="Hapus item ' + n + '"' + (only ? " disabled" : "") + ">" + svgIcon(ICON.trash, 17) + "</button>" +

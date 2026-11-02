@@ -20,7 +20,7 @@ Rencana & keputusan lengkap: [`v2-plan.md`](v2-plan.md) · Panduan migrasi: [`mi
 
 ### Nota (banyak item)
 - Popup Tambah Transaksi → tab Manual punya mode **Satuan | Nota | Pindah**. Mode Nota membuka **halaman Buat Nota** (`#nota`, breadcrumb "Transaksi / Nota Baru").
-- Item: nama, kategori, qty (boleh desimal), satuan (dengan saran), harga satuan, subtotal otomatis.
+- Item: nama, kategori, qty (boleh desimal), satuan (pilihan `pcs` / `kg` / `liter`; mis. 250 gram ditulis 0.25 kg), harga satuan, subtotal otomatis dibulatkan ke rupiah terdekat (0,25 × Rp 20.139 = 5.034,75 → Rp 5.035).
 - **Penyesuaian**: potongan/biaya Rp atau %, Kurangi/Tambah, tombol cepat (Diskon, Promo, Voucher, Cashback, PPN 11%, Ongkir, Biaya layanan; pemasukan: Pajak, PPh, Biaya admin). Persen dihitung dari subtotal item.
 - **Pratinjau struk** dengan TOTAL DIBAYAR / TOTAL DITERIMA dan rincian per kategori. Muncul peringatan kalau total ≤ 0, daftar error saat simpan, dan konfirmasi saat keluar dengan perubahan belum disimpan.
 - Total per kategori (`rincian_kategori`) dihitung **proporsional** setelah penyesuaian. Sisa pembulatan masuk ke kategori terbesar, jadi jumlahnya selalu = total nota.
