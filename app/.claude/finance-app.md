@@ -34,6 +34,9 @@ finance/
         limit:    1000000
         sort:     0              # urutan tampil (kecil = atas), diatur via drag
         by:       "ciwul"        # "iyon" | "ciwul" — cuma penanda pembuat utk visibility/badge, BUKAN path/kunci keunikan; DITAMBAHKAN, backfill via migrateLegacyPlanOwners()
+        target:   "ciwul"        # "iyon" | "ciwul" | "both" — transaksi siapa yang dihitung (both = semua). Ditambahkan 2 Nov 2026 (desktop saja);
+                                 # rencana lama di prod di-backfill target = by (skrip sekali jalan, sudah dihapus). Tanpa target → dibaca = by.
+                                 # Web mobile BELUM paham target: masih filter/hitung pakai by, dan edit dari mobile (.set()) menghapus target.
   categories/
     expense/
       <id>/                       # mis. "makanan" — key = id, ditulis redundan juga sbg field
@@ -111,6 +114,9 @@ Path: **Web Mobile = `app/finance/`**, **Web Desktop = `app/finance/web/`**. Des
   - **Transaksi** — grafik pemasukan vs pengeluaran per hari, tabel (tab tipe, **kotak pencarian** — cocokkan catatan/kategori/tanggal/pembuat, Filter rentang hari + kategori termasuk "Kategori Terhapus", chip filter aktif, Export Excel), **panel detail** di kanan (klik baris), edit/hapus per baris. **Pagination** (update desain): baris per halaman 10/25/50 (default 10, state `txLimit`), Prev/Next + maks 5 nomor halaman di sekitar halaman aktif, info "Total N data · Menampilkan a–b · Halaman x dari y". `txPage` reset ke 1 tiap tab/filter/pencarian/bulan/user/baris-per-halaman berubah; baris terpilih (panel detail) selalu dari halaman yang tampil. Klik item di Transaksi Terbaru Dashboard → `txJumpToSelected` membuka halaman yang memuat transaksi itu. Export = list terfilter bulan aktif (semua halaman, ikut pencarian), kolom **sama dgn template import** (+ kolom "Dibuat oleh") supaya bisa diimport ulang.
   - **Analisis** (khusus desktop) — bandingkan Periode A vs B: preset bulan ini vs bulan lalu / 7 hari / 15 hari (relatif hari ini, tidak ikut navigasi bulan) atau Kustom (popup 2 kalender + input tanggal; klik tanggal 1× = awal, 2× = akhir), tombol tukar. Isi: 4 KPI, grafik kumulatif + garis proyeksi, Proyeksi Akhir Periode (kalau A masih berjalan), per kategori, pola per hari dalam seminggu, ringkasan teks, weekday vs weekend, ukuran transaksi, hari penting, top 5 transaksi A/B. Hanya pengeluaran, ikut scope user.
   - **Rencana** — tab periode, kartu (status Aman/Mendekati batas/Tercapai/Melebihi, pct tidak di-clamp), drag reorder HTML5 (handle ⋮⋮, nonaktif di mode Both — sama dgn mobile), tambah/edit/hapus.
+    - **Target untuk** (beda dgn mobile, sejak 2 Nov 2026): field `target` (`iyon`/`ciwul`/`both`) terpisah dari `by` (pembuat, tetap ada). Modal tambah punya "Dibuat oleh" (aturan lama) + toggle "Target untuk" `#planTargetToggle` (`.toggle-3`, default = mode user aktif). Modal edit bisa mengubah target (`#planEditTargetToggle`); periode/kategori/pembuat tetap terkunci.
+    - `planSpent(plan)` menghitung transaksi **milik target** (`both` = semua transaksi), dari semua account, **tidak** ikut mode user yang sedang dilihat. `planVisible(plan)`: mode Iyon/Ciwul menampilkan rencana target dia + target Both, mode Both menampilkan semua. Footer kartu: avatar target + "Target X · dibuat Y".
+    - Catatan "dari rencana bulanan" di Statistik Dashboard memakai `planSpent` yang sama (hanya rencana yang `planVisible`), jadi angkanya selalu sama dengan kartu Rencana.
   - **Kategori** — dua kolom CRUD (validasi ID live, preview, 10 warna), "Lainnya" bawaan tidak bisa diedit/hapus.
   - **Info** — Tentang + link `../../index.html` (Iyon App).
 - **Navigasi bulan** cuma tampil di Dashboard/Transaksi/Rencana (dibatasi rentang ym yang ada datanya, spt mobile). Tombol mata menyembunyikan nominal di **semua** halaman (default tersembunyi).

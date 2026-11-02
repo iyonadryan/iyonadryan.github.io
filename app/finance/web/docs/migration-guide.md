@@ -91,5 +91,6 @@ Flag `--emulator` masih ada di skrip (target Firebase Emulator lokal 127.0.0.1:9
 |---|---|---|
 | 2 Nov 2026 (sebelumnya) | `backfill-account-type.js --prod --apply` (default) | Ke-144 transaksi sudah berisi `account_type: "bank"` saat dicek. Kemungkinan dijalankan lebih dulu oleh user. |
 | 2 Nov 2026 10:45 WIB | `backup.js --prod` → `backfill-account-type.js --prod --bentuk` (dry-run) → `--apply` | Backup `backups/finance-prod-2026-11-02T03-45-09-961Z.json` & `…03-45-49-674Z.json` (otomatis). **144 field `bentuk: "satuan"` ditulis.** Diverifikasi terhadap backup: 0 field lain berubah, 0 key berubah, plans/categories sama. Dry-run ulang → 0. |
+| 2 Nov 2026 14:37 WIB | `backfill-plan-target.js --prod` (dry-run) → `--apply` | Backup otomatis `backups/finance-prod-2026-11-02T07-37-28-216Z.json`. **5 field `target` ditulis** di `plans/*/*` (= nilai `by`: 4 rencana bulanan → ciwul, weekday/semua → iyon). Field `by` tidak diubah. Dry-run ulang → 0. Skrip sekali jalan ini lalu dihapus (fallback `target = by` sudah ada di kode). |
 
 `--kode` belum dijalankan (ditunda sampai web mobile/APK diperbarui).

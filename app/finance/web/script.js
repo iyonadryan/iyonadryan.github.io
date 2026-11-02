@@ -183,7 +183,9 @@
           Object.keys(periodObj).forEach((cat) => {
             const p = periodObj[cat] || {};
             pl.push({
-              id: period + "_" + cat, period, category: cat, by: p.by || "ciwul",
+              // by = pembuat; target = transaksi siapa yang dihitung (iyon/ciwul/both).
+              // Rencana lama tanpa target → ikut by (dulu by = pemilik rencana).
+              id: period + "_" + cat, period, category: cat, by: p.by || "ciwul", target: p.target || p.by || "ciwul",
               limit: Number(p.limit) || 0, sort: Number(p.sort) || 0,
             });
           });
@@ -240,12 +242,13 @@
     }
   }
 
-  function savePlan(period, category, limit, sort, by) {
+  function savePlan(period, category, limit, sort, by, target) {
     return db.ref(FINANCE_PATH + "/plans/" + period + "/" + category).set({
       category,
       limit,
       sort: sort || 0,
       by,
+      target,
     });
   }
 
@@ -431,7 +434,12 @@
       escapeHtml(cat.icon) + "</span></div>";
   }
 
+  function userModeLabel(id) {
+    return id === "both" ? "Both" : USERS[id] ? USERS[id].label : id;
+  }
+
   function avatarHtml(by, size) {
+    if (by === "both") return '<span class="avatar avatar-both" style="--size:' + size + 'px" title="Both">B</span>';
     const u = USERS[by];
     if (!u) return "";
     return '<span class="avatar" style="--av:var(--series-' + u.slot + ");--size:" + size + 'px" title="' + u.label + '">' + u.ini + "</span>";
@@ -629,7 +637,7 @@
 
     const userTabs = $("userTabs");
     userTabs.innerHTML = USER_MODES.map((id) => {
-      const label = id === "both" ? "Both" : USERS[id].label;
+      const label = userModeLabel(id);
       const on = currentUser === id;
       return '<button type="button" class="seg-btn' + (on ? " active" : "") + '" aria-pressed="' + on + '" data-user="' + id + '">' + label + "</button>";
     }).join("");
@@ -757,6 +765,17 @@
         '<span aria-hidden="true">' + a.icon + "</span>" + a.label + "</button>";
     }).join("");
     if (!locked) container.querySelectorAll("[data-account]").forEach((b) => b.addEventListener("click", () => onPick(b.dataset.account)));
+  }
+
+  // Toggle "Target untuk" rencana (Iyon/Ciwul/Both) — selalu bisa dipilih.
+  function renderTargetToggle(container, value, onPick) {
+    container.innerHTML = USER_MODES
+      .map((u) => {
+        const on = value === u;
+        return '<button type="button" class="toggle-btn' + (on ? " active" : "") + '" aria-pressed="' + on + '" data-target="' + u + '">' + userModeLabel(u) + "</button>";
+      })
+      .join("");
+    container.querySelectorAll("[data-target]").forEach((b) => b.addEventListener("click", () => onPick(b.dataset.target)));
   }
 
   function byLabelText() {
@@ -1085,10 +1104,12 @@
     $("statRows").innerHTML = rows
       .map((r) => {
         const pct = Math.round((r.amount / totalExpense) * 100);
-        const plan = plans.find((p) => p.period === "bulanan" && p.category === r.cat.id);
+        // Catatan pakai pemakaian versi rencana (transaksi target, semua account),
+        // supaya angkanya sama dengan kartu di halaman Rencana.
+        const plan = plans.find((p) => p.period === "bulanan" && p.category === r.cat.id && planVisible(p));
         let note = "", noteColor = "var(--muted)";
         if (plan && plan.limit > 0) {
-          const bp = Math.round((r.amount / plan.limit) * 100);
+          const bp = Math.round((planSpent(plan) / plan.limit) * 100);
           if (bp > 100) { note = "Melebihi rencana bulanan"; noteColor = "var(--danger)"; }
           else if (bp === 100) { note = "Mencapai target rencana bulanan"; noteColor = "var(--warn)"; }
           else if (bp >= 80) { note = "Mendekati batas rencana bulanan"; noteColor = "var(--warn)"; }
@@ -2117,11 +2138,18 @@
 
   // Pemakaian per kategori: nota lewat rincian_kategori, pindah cuma biaya
   // admin (Core.expenseInCategory). "semua" = total pengeluaran.
+  // Yang dihitung transaksi milik target rencana (both = semua), bukan
+  // mode user yang sedang dilihat.
   function planSpent(plan) {
     const now = new Date();
-    return visibleTransactions()
-      .filter((t) => txInPlanPeriod(t, plan.period, now))
+    return transactions
+      .filter((t) => (plan.target === "both" || t.by === plan.target) && txInPlanPeriod(t, plan.period, now))
       .reduce((s, t) => s + Core.expenseInCategory(t, plan.category), 0);
+  }
+
+  // Mode Iyon/Ciwul → rencana untuk dia + rencana Both; mode Both → semua.
+  function planVisible(plan) {
+    return currentUser === "both" || plan.target === currentUser || plan.target === "both";
   }
 
   function planCategoryPool() {
@@ -2167,7 +2195,7 @@
     $("periodCaption").textContent = periodCaption(currentPeriod);
 
     const list = plans
-      .filter((p) => p.period === currentPeriod && (currentUser === "both" || p.by === currentUser))
+      .filter((p) => p.period === currentPeriod && planVisible(p))
       .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id));
 
     const grid = $("planGrid");
@@ -2186,7 +2214,6 @@
         const pct = plan.limit > 0 ? Math.round((spent / plan.limit) * 100) : 0;
         const st = planStatus(pct);
         const left = plan.limit - spent;
-        const by = USERS[plan.by];
         const id = escapeHtml(plan.id);
         return '<article class="card plan-card" data-id="' + id + '">' +
           '<div class="plan-head">' +
@@ -2201,7 +2228,8 @@
           '<div class="plan-spent"><span class="plan-spent-value tnum">' + money(spent) + '</span><span class="strong tnum">' + pct + "%</span></div>" +
           '<div class="track track-10"><div class="fill" style="width:' + Math.min(100, pct) + "%;background:" + st.color + '"></div></div>' +
           '<div class="plan-foot"><span class="tnum">' + (left >= 0 ? "Sisa " + money(left) : "Lebih " + money(-left)) + "</span>" +
-          '<span class="plan-by">' + avatarHtml(plan.by, 20) + "Dibuat " + (by ? by.label : escapeHtml(plan.by)) + "</span></div>" +
+          '<span class="plan-by">' + avatarHtml(plan.target, 20) + "Target " + escapeHtml(userModeLabel(plan.target)) +
+          '<span class="plan-maker">· dibuat ' + escapeHtml(userModeLabel(plan.by)) + "</span></span></div>" +
           "</article>";
       })
       .join("");
@@ -2266,7 +2294,9 @@
   /* ---------- Modal tambah / edit / hapus rencana ---------- */
 
   let planBy = null;
+  let planTarget = null;
   let editingPlan = null;
+  let editPlanTarget = null;
 
   function openAddPlan() {
     const periodSel = $("planPeriod");
@@ -2285,6 +2315,8 @@
     planBy = currentUser === "both" ? null : currentUser;
     $("planByLabel").textContent = byLabelText();
     renderPlanBy();
+    planTarget = currentUser;
+    renderPlanTarget();
     openModal("planModal");
   }
 
@@ -2292,6 +2324,20 @@
     renderByToggle($("planByToggle"), planBy, currentUser !== "both", (by) => {
       planBy = by;
       renderPlanBy();
+    });
+  }
+
+  function renderPlanTarget() {
+    renderTargetToggle($("planTargetToggle"), planTarget, (t) => {
+      planTarget = t;
+      renderPlanTarget();
+    });
+  }
+
+  function renderEditPlanTarget() {
+    renderTargetToggle($("planEditTargetToggle"), editPlanTarget, (t) => {
+      editPlanTarget = t;
+      renderEditPlanTarget();
     });
   }
 
@@ -2326,7 +2372,11 @@
       alert('Pilih dulu "Dibuat oleh" siapa.');
       return;
     }
-    savePlan(period, category, limit, nextSortForPeriod(period), planBy).catch(reportWriteError("menyimpan rencana"));
+    if (!planTarget) {
+      alert('Pilih dulu "Target untuk" siapa.');
+      return;
+    }
+    savePlan(period, category, limit, nextSortForPeriod(period), planBy, planTarget).catch(reportWriteError("menyimpan rencana"));
     currentPeriod = period;
     closeModal("planModal");
     renderPlans();
@@ -2339,8 +2389,11 @@
 
   function openEditPlan(plan) {
     editingPlan = plan;
-    $("planEditInfo").innerHTML = '<div class="item-line">' + planInfoHtml(plan, "Periode " + PERIOD_LABELS[plan.period]) + "</div>";
+    $("planEditInfo").innerHTML = '<div class="item-line">' +
+      planInfoHtml(plan, "Periode " + PERIOD_LABELS[plan.period] + " · dibuat " + escapeHtml(userModeLabel(plan.by))) + "</div>";
     $("planEditLimit").value = plan.limit.toLocaleString("id-ID");
+    editPlanTarget = plan.target;
+    renderEditPlanTarget();
     openModal("planEditModal");
     $("planEditLimit").focus();
   }
@@ -2358,7 +2411,7 @@
       return;
     }
     const p = editingPlan;
-    savePlan(p.period, p.category, limit, p.sort, p.by).catch(reportWriteError("menyimpan rencana"));
+    savePlan(p.period, p.category, limit, p.sort, p.by, editPlanTarget || p.target).catch(reportWriteError("menyimpan rencana"));
     editingPlan = null;
     closeModal("planEditModal");
   });

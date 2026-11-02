@@ -1193,6 +1193,10 @@ button.cal-cell:hover:not(.edge) {
   gap: 6px;
 }
 
+.plan-maker {
+  opacity: 0.75;
+}
+
 /* ================= Kategori ================= */
 
 .cat-cols {

@@ -132,10 +132,6 @@
     };
   }
 
-  function isValidKode(kode) {
-    return KODE_RE.test(String(kode));
-  }
-
   /* ================= Nota ================= */
 
   // Alokasi `total` ke kategori secara proporsional terhadap `bases`
@@ -449,18 +445,6 @@
     return tx.account_type === acct;
   }
 
-  // Efek saldo record terhadap satu account.
-  function accountDelta(tx, acct) {
-    if (tx.type === "transfer") {
-      let d = 0;
-      if (tx.dari === acct) d -= tx.amount + tx.fee;
-      if (tx.ke === acct) d += tx.amount;
-      return d;
-    }
-    if (tx.account_type !== acct) return 0;
-    return tx.type === "income" ? tx.amount : -tx.amount;
-  }
-
   // Kontribusi ke total pemasukan/pengeluaran. Pindah bukan pemasukan/
   // pengeluaran — kecuali biaya admin (pengeluaran di account asal).
   function flowOf(tx) {
@@ -479,7 +463,7 @@
   // Ringkasan sekumpulan record untuk satu filter account.
   //   income/expense: hanya record milik account itu (pindah: biaya admin di asal)
   //   transferIn/out: nominal pindah masuk/keluar account itu (0 utk "all")
-  //   balance: income − expense + transferIn − transferOut  (== Σ accountDelta)
+  //   balance: income − expense + transferIn − transferOut
   function summarize(list, acct) {
     const all = !acct || acct === "all";
     let income = 0, expense = 0, transferIn = 0, transferOut = 0;
@@ -538,7 +522,6 @@
     generateKode,
     previewKode,
     parseKode,
-    isValidKode,
     allocateProportional,
     topCategory,
     computeNota,
@@ -549,7 +532,6 @@
     buildPindah,
     normalizeRecord,
     matchesAccount,
-    accountDelta,
     flowOf,
     categoryAmounts,
     summarize,

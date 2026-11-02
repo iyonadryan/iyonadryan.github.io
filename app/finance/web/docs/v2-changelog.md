@@ -31,6 +31,11 @@ Rencana & keputusan lengkap: [`v2-plan.md`](v2-plan.md) · Panduan migrasi: [`mi
 - Pindah **bukan pemasukan/pengeluaran**. Hanya biaya admin yang dihitung sebagai pengeluaran kategori Lainnya di account asal.
 - **Aktif**: `ENABLE_TRANSFER_DEFAULT = true` (`script.js`), keputusan user walau web mobile belum diperbarui. Di klien lama, pindah terbaca sebagai **pengeluaran sebesar nominal** (risiko diterima). Set ke `false` untuk mengunci lagi.
 
+### Rencana: Target untuk (2 Nov 2026)
+- Field baru `target` (`iyon` / `ciwul` / `both`) di tiap rencana. `by` tetap ada sebagai pembuat.
+- Pemakaian rencana hanya menghitung transaksi milik target (Both = semua transaksi, siapa pun pembuatnya), tidak ikut mode user yang sedang dilihat.
+- Mode Iyon/Ciwul menampilkan rencana untuk dia + rencana Both. Target bisa diubah dari modal Edit.
+
 ### Halaman lain
 - **Analisis, Statistik Dashboard, Rencana, hitungan Kategori, filter kategori, pencarian** memakai rincian per kategori item nota. Pindah tidak dihitung, kecuali biaya admin.
 - **Info**: kartu Account Type dan Format Kode Transaksi.
