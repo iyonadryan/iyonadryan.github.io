@@ -126,7 +126,7 @@
   let anaCustom = null;    // { a: [start, end], b: [start, end] } saat custom
   let anaSwap = false;
 
-  let currentPeriod = "bulanan";
+  let currentPeriod = "semua"; // tab Rencana; default "Semua" (= ALL_PERIODS_TAB)
 
   /* ================= Firebase data layer ================= */
 
@@ -2182,58 +2182,89 @@
     return "Dihitung dari pengeluaran " + monthLabel(viewDate) + ".";
   }
 
+  // Tab "Semua" = semua periode sekaligus, dikelompokkan per periode (urutan
+  // PLAN_PERIODS). Bukan periode rencana — tidak pernah disimpan ke Firebase.
+  const ALL_PERIODS_TAB = "semua";
+
+  function plansOfPeriod(period) {
+    return plans
+      .filter((p) => p.period === period && planVisible(p))
+      .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id));
+  }
+
+  function planCardHtml(plan, dragOff) {
+    const cat = findCategory("expense", plan.category);
+    const spent = planSpent(plan);
+    const pct = plan.limit > 0 ? Math.round((spent / plan.limit) * 100) : 0;
+    const st = planStatus(pct);
+    const left = plan.limit - spent;
+    const id = escapeHtml(plan.id);
+    return '<article class="card plan-card" data-id="' + id + '">' +
+      '<div class="plan-head">' +
+      '<span class="plan-drag' + (dragOff ? " disabled" : "") + '" title="Geser untuk mengubah urutan" aria-hidden="true">' +
+      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="' + ICON.grip + '"/></svg></span>' +
+      tileHtml(cat, 44) +
+      '<div class="plan-title"><span class="strong">' + escapeHtml(cat.label) + '</span><span class="item-sub">Batas ' + formatCurrency(plan.limit) + "</span></div>" +
+      '<span class="chip" style="--chip:' + st.color + '">' + st.label + "</span>" +
+      '<button type="button" class="icon-btn" data-plan-edit="' + id + '" aria-label="Edit rencana">' + svgIcon(ICON.edit, 17) + "</button>" +
+      '<button type="button" class="icon-btn" data-plan-del="' + id + '" aria-label="Hapus rencana">' + svgIcon(ICON.trash, 17) + "</button>" +
+      "</div>" +
+      '<div class="plan-spent"><span class="plan-spent-value tnum">' + money(spent) + '</span><span class="strong tnum">' + pct + "%</span></div>" +
+      '<div class="track track-10"><div class="fill" style="width:' + Math.min(100, pct) + "%;background:" + st.color + '"></div></div>' +
+      '<div class="plan-foot"><span class="tnum">' + (left >= 0 ? "Sisa " + money(left) : "Lebih " + money(-left)) + "</span>" +
+      '<span class="plan-by">' + avatarHtml(plan.target, 20) + "Target " + escapeHtml(userModeLabel(plan.target)) +
+      '<span class="plan-maker">· dibuat ' + escapeHtml(userModeLabel(plan.by)) + "</span></span></div>" +
+      "</article>";
+  }
+
   function renderPlans() {
-    $("periodTabs").innerHTML = segTabsHtml(PLAN_PERIODS.map((p) => [p, PERIOD_LABELS[p]]), currentPeriod, "data-period");
+    const tabs = [[ALL_PERIODS_TAB, "Semua"]].concat(PLAN_PERIODS.map((p) => [p, PERIOD_LABELS[p]]));
+    $("periodTabs").innerHTML = segTabsHtml(tabs, currentPeriod, "data-period");
     $("periodTabs").querySelectorAll("[data-period]").forEach((b) =>
       b.addEventListener("click", () => {
         currentPeriod = b.dataset.period;
         renderPlans();
       })
     );
-    $("addPlanBtn").disabled = periodIsFull(currentPeriod);
-    $("addPlanBtn").title = $("addPlanBtn").disabled ? "Semua kategori di periode ini sudah punya rencana" : "";
-    $("periodCaption").textContent = periodCaption(currentPeriod);
+    const all = currentPeriod === ALL_PERIODS_TAB;
+    $("addPlanBtn").disabled = all ? PLAN_PERIODS.every(periodIsFull) : periodIsFull(currentPeriod);
+    $("addPlanBtn").title = $("addPlanBtn").disabled
+      ? all ? "Semua kategori di semua periode sudah punya rencana" : "Semua kategori di periode ini sudah punya rencana"
+      : "";
+    $("periodCaption").textContent = all ? "Semua rencana, dikelompokkan per periode." : periodCaption(currentPeriod);
 
-    const list = plans
-      .filter((p) => p.period === currentPeriod && planVisible(p))
-      .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id));
-
+    // Geser urutan cuma masuk akal per satu pemilik (sama spt mobile) — di mode
+    // Both handle-nya disembunyikan. Di tab Semua, geser hanya di dalam grupnya
+    // (urutan `sort` memang per periode).
+    const dragOff = currentUser === "both";
     const grid = $("planGrid");
+    grid.classList.toggle("plan-groups", all);
+
+    if (all) {
+      const groups = PLAN_PERIODS.map((p) => [p, plansOfPeriod(p)]).filter((g) => g[1].length);
+      if (!groups.length) {
+        grid.innerHTML = '<p class="empty-state">Belum ada rencana. Tambahkan untuk mulai mengatur budget kategori.</p>';
+        return;
+      }
+      grid.innerHTML = groups
+        .map((g) =>
+          '<section class="plan-group">' +
+          '<div class="plan-group-head"><h2 class="h2-sm">' + PERIOD_LABELS[g[0]] + ' <span class="muted tnum" style="font-weight:600">· ' + g[1].length + " rencana</span></h2>" +
+          '<span class="muted small">' + escapeHtml(periodCaption(g[0])) + "</span></div>" +
+          '<div class="plan-grid" data-group="' + g[0] + '">' + g[1].map((plan) => planCardHtml(plan, dragOff)).join("") + "</div>" +
+          "</section>"
+        )
+        .join("");
+      if (!dragOff) grid.querySelectorAll("[data-group]").forEach(wirePlanDrag);
+      return;
+    }
+
+    const list = plansOfPeriod(currentPeriod);
     if (!list.length) {
       grid.innerHTML = '<p class="empty-state" style="grid-column:1/-1">Belum ada rencana ' + PERIOD_LABELS[currentPeriod].toLowerCase() + ". Tambahkan untuk mulai mengatur budget kategori.</p>";
       return;
     }
-
-    // Geser urutan cuma masuk akal per satu pemilik (sama spt mobile) — di mode
-    // Both handle-nya disembunyikan.
-    const dragOff = currentUser === "both";
-    grid.innerHTML = list
-      .map((plan) => {
-        const cat = findCategory("expense", plan.category);
-        const spent = planSpent(plan);
-        const pct = plan.limit > 0 ? Math.round((spent / plan.limit) * 100) : 0;
-        const st = planStatus(pct);
-        const left = plan.limit - spent;
-        const id = escapeHtml(plan.id);
-        return '<article class="card plan-card" data-id="' + id + '">' +
-          '<div class="plan-head">' +
-          '<span class="plan-drag' + (dragOff ? " disabled" : "") + '" title="Geser untuk mengubah urutan" aria-hidden="true">' +
-          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="' + ICON.grip + '"/></svg></span>' +
-          tileHtml(cat, 44) +
-          '<div class="plan-title"><span class="strong">' + escapeHtml(cat.label) + '</span><span class="item-sub">Batas ' + formatCurrency(plan.limit) + "</span></div>" +
-          '<span class="chip" style="--chip:' + st.color + '">' + st.label + "</span>" +
-          '<button type="button" class="icon-btn" data-plan-edit="' + id + '" aria-label="Edit rencana">' + svgIcon(ICON.edit, 17) + "</button>" +
-          '<button type="button" class="icon-btn" data-plan-del="' + id + '" aria-label="Hapus rencana">' + svgIcon(ICON.trash, 17) + "</button>" +
-          "</div>" +
-          '<div class="plan-spent"><span class="plan-spent-value tnum">' + money(spent) + '</span><span class="strong tnum">' + pct + "%</span></div>" +
-          '<div class="track track-10"><div class="fill" style="width:' + Math.min(100, pct) + "%;background:" + st.color + '"></div></div>' +
-          '<div class="plan-foot"><span class="tnum">' + (left >= 0 ? "Sisa " + money(left) : "Lebih " + money(-left)) + "</span>" +
-          '<span class="plan-by">' + avatarHtml(plan.target, 20) + "Target " + escapeHtml(userModeLabel(plan.target)) +
-          '<span class="plan-maker">· dibuat ' + escapeHtml(userModeLabel(plan.by)) + "</span></span></div>" +
-          "</article>";
-      })
-      .join("");
-
+    grid.innerHTML = list.map((plan) => planCardHtml(plan, dragOff)).join("");
     if (!dragOff) wirePlanDrag(grid);
   }
 
@@ -2309,7 +2340,9 @@
       alert("Semua kategori di semua periode sudah punya rencana.");
       return;
     }
-    periodSel.value = periodIsFull(currentPeriod) ? firstFree : currentPeriod;
+    // Dari tab Semua → default Bulanan (periode paling umum).
+    const preferred = currentPeriod === ALL_PERIODS_TAB ? "bulanan" : currentPeriod;
+    periodSel.value = periodIsFull(preferred) ? firstFree : preferred;
     fillPlanCategories(periodSel.value);
     $("planLimit").value = "";
     planBy = currentUser === "both" ? null : currentUser;
@@ -2377,7 +2410,7 @@
       return;
     }
     savePlan(period, category, limit, nextSortForPeriod(period), planBy, planTarget).catch(reportWriteError("menyimpan rencana"));
-    currentPeriod = period;
+    if (currentPeriod !== ALL_PERIODS_TAB) currentPeriod = period; // di tab Semua tetap di Semua
     closeModal("planModal");
     renderPlans();
   });

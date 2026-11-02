@@ -1935,3 +1935,27 @@ button.cal-cell:hover:not(.edge) {
 .adj-result {
   white-space: nowrap;
 }
+
+/* Tab Rencana "Semua": #planGrid berisi grup per periode (tiap grup punya
+   .plan-grid sendiri), bukan kartu langsung. */
+#planGrid.plan-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.plan-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.plan-group-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.plan-group-head .h2-sm {
+  margin: 0;
+}
