@@ -330,6 +330,24 @@
 
       <p class="detail-amount" id="detailAmount">Rp 0</p>
 
+      <!-- Baris V2 — diisi/disembunyikan openTransactionDetail() sesuai bentuk. -->
+      <div class="detail-row">
+        <span class="detail-row-label">Kode</span>
+        <p class="detail-row-value detail-kode" id="detailKode">&mdash;</p>
+      </div>
+      <div class="detail-row" id="detailAccountRow">
+        <span class="detail-row-label">Account</span>
+        <p class="detail-row-value" id="detailAccount">&mdash;</p>
+      </div>
+      <div class="detail-row" id="detailRouteRow" hidden>
+        <span class="detail-row-label">Pindah</span>
+        <p class="detail-row-value" id="detailRoute">&mdash;</p>
+      </div>
+      <div class="detail-row" id="detailItemsRow" hidden>
+        <span class="detail-row-label" id="detailItemsLabel">Item nota</span>
+        <div id="detailItems" class="detail-items"></div>
+      </div>
+
       <div class="detail-row">
         <span class="detail-row-label">Catatan</span>
         <p class="detail-row-value" id="detailNote">&mdash;</p>
@@ -357,7 +375,7 @@
   <div id="planModal" class="modal-overlay">
     <div class="modal-sheet">
       <div class="modal-handle"></div>
-      <h3>Rencana Anggaran Baru</h3>
+      <h3 id="planModalTitle">Rencana Anggaran Baru</h3>
 
       <form id="planForm">
         <label class="field">
@@ -390,6 +408,17 @@
             <button type="button" data-by="iyon" class="type-btn">Iyon</button>
             <button type="button" data-by="ciwul" class="type-btn">Ciwul</button>
           </div>
+        </div>
+
+        <!-- Transaksi siapa yang dihitung (Both = semua). Bisa diubah saat edit. -->
+        <div class="field by-field">
+          <span>Target untuk</span>
+          <div class="type-toggle" id="planTargetToggle">
+            <button type="button" data-target="iyon" class="type-btn">Iyon</button>
+            <button type="button" data-target="ciwul" class="type-btn">Ciwul</button>
+            <button type="button" data-target="both" class="type-btn">Both</button>
+          </div>
+          <small class="field-hint">Pengeluaran yang dihitung hanya transaksi milik target. Both = semua transaksi.</small>
         </div>
 
         <div class="modal-actions">
@@ -573,6 +602,10 @@
 <!-- SheetJS (untuk export .xlsx) + helper export, di-load sebelum script.js -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="generate-excel.js"></script>
+<!-- Logika V2 (kode, nota, pindah, normalizer) & layer tulis dipakai BERSAMA
+     web desktop — satu sumber, hitungan HP & desktop tidak bisa beda. -->
+<script src="web/finance-core.js"></script>
+<script src="web/finance-data.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

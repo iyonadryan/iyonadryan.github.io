@@ -1,5 +1,5 @@
 /* =========================================================
-   Finance App (Desktop) — finance-data.js
+   Finance App (desktop & mobile) — web/finance-data.js
    Layer tulis Firebase untuk record V2 (berkode). Tidak tahu
    apa-apa soal UI; perhitungan ada di finance-core.js.
 

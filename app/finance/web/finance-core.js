@@ -1,5 +1,5 @@
 /* =========================================================
-   Finance App (Desktop) — finance-core.js
+   Finance App (desktop & mobile) — web/finance-core.js
    Modul MURNI untuk V2: tanpa DOM, tanpa Firebase. Semua
    perhitungan yang harus bisa dites ada di sini:
    - kode transaksi (format, parse, validasi)

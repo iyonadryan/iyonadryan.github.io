@@ -432,3 +432,85 @@
   word-break: break-word;
   white-space: pre-wrap;
 }
+
+/* ---------- V2: pindah account & nota ---------- */
+
+.tx-icon.transfer,
+.detail-icon.transfer {
+  background: var(--color-surface-alt);
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.tx-amount.transfer,
+.detail-amount.transfer {
+  color: var(--color-primary);
+}
+
+.detail-type-badge.transfer {
+  background: var(--color-surface-alt);
+  color: var(--color-primary);
+}
+
+/* Badge "N item" di samping judul nota (≥ 2 item). */
+.tx-item-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  vertical-align: middle;
+}
+
+.detail-kode {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.02em;
+}
+
+.detail-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.detail-item-name {
+  margin: 0;
+  font-weight: 600;
+}
+
+.detail-item-sub {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.detail-item-amount {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.detail-item-sum {
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-border);
+  font-weight: 600;
+}
+
+.detail-item-adj {
+  color: var(--color-text-muted);
+}
+
+.detail-rincian {
+  margin-top: 4px;
+}

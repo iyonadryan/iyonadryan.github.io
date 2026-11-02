@@ -448,3 +448,17 @@
 #userSwitchOptions {
   margin: 4px 0 20px;
 }
+
+/* Toggle "Target untuk" rencana (data-target) — warna primary netral spt data-by. */
+.type-btn.active[data-target] {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.field-hint {
+  display: block;
+  margin-top: -10px;
+  font-size: 11px;
+  font-weight: 500;
+}

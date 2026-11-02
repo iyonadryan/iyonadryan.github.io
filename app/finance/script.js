@@ -6,9 +6,11 @@
    Struktur data:
      finance/
        <YYYY-MM>/
-         <timestamp>/ { transaksi, category, nominal, catatan, tanggal, timestamp, by }
+         <timestamp>/ { transaksi, category, nominal, catatan, tanggal, waktu, timestamp, by }  // V1
+         <kode>/      { kode, bentuk, account_type, … }  // V2 (satuan/nota/pindah), lihat web/finance-core.js
+       counters/<prefix>-<YYYYMM>  // nomor urut kode V2
        plans/
-         <period>/<category>/ { category, limit, sort, by } // 1 slot per kategori+periode (global, siapa pun pembuatnya)
+         <period>/<category>/ { category, limit, sort, by, target } // 1 slot per kategori+periode (global, siapa pun pembuatnya)
        categories/
          expense|income/
            <id>/ { id, label, icon, colorSlot? } // colorSlot cuma di expense
@@ -116,6 +118,50 @@
   // karakter selain a-z0-9-).
   const UNKNOWN_CATEGORY_ID = "__unknown__";
 
+  /* ---------------- V2 (dipakai bersama web desktop) ---------------- */
+  // Core = logika murni (normalizer, nota, kode, agregasi); Data = tulis
+  // Firebase (counter atomik, update parsial). File-nya di web/.
+  const Core = window.FinanceCore;
+  const Data = window.FinanceData.create(db, FINANCE_PATH);
+
+  // Account type — sumber uang tiap transaksi. Record lama = bank.
+  const ACCOUNTS = [
+    { id: "bank", label: "Bank", icon: "🏦" },
+    { id: "cash", label: "Cash", icon: "💵" },
+    { id: "e_money", label: "E-Money", icon: "📱" },
+  ];
+  const ACCOUNT_BY_ID = ACCOUNTS.reduce((m, a) => ((m[a.id] = a), m), {});
+
+  // Tile/label transaksi pindah (tidak punya kategori).
+  const TRANSFER_CATEGORY = { id: "__transfer__", label: "Pindah account", icon: "⇄" };
+  const TYPE_LABELS = { income: "Pemasukan", expense: "Pengeluaran", transfer: "Pindah account" };
+
+  function accountLabel(id) {
+    return ACCOUNT_BY_ID[id] ? ACCOUNT_BY_ID[id].label : id || "—";
+  }
+
+  function transferRoute(tx) {
+    return accountLabel(tx.dari) + " → " + accountLabel(tx.ke);
+  }
+
+  // Judul baris: nota → judul, pindah → catatan / rute, satuan → kategori.
+  function txTitle(tx) {
+    if (tx.type === "transfer") return "Pindah " + transferRoute(tx);
+    if (tx.bentuk === "nota" && tx.title) return tx.title;
+    return findCategory(tx.type, tx.category).label;
+  }
+
+  // Kategori yang dikandung transaksi (nota: semua kategori item).
+  function txCategoryIds(tx) {
+    if (tx.type === "transfer") return [];
+    const keys = Object.keys(tx.rincian || {});
+    return keys.length ? keys : [tx.category];
+  }
+
+  function formatQty(q) {
+    return Number(q).toLocaleString("id-ID", { maximumFractionDigits: 3 });
+  }
+
   function categoryExists(type, id) {
     return CATEGORIES[type].some((c) => c.id === id);
   }
@@ -126,7 +172,6 @@
 
   // Konversi tipe internal <-> label transaksi di Firebase.
   const TYPE_TO_FS = { income: "pemasukan", expense: "pengeluaran" };
-  const FS_TO_TYPE = { pemasukan: "income", pengeluaran: "expense" };
 
   // Ambil "YYYY-MM" dari "YYYY-MM-DD" untuk path Firebase.
   function ymOf(dateStr) {
@@ -289,8 +334,10 @@
             const periodObj = plansObj[key] || {};
             Object.keys(periodObj).forEach((cat) => {
               const p = periodObj[cat] || {};
+              // target = transaksi siapa yang dihitung; rencana tanpa target → ikut by.
               pl.push({
                 id: key + "_" + cat, period: key, category: cat, by: p.by || "ciwul",
+                target: p.target || p.by || "ciwul",
                 limit: Number(p.limit) || 0, sort: Number(p.sort) || 0,
               });
             });
@@ -300,29 +347,19 @@
             const p = plansObj[key] || {};
             pl.push({
               id: "bulanan_" + key, period: "bulanan", category: key, by: p.by || "ciwul",
+              target: p.target || p.by || "ciwul",
               limit: Number(p.limit) || 0, sort: Number(p.sort) || 0,
             });
           }
         });
       } else if (/^\d{4}-\d{2}$/.test(topKey)) {
+        // Record V1 (key timestamp) & V2 (key kode) dinormalisasi jadi satu
+        // bentuk oleh Core (sama persis dgn desktop): type income/expense/
+        // transfer, account_type kosong → bank, nota → rincian per kategori.
         const monthObj = root[topKey] || {};
-        Object.keys(monthObj).forEach((ts) => {
-          const t = monthObj[ts] || {};
-          txs.push({
-            id: ts,
-            ym: topKey,
-            type: FS_TO_TYPE[t.transaksi] || "expense",
-            amount: Number(t.nominal) || 0,
-            category: t.category,
-            note: t.catatan || "",
-            date: t.tanggal || topKey,
-            // Jam transaksi "HH:MM:SS". Semua data sudah di-backfill; fallback
-            // ini cuma jaga-jaga kalau ada HP yang masih pakai script lama
-            // (cache) dan menulis tanpa field waktu.
-            time: t.waktu || formatTime(Number(t.timestamp) || Number(ts), true),
-            timestamp: Number(t.timestamp) || Number(ts), // waktu asli saat input
-            by: t.by || "ciwul",
-          });
+        Object.keys(monthObj).forEach((key) => {
+          const t = monthObj[key];
+          if (t && typeof t === "object") txs.push(Core.normalizeRecord(topKey, key, t));
         });
       }
     });
@@ -354,6 +391,8 @@
     const ym = ymOf(data.date);
     const monthRef = db.ref(FINANCE_PATH + "/" + ym);
     const payload = {
+      bentuk: "satuan",
+      account_type: Core.DEFAULT_ACCOUNT,
       transaksi: TYPE_TO_FS[data.type],
       category: data.category,
       nominal: data.amount,
@@ -377,26 +416,15 @@
     return claim(key);
   }
 
-  // Ubah transaksi yang sudah ada. Saat edit HANYA nominal & catatan yang bisa
-  // berubah; tipe, kategori, tanggal, dan by (timestamp/path) dipertahankan
-  // apa adanya dari transaksi lama. Jadi node ditulis ulang di path yang
-  // sama — timestamp A tetap A, tidak ada pemindahan node.
+  // Ubah transaksi satuan yang sudah ada: HANYA nominal & catatan. Pakai
+  // update parsial (bukan .set()) supaya field lain — termasuk field V2 spt
+  // kode/account_type — tidak ikut terhapus.
   function updateTransaction(oldTx, data) {
-    const path = FINANCE_PATH + "/" + oldTx.ym + "/" + oldTx.id;
-    return db.ref(path).set({
-      transaksi: TYPE_TO_FS[oldTx.type],
-      category: oldTx.category,
-      nominal: data.amount,
-      catatan: data.note || "",
-      tanggal: oldTx.date,
-      waktu: oldTx.time,
-      timestamp: oldTx.timestamp || Number(oldTx.id) || Date.now(),
-      by: oldTx.by,
-    });
+    return Data.update(oldTx.ym, oldTx.id, { nominal: data.amount, catatan: data.note || "" });
   }
 
   function deleteTransaction(tx) {
-    return db.ref(FINANCE_PATH + "/" + tx.ym + "/" + tx.id).remove();
+    return Data.remove(tx.ym, tx.id);
   }
 
   // Transaksi sesuai scope user aktif — dipakai di semua render/filter/export
@@ -406,13 +434,29 @@
     return currentUser === "both" ? transactions : transactions.filter((t) => t.by === currentUser);
   }
 
-  function savePlan(period, category, limit, sort, by) {
+  function savePlan(period, category, limit, sort, by, target) {
     return db.ref(FINANCE_PATH + "/plans/" + period + "/" + category).set({
       category: category,
       limit: limit,
       sort: sort || 0,
       by: by,
+      target: target,
     });
+  }
+
+  // Pemakaian rencana = transaksi milik target (both = semua), semua account,
+  // TIDAK ikut mode user yang sedang dilihat. Nota lewat rincian_kategori,
+  // pindah cuma biaya admin (Core.expenseInCategory). "semua" = total.
+  function planSpent(plan, now) {
+    now = now || new Date();
+    return transactions
+      .filter((t) => (plan.target === "both" || t.by === plan.target) && txInPlanPeriod(t, plan.period, now))
+      .reduce((s, t) => s + Core.expenseInCategory(t, plan.category), 0);
+  }
+
+  // Mode Iyon/Ciwul → rencana untuk dia + rencana Both; mode Both → semua.
+  function planVisible(plan) {
+    return currentUser === "both" || plan.target === currentUser || plan.target === "both";
   }
 
   // Nilai sort untuk rencana baru: paling akhir pada periodenya.
@@ -477,7 +521,8 @@
   /* ================= Utilities ================= */
 
   function formatCurrency(value) {
-    return "Rp " + Math.round(value).toLocaleString("id-ID");
+    const n = Math.round(value);
+    return (n < 0 ? "−Rp " : "Rp ") + Math.abs(n).toLocaleString("id-ID");
   }
 
   const MASKED_AMOUNT = "Rp ••••••";
@@ -541,12 +586,11 @@
   }
 
   // Urut kronologis berdasarkan tanggal + waktu transaksi (bukan waktu input),
-  // tie-break key (+1 per transaksi di tanggal+waktu yang sama).
-  function compareTxMoment(a, b) {
-    return a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || Number(a.id) - Number(b.id);
-  }
+  // tie-break timestamp (key kode tidak kronologis, jadi tidak dipakai).
+  const compareTxMoment = Core.compareChrono;
 
   function findCategory(type, id) {
+    if (type === "transfer") return TRANSFER_CATEGORY;
     if (id === ALL_CATEGORY.id) return ALL_CATEGORY;
     return CATEGORIES[type].find((c) => c.id === id) || { label: id, icon: "❓" };
   }
@@ -664,9 +708,11 @@
       MONTH_NAMES[viewDate.getMonth()] + " " + viewDate.getFullYear();
 
     const monthTx = visibleTransactions().filter((t) => isSameMonth(t.date, viewDate));
-    const totalIncome = monthTx.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
-    const totalExpense = monthTx.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
-    const balance = totalIncome - totalExpense;
+    // Pindah bukan pemasukan/pengeluaran — kecuali biaya admin (Core.summarize).
+    const sum = Core.summarize(monthTx, "all");
+    const totalIncome = sum.income;
+    const totalExpense = sum.expense;
+    const balance = sum.balance;
 
     document.getElementById("balanceAmount").textContent = balanceVisible ? formatCurrency(balance) : MASKED_AMOUNT;
     document.getElementById("totalIncome").textContent = balanceVisible ? formatCurrency(totalIncome) : MASKED_AMOUNT;
@@ -701,12 +747,9 @@
   function renderCategoryStats(monthTx, totalExpense) {
     const container = document.getElementById("categoryStats");
 
-    const byCategory = {};
-    monthTx
-      .filter((t) => t.type === "expense")
-      .forEach((t) => {
-        byCategory[t.category] = (byCategory[t.category] || 0) + t.amount;
-      });
+    // Nota dipecah per kategori item (rincian_kategori); biaya admin pindah
+    // masuk "Lainnya".
+    const byCategory = Core.totalsByCategory(monthTx, "expense");
 
     const rows = Object.keys(byCategory)
       .map((catId) => ({ catId, amount: byCategory[catId] }))
@@ -731,10 +774,12 @@
         const color = categoryColorVar(row.catId);
         const amountText = balanceVisible ? formatCurrency(row.amount) : MASKED_AMOUNT;
 
-        const plan = plans.find((p) => p.period === "bulanan" && p.category === row.catId);
+        // Catatan pakai pemakaian versi rencana (transaksi target), supaya
+        // angkanya sama dengan kartu di halaman Rencana.
+        const plan = plans.find((p) => p.period === "bulanan" && p.category === row.catId && planVisible(p));
         let budgetHtml = "";
-        if (plan) {
-          const budgetPct = Math.round((row.amount / plan.limit) * 100);
+        if (plan && plan.limit > 0) {
+          const budgetPct = Math.round((planSpent(plan) / plan.limit) * 100);
           // Pas 100% = sudah mencapai batas (bukan "melebihi" — itu baru kalau
           // beneran lewat, >100%).
           const cls = budgetPct > 100 ? "over" : budgetPct >= 80 ? "warning" : "";
@@ -779,13 +824,15 @@
       .filter((t) => isSameMonth(t.date, viewDate))
       .sort((a, b) => compareTxMoment(b, a));
     if (currentFilter !== "all") {
-      list = list.filter((t) => t.type === currentFilter);
+      list = list.filter((t) => t.type === currentFilter); // pindah cuma tampil di tab Semua
     }
     if (selectedCategories.length > 0) {
-      list = list.filter(
-        (t) =>
-          selectedCategories.includes(t.category) ||
-          (selectedCategories.includes(UNKNOWN_CATEGORY_ID) && !categoryExists(t.type, t.category))
+      // Nota cocok kalau SALAH SATU kategori itemnya dipilih; pindah tidak
+      // punya kategori jadi tersembunyi selama filter kategori aktif.
+      list = list.filter((t) =>
+        txCategoryIds(t).some(
+          (c) => selectedCategories.includes(c) || (selectedCategories.includes(UNKNOWN_CATEGORY_ID) && !categoryExists(t.type, c))
+        )
       );
     }
     // Filter rentang tanggal (dalam bulan aktif). "YYYY-MM-DD" bisa dibanding string.
@@ -821,16 +868,19 @@
         currentUser === "both" && USERS[tx.by]
           ? `<img class="creator-badge" src="${USERS[tx.by].icon}" data-by="${tx.by}" alt="${USERS[tx.by].label}">`
           : "";
+      // Nota ≥ 2 item dapat badge "N item"; nota 1 item tampil spt satuan.
+      const itemBadge = tx.bentuk === "nota" && tx.items.length > 1 ? `<span class="tx-item-badge">${tx.items.length} item</span>` : "";
+      const sign = tx.type === "income" ? "+" : tx.type === "transfer" ? "⇄" : "-";
       const item = document.createElement("div");
       item.className = "transaction-item";
       item.innerHTML = `
         <div class="tx-icon ${tx.type}">${cat.icon}${badgeHtml}</div>
         <div class="tx-info">
-          <p class="tx-category">${cat.label}</p>
-          <p class="tx-note">${tx.note ? escapeHtml(tx.note) : "&mdash;"}</p>
+          <p class="tx-category">${escapeHtml(txTitle(tx))}${itemBadge}</p>
+          <p class="tx-note">${tx.note ? escapeHtml(tx.note) : tx.bentuk === "nota" ? escapeHtml(cat.label) : "&mdash;"}</p>
         </div>
         <div class="tx-right">
-          <span class="tx-amount ${tx.type}">${tx.type === "income" ? "+" : "-"} ${formatCurrency(tx.amount)}</span>
+          <span class="tx-amount ${tx.type}">${sign} ${formatCurrency(tx.amount)}</span>
           <p class="tx-date">${dateText}</p>
           <p class="tx-time">${timeText}</p>
         </div>
@@ -886,7 +936,7 @@
     addBtn.disabled = periodIsFull(currentPeriod);
 
     const list = plans
-      .filter((p) => p.period === currentPeriod && (currentUser === "both" || p.by === currentUser))
+      .filter((p) => p.period === currentPeriod && planVisible(p))
       .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id));
 
     if (list.length === 0) {
@@ -896,14 +946,12 @@
     }
 
     const now = new Date();
-    const scopedTx = visibleTransactions();
 
     list.forEach((plan) => {
       const cat = findCategory("expense", plan.category);
-      const isAll = plan.category === ALL_CATEGORY.id;
-      const spent = scopedTx
-        .filter((t) => t.type === "expense" && (isAll || t.category === plan.category) && txInPlanPeriod(t, plan.period, now))
-        .reduce((s, t) => s + t.amount, 0);
+      const spent = planSpent(plan, now);
+      const targetLabel = USERS[plan.target] ? USERS[plan.target].label : plan.target;
+      const byLabel = USERS[plan.by] ? USERS[plan.by].label : plan.by;
 
       const pct = Math.min(100, Math.round((spent / plan.limit) * 100));
       let fillClass = "";
@@ -928,6 +976,7 @@
               <button class="plan-btn plan-delete" data-id="${plan.id}" aria-label="Hapus">🗑️</button>
             </div>
           </div>
+          <p class="plan-target">🎯 Target ${escapeHtml(targetLabel)} · dibuat ${escapeHtml(byLabel)}</p>
           <div class="plan-progress-track">
             <div class="plan-progress-fill ${fillClass}" style="width:${pct}%"></div>
           </div>
@@ -1217,7 +1266,7 @@
     // dihapus, tambahkan opsi "Kategori Terhapus" di paling bawah supaya
     // transaksi itu masih bisa dicari/difilter.
     const hasUnknown = visibleTransactions().some(
-      (t) => (currentFilter === "all" || t.type === currentFilter) && !categoryExists(t.type, t.category)
+      (t) => (currentFilter === "all" || t.type === currentFilter) && txCategoryIds(t).some((c) => !categoryExists(t.type, c))
     );
     if (hasUnknown) {
       const div = document.createElement("div");
@@ -1378,6 +1427,12 @@
   }
 
   function openEditModal(tx) {
+    // Form ini cuma untuk satuan — mengubah nominal nota/pindah dari sini
+    // akan membuat item/rincian tidak cocok lagi dengan totalnya.
+    if (tx.bentuk !== "satuan") {
+      alert((tx.bentuk === "nota" ? "Nota" : "Transaksi pindah") + " belum bisa diedit dari versi HP. Edit lewat web desktop dulu ya.");
+      return;
+    }
     editingTx = tx;
     transactionModalTitle.textContent = "Edit Transaksi";
     transactionForm.reset();
@@ -1466,21 +1521,59 @@
   // list mobile, popup ini menampilkannya utuh + detail waktu lengkap).
   function openTransactionDetail(tx) {
     const cat = findCategory(tx.type, tx.category);
-    const typeLabel = tx.type === "income" ? "Pemasukan" : "Pengeluaran";
+    const typeLabel = TYPE_LABELS[tx.type] + (tx.bentuk === "nota" ? " · Nota" : "");
+    const isTransfer = tx.type === "transfer";
 
     const icon = document.getElementById("detailIcon");
     icon.textContent = cat.icon;
     icon.className = "detail-icon " + tx.type;
 
-    document.getElementById("detailCategory").textContent = cat.label;
+    document.getElementById("detailCategory").textContent = txTitle(tx);
 
     const badge = document.getElementById("detailTypeBadge");
     badge.textContent = typeLabel;
     badge.className = "detail-type-badge " + tx.type;
 
     const amount = document.getElementById("detailAmount");
-    amount.textContent = (tx.type === "income" ? "+ " : "- ") + formatCurrency(tx.amount);
+    amount.textContent = (tx.type === "income" ? "+ " : isTransfer ? "⇄ " : "- ") + formatCurrency(tx.amount);
     amount.className = "detail-amount " + tx.type;
+
+    document.getElementById("detailKode").textContent = tx.kode || "—";
+    document.getElementById("detailAccountRow").hidden = isTransfer;
+    document.getElementById("detailAccount").textContent = isTransfer ? "" : ACCOUNT_BY_ID[tx.account_type].icon + " " + accountLabel(tx.account_type);
+    document.getElementById("detailRouteRow").hidden = !isTransfer;
+    document.getElementById("detailRoute").textContent = isTransfer
+      ? transferRoute(tx) + (tx.fee > 0 ? " · biaya admin " + formatCurrency(tx.fee) : "")
+      : "";
+
+    // Nota: daftar item + penyesuaian + total per kategori.
+    const itemsRow = document.getElementById("detailItemsRow");
+    itemsRow.hidden = tx.bentuk !== "nota";
+    if (tx.bentuk === "nota") {
+      document.getElementById("detailItemsLabel").textContent = "Item nota (" + tx.items.length + ")";
+      const lines = tx.items.map((it) => {
+        const c = findCategory(tx.type, it.category);
+        return `<div class="detail-item"><div><p class="detail-item-name">${escapeHtml(it.nama)}</p>
+          <p class="detail-item-sub">${c.icon} ${escapeHtml(c.label)} · ${formatQty(it.qty)} ${escapeHtml(it.satuan || "")} × ${formatCurrency(it.harga)}</p></div>
+          <span class="detail-item-amount">${formatCurrency(it.subtotal)}</span></div>`;
+      });
+      if (tx.penyesuaian.length) {
+        lines.push(`<div class="detail-item detail-item-sum"><span>Subtotal</span><span>${formatCurrency(tx.subtotal)}</span></div>`);
+        tx.penyesuaian.forEach((p) => {
+          const pct = p.mode === "persen" ? " (" + formatQty(p.nilai) + "%)" : "";
+          lines.push(`<div class="detail-item detail-item-adj"><span>${escapeHtml(p.label)}${pct}</span><span>${p.efek === "kurang" ? "− " : "+ "}${formatCurrency(p.jumlah)}</span></div>`);
+        });
+      }
+      const cats = Object.keys(tx.rincian);
+      if (cats.length > 1) {
+        lines.push(
+          '<p class="detail-item-sub detail-rincian">Per kategori: ' +
+            cats.map((k) => escapeHtml(findCategory(tx.type, k).label) + " " + formatCurrency(tx.rincian[k])).join(" · ") +
+            "</p>"
+        );
+      }
+      document.getElementById("detailItems").innerHTML = lines.join("");
+    }
 
     document.getElementById("detailNote").textContent = tx.note || "—";
     document.getElementById("detailDate").textContent = formatDateLong(tx.date);
@@ -1584,11 +1677,27 @@
     planCategoryInput.disabled = locked;
   }
 
+  // Toggle "Target untuk" (Iyon/Ciwul/Both) — selalu bisa dipilih, juga saat edit.
+  function setPlanTarget(target) {
+    document.querySelectorAll("#planTargetToggle .type-btn").forEach((b) => b.classList.toggle("active", b.dataset.target === target));
+  }
+
+  function planFormTarget() {
+    const active = document.querySelector("#planTargetToggle .type-btn.active");
+    return active ? active.dataset.target : null;
+  }
+
+  document.querySelectorAll("#planTargetToggle .type-btn").forEach((btn) => {
+    btn.addEventListener("click", () => setPlanTarget(btn.dataset.target));
+  });
+
   function openPlanModal() {
     editingPlan = null;
     planForm.reset();
     setPlanFieldsLocked(false);
     setupByFieldForCreate("planByField", "planByLabel", "planByToggle");
+    setPlanTarget(currentUser); // default = mode user aktif
+    document.getElementById("planModalTitle").textContent = "Rencana Anggaran Baru";
     updatePeriodOptions(); // buramkan periode yang sudah penuh
     planPeriodInput.value = currentPeriod; // default ikut tab yang aktif
     populatePlanCategories(currentPeriod); // sembunyikan kategori yang sudah dipakai
@@ -1599,6 +1708,8 @@
     editingPlan = plan;
     planForm.reset();
     setupByFieldForEdit("planByField", "planByLabel", "planByToggle", plan.by);
+    setPlanTarget(plan.target);
+    document.getElementById("planModalTitle").textContent = "Edit Rencana Anggaran";
     planPeriodInput.value = plan.period;
     populatePlanCategories(plan.period, plan.category);
     planCategoryInput.value = plan.category;
@@ -1629,9 +1740,14 @@
       alert('Pilih dulu "Dibuat oleh" siapa.');
       return;
     }
+    const target = planFormTarget();
+    if (!target) {
+      alert('Pilih dulu "Target untuk" siapa.');
+      return;
+    }
     const existing = plans.find((p) => p.id === period + "_" + category);
     const sort = existing ? existing.sort : nextSortForPeriod(period);
-    savePlan(period, category, limit, sort, by).catch((err) => {
+    savePlan(period, category, limit, sort, by, target).catch((err) => {
       console.error("Gagal menyimpan rencana:", err);
       alert("Gagal menyimpan rencana. Cek koneksi internet.");
     });
@@ -2132,8 +2248,8 @@
     const rows = monthTx.map((t) => ({
       Tanggal: t.date,
       Waktu: t.time,
-      Tipe: t.type === "income" ? "Pemasukan" : "Pengeluaran",
-      Kategori: findCategory(t.type, t.category).label,
+      Tipe: TYPE_LABELS[t.type],
+      Kategori: t.type === "transfer" ? transferRoute(t) : findCategory(t.type, t.category).label,
       Nominal: t.amount,
       Catatan: t.note || "",
     }));
@@ -2150,9 +2266,12 @@
     }
     // Kelompokkan total income/expense per bulan (ym = "YYYY-MM").
     const byMonth = {};
+    // Pindah bukan pemasukan/pengeluaran (kecuali biaya admin) — Core.flowOf.
     scoped.forEach((t) => {
       if (!byMonth[t.ym]) byMonth[t.ym] = { income: 0, expense: 0 };
-      byMonth[t.ym][t.type] += t.amount;
+      const f = Core.flowOf(t);
+      byMonth[t.ym].income += f.income;
+      byMonth[t.ym].expense += f.expense;
     });
     const rows = Object.keys(byMonth)
       .sort() // "YYYY-MM" → urut kronologis
