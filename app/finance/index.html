@@ -81,6 +81,9 @@
         <button id="nextMonth" class="icon-btn small" aria-label="Bulan berikutnya">›</button>
       </div>
 
+      <!-- Tab Account Type — satu pilihan dipakai bareng Dashboard & Transaksi. -->
+      <div class="acct-tabs" id="dashAcctTabs" role="tablist" aria-label="Account"></div>
+
       <div class="balance-card">
         <button id="balanceToggle" class="balance-toggle" aria-label="Tampilkan saldo" title="Tampilkan saldo">
           <svg class="icon-eye icon-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -92,8 +95,10 @@
             <line x1="1" y1="1" x2="23" y2="23" />
           </svg>
         </button>
-        <p class="balance-label">Saldo Bulan Ini</p>
+        <p class="balance-label" id="balanceLabel">Saldo Bulan Ini</p>
         <h2 class="balance-amount" id="balanceAmount">Rp 0</h2>
+        <!-- Tab account tertentu: saldo juga ikut pindah masuk/keluar. -->
+        <p class="balance-transfer" id="balanceTransfer" hidden></p>
 
         <div class="balance-bar" id="balanceBar">
           <div class="bar-income" id="barIncome"></div>
@@ -144,6 +149,8 @@
         <span id="currentMonthLabelTx">Juli 2026</span>
         <button id="nextMonthTx" class="icon-btn small" aria-label="Bulan berikutnya">›</button>
       </div>
+
+      <div class="acct-tabs" id="txAcctTabs" role="tablist" aria-label="Account"></div>
 
       <div class="filter-tabs">
         <button class="filter-tab active" data-filter="all">Semua</button>
@@ -269,6 +276,16 @@
       </div>
 
       <form id="transactionForm">
+        <!-- Sumber uang. Default ikut tab account yang dibuka; terkunci saat edit. -->
+        <div class="field by-field">
+          <span>Account</span>
+          <div class="type-toggle" id="txAccountToggle">
+            <button type="button" data-account="bank" class="type-btn">🏦 Bank</button>
+            <button type="button" data-account="cash" class="type-btn">💵 Cash</button>
+            <button type="button" data-account="e_money" class="type-btn">📱 E-Money</button>
+          </div>
+        </div>
+
         <label class="field">
           <span>Jumlah (Rp)</span>
           <input type="text" id="amountInput" placeholder="0" required inputmode="numeric" autocomplete="off">
@@ -306,6 +323,9 @@
             <button type="button" data-by="ciwul" class="type-btn">Ciwul</button>
           </div>
         </div>
+
+        <!-- Tambah: perkiraan kode (final ditentukan saat simpan). Edit: kode asli. -->
+        <p class="kode-preview"><span id="txKodeLabel">Kode</span> <span class="kode" id="txKodePreview">&mdash;</span></p>
 
         <div class="modal-actions">
           <button type="button" class="btn-secondary" id="cancelTransactionBtn">Batal</button>

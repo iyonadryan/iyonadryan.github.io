@@ -75,7 +75,7 @@ Runtime tetap statis tanpa build, tanpa dependency.
 
 ## Belum / batasan yang diketahui
 
-- **Web mobile sedang di-upgrade bertahap** (M1–M5, lihat `app/.claude/finance-app.md` → "V2 di web mobile"). Sejak M1 (2 Nov 2026) mobile memakai `finance-core.js`/`finance-data.js` yang sama: pindah tidak lagi dihitung sebagai pengeluaran, nota dihitung per kategori, edit pakai update parsial (field V2 aman), rencana paham `target`. Yang belum: transaksi baru dari HP masih tanpa kode (dibaca Bank), dan nota/pindah belum bisa dibuat/diedit dari HP.
+- **Web mobile sedang di-upgrade bertahap** (M1–M5, lihat `app/.claude/finance-app.md` → "V2 di web mobile"). Sejak M1 (2 Nov 2026) mobile memakai `finance-core.js`/`finance-data.js` yang sama: pindah tidak lagi dihitung sebagai pengeluaran, nota dihitung per kategori, edit pakai update parsial (field V2 aman), rencana paham `target`. Sejak M2: tab Account Type + transaksi baru dari HP sudah berkode (counter yang sama). Yang belum: nota/pindah belum bisa dibuat/diedit dari HP.
 - **Migrasi data lama sudah dijalankan** (2 Nov 2026, lihat `migration-guide.md` → Riwayat): 144 transaksi punya `account_type: bank` + `bentuk: satuan`. `--kode` **belum** dijalankan (ditunda sampai klien mobile diperbarui).
 - **Import "Kode Nota"** (beberapa baris jadi satu nota) ditunda. Catatan desain di `v2-plan.md` §6.
 - Belum ada tombol Hapus di halaman Nota (hapus dari tabel).

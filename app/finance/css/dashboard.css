@@ -215,3 +215,10 @@
 
 .stat-row-budget.warning { color: var(--color-warning); }
 .stat-row-budget.over { color: var(--color-expense); }
+
+/* "Pindah masuk · keluar" di kartu saldo (tab account tertentu saja). */
+.balance-transfer {
+  margin: -12px 0 14px;
+  font-size: 12px;
+  opacity: 0.85;
+}

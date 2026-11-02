@@ -94,6 +94,8 @@
   let filterStartDate = ""; // filter rentang tanggal di halaman Transaksi ("YYYY-MM-DD")
   let filterEndDate = "";
   let currentPeriod = "bulanan"; // tab periode aktif di halaman Rencana
+  let acctFilter = "all"; // tab Account Type (all|bank|cash|e_money), dibagi Dashboard & Transaksi
+  let counters = {}; // /finance/counters — cuma utk pratinjau kode di form
   let balanceVisible = false; // saldo/pemasukan/pengeluaran tersembunyi saat pertama buka
 
   // Periode rencana anggaran. Harian/Mingguan/Weekday/Weekend dihitung terhadap
@@ -123,6 +125,19 @@
   // Firebase (counter atomik, update parsial). File-nya di web/.
   const Core = window.FinanceCore;
   const Data = window.FinanceData.create(db, FINANCE_PATH);
+
+  // Kode transaksi butuh server (counter lewat transaction()), jadi simpan
+  // diblokir dgn pesan jelas kalau sedang offline. null = belum diketahui.
+  let online = null;
+  db.ref(".info/connected").on("value", (s) => (online = !!s.val()));
+
+  function requireOnline() {
+    if (online === false) {
+      alert("Butuh koneksi internet untuk membuat kode transaksi. Coba lagi setelah online.");
+      return false;
+    }
+    return true;
+  }
 
   // Account type — sumber uang tiap transaksi. Record lama = bank.
   const ACCOUNTS = [
@@ -169,15 +184,6 @@
   /* ================= Firebase data layer ================= */
 
   const financeRef = db.ref(FINANCE_PATH);
-
-  // Konversi tipe internal <-> label transaksi di Firebase.
-  const TYPE_TO_FS = { income: "pemasukan", expense: "pengeluaran" };
-
-  // Ambil "YYYY-MM" dari "YYYY-MM-DD" untuk path Firebase.
-  function ymOf(dateStr) {
-    const parts = String(dateStr).split("-");
-    return parts[0] + "-" + parts[1];
-  }
 
   // Pindahkan rencana lama (plans/<category>) ke bentuk berperiode
   // (plans/bulanan/<category>). Sekali jalan pada snapshot pertama.
@@ -366,6 +372,7 @@
 
     transactions = txs;
     plans = pl;
+    counters = root.counters || {};
 
     const categoriesObj = root.categories || {};
     const expenseObj = categoriesObj.expense || {};
@@ -384,36 +391,33 @@
 
   // ---- Operasi tulis ----
 
-  // Key = timestamp tanggal + waktu yang dipilih (waktu lokal), +1 tiap key itu
-  // sudah terpakai, jadi tanggal/waktu bisa dipilih bebas tanpa menimpa data
-  // lain. Field `timestamp` tetap waktu asli saat input (kapan dibuat).
+  // Transaksi satuan baru → key = kode (TB-202611-000001, dst), sama dgn
+  // desktop. Nomor urut atomik lewat counter; bulan kode & node ikut tanggal.
+  // Field `timestamp` = waktu asli saat input (kapan dibuat). Resolve → kode.
   function addTransaction(data) {
-    const ym = ymOf(data.date);
-    const monthRef = db.ref(FINANCE_PATH + "/" + ym);
-    const payload = {
-      bentuk: "satuan",
-      account_type: Core.DEFAULT_ACCOUNT,
-      transaksi: TYPE_TO_FS[data.type],
+    const { errors, record } = Core.buildSatuan({
+      type: data.type,
+      account_type: data.account,
       category: data.category,
       nominal: data.amount,
       catatan: data.note || "",
+      by: data.by,
       tanggal: data.date,
       waktu: data.time,
       timestamp: Date.now(),
-      by: data.by,
-    };
-    // Kandidat awal dari data lokal (sudah lengkap karena listener realtime),
-    // lalu diklaim lewat transaction() — kalau ternyata sudah diisi HP lain
-    // di saat bersamaan, transaksi batal dan coba key berikutnya.
-    const taken = new Set(transactions.filter((t) => t.ym === ym).map((t) => Number(t.id)));
-    let key = dateTimeMs(data.date, data.time);
-    while (taken.has(key)) key++;
-    const claim = (k) =>
-      monthRef
-        .child(String(k))
-        .transaction((cur) => (cur === null ? payload : undefined))
-        .then((res) => (res.committed ? k : claim(k + 1)));
-    return claim(key);
+    });
+    if (errors.length) return Promise.reject(new Error(errors.join(" ")));
+    return Data.saveNew(record);
+  }
+
+  // Perkiraan kode di form (counter saat ini + 1 — bukan jaminan).
+  function previewKode(rec) {
+    try {
+      const key = Core.counterKey(Core.kodePrefix(rec), Core.yyyymmOf(rec.tanggal));
+      return Core.previewKode(rec, counters[key]);
+    } catch (e) {
+      return "—";
+    }
   }
 
   // Ubah transaksi satuan yang sudah ada: HANYA nominal & catatan. Pakai
@@ -432,6 +436,31 @@
   // relevan. Mode "both" = gabungan semua (tidak difilter).
   function visibleTransactions() {
     return currentUser === "both" ? transactions : transactions.filter((t) => t.by === currentUser);
+  }
+
+  // + filter tab Account Type (Dashboard & Transaksi). Pindah tampil di tab
+  // asal & tujuan; record lama tanpa account_type = bank.
+  function scopedTransactions() {
+    return visibleTransactions().filter((t) => Core.matchesAccount(t, acctFilter));
+  }
+
+  // Tab Semua | Bank | Cash | E-Money — satu state dipakai bareng Dashboard &
+  // Transaksi, jadi ganti di satu halaman ikut berubah di halaman lain.
+  function renderAccountTabs(container) {
+    const tabs = [{ id: "all", label: "Semua", icon: "🗂️" }].concat(ACCOUNTS);
+    container.innerHTML = tabs
+      .map((a) => {
+        const on = a.id === acctFilter;
+        return `<button type="button" role="tab" class="acct-tab${on ? " active" : ""}" aria-selected="${on}" data-acct="${a.id}"><span aria-hidden="true">${a.icon}</span>${a.label}</button>`;
+      })
+      .join("");
+    container.querySelectorAll("[data-acct]").forEach((b) =>
+      b.addEventListener("click", () => {
+        acctFilter = b.dataset.acct;
+        renderDashboard();
+        renderAllTransactions();
+      })
+    );
   }
 
   function savePlan(period, category, limit, sort, by, target) {
@@ -559,12 +588,6 @@
     return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
   }
 
-  // "YYYY-MM-DD" + "HH:MM:SS" → ms waktu lokal (basis key transaksi).
-  function dateTimeMs(dateStr, timeStr) {
-    const [y, m, d] = String(dateStr).split("-").map(Number);
-    const [h, mi, s] = String(timeStr).split(":").map(Number);
-    return new Date(y, m - 1, d, h || 0, mi || 0, s || 0).getTime();
-  }
 
   // "HH:MM:SS" → "HH:MM" kalau tanpa detik (tampilan Dashboard).
   function formatTxTime(tx, withSeconds) {
@@ -707,12 +730,24 @@
     document.getElementById("currentMonthLabel").textContent =
       MONTH_NAMES[viewDate.getMonth()] + " " + viewDate.getFullYear();
 
-    const monthTx = visibleTransactions().filter((t) => isSameMonth(t.date, viewDate));
-    // Pindah bukan pemasukan/pengeluaran — kecuali biaya admin (Core.summarize).
-    const sum = Core.summarize(monthTx, "all");
+    renderAccountTabs(document.getElementById("dashAcctTabs"));
+    const monthTx = scopedTransactions().filter((t) => isSameMonth(t.date, viewDate));
+    // Pindah bukan pemasukan/pengeluaran — kecuali biaya admin (di account
+    // asal). Di tab account, saldo ikut pindah masuk/keluar (Core.summarize).
+    const sum = Core.summarize(monthTx, acctFilter);
     const totalIncome = sum.income;
     const totalExpense = sum.expense;
     const balance = sum.balance;
+
+    const acct = ACCOUNT_BY_ID[acctFilter];
+    document.getElementById("balanceLabel").textContent = acct ? "Saldo " + acct.label + " Bulan Ini" : "Saldo Bulan Ini";
+    const transferEl = document.getElementById("balanceTransfer");
+    transferEl.hidden = !(acct && (sum.transferIn || sum.transferOut));
+    if (!transferEl.hidden) {
+      transferEl.textContent = balanceVisible
+        ? "Pindah masuk " + formatCurrency(sum.transferIn) + " · keluar " + formatCurrency(sum.transferOut)
+        : "Pindah masuk " + MASKED_AMOUNT + " · keluar " + MASKED_AMOUNT;
+    }
 
     document.getElementById("balanceAmount").textContent = balanceVisible ? formatCurrency(balance) : MASKED_AMOUNT;
     document.getElementById("totalIncome").textContent = balanceVisible ? formatCurrency(totalIncome) : MASKED_AMOUNT;
@@ -730,7 +765,11 @@
       .slice(0, 3);
     renderTransactionList(document.getElementById("recentTransactions"), recent, "Belum ada transaksi bulan ini.");
 
-    renderCategoryStats(monthTx, totalExpense);
+    // Biaya admin pindah milik account asal — di tab tujuan pindah tidak ikut statistik.
+    renderCategoryStats(
+      monthTx.filter((t) => t.type !== "transfer" || acctFilter === "all" || t.dari === acctFilter),
+      totalExpense
+    );
   }
 
   // CSS var kategorikal (--series-1..8) untuk kategori expense, dari field
@@ -820,7 +859,8 @@
     document.getElementById("currentMonthLabelTx").textContent =
       MONTH_NAMES[viewDate.getMonth()] + " " + viewDate.getFullYear();
 
-    let list = visibleTransactions()
+    renderAccountTabs(document.getElementById("txAcctTabs"));
+    let list = scopedTransactions()
       .filter((t) => isSameMonth(t.date, viewDate))
       .sort((a, b) => compareTxMoment(b, a));
     if (currentFilter !== "all") {
@@ -870,7 +910,16 @@
           : "";
       // Nota ≥ 2 item dapat badge "N item"; nota 1 item tampil spt satuan.
       const itemBadge = tx.bentuk === "nota" && tx.items.length > 1 ? `<span class="tx-item-badge">${tx.items.length} item</span>` : "";
-      const sign = tx.type === "income" ? "+" : tx.type === "transfer" ? "⇄" : "-";
+      // Pindah: di tab account asal tampil keluar (nominal + biaya admin), di
+      // tab tujuan tampil masuk, di "Semua" netral (⇄).
+      let sign = tx.type === "income" ? "+" : "-";
+      let shownAmount = tx.amount;
+      let amountCls = tx.type;
+      if (tx.type === "transfer") {
+        if (acctFilter === tx.dari) { shownAmount = tx.amount + tx.fee; amountCls = "expense"; }
+        else if (acctFilter === tx.ke) { sign = "+"; amountCls = "income"; }
+        else sign = "⇄";
+      }
       const item = document.createElement("div");
       item.className = "transaction-item";
       item.innerHTML = `
@@ -880,7 +929,7 @@
           <p class="tx-note">${tx.note ? escapeHtml(tx.note) : tx.bentuk === "nota" ? escapeHtml(cat.label) : "&mdash;"}</p>
         </div>
         <div class="tx-right">
-          <span class="tx-amount ${tx.type}">${sign} ${formatCurrency(tx.amount)}</span>
+          <span class="tx-amount ${amountCls}">${sign} ${formatCurrency(shownAmount)}</span>
           <p class="tx-date">${dateText}</p>
           <p class="tx-time">${timeText}</p>
         </div>
@@ -1347,15 +1396,43 @@
     populateCategorySelect(categoryInput, type);
   }
 
-  // Saat edit, tipe & kategori dikunci (hanya nominal + catatan yang bisa
-  // diubah). Tanggal memang selalu disabled.
+  // Saat edit, tipe, kategori, tanggal, waktu, & account dikunci (hanya
+  // nominal + catatan yang bisa diubah).
   function setImmutableFieldsLocked(locked) {
     categoryInput.disabled = locked;
     dateInput.disabled = locked;
     timeInput.disabled = locked;
-    document.querySelectorAll("#transactionTypeToggle .type-btn").forEach((b) => (b.disabled = locked));
-    document.getElementById("transactionTypeToggle").classList.toggle("locked", locked);
+    ["transactionTypeToggle", "txAccountToggle"].forEach((id) => {
+      document.querySelectorAll("#" + id + " .type-btn").forEach((b) => (b.disabled = locked));
+      document.getElementById(id).classList.toggle("locked", locked);
+    });
   }
+
+  let txAccount = Core.DEFAULT_ACCOUNT; // account terpilih di form
+
+  function setTxAccount(account) {
+    txAccount = account;
+    document.querySelectorAll("#txAccountToggle .type-btn").forEach((b) => b.classList.toggle("active", b.dataset.account === account));
+    updateKodePreview();
+  }
+
+  // Tambah: perkiraan kode dari counter. Edit: kode asli (transaksi lama "—").
+  function updateKodePreview() {
+    const el = document.getElementById("txKodePreview");
+    if (editingTx) {
+      document.getElementById("txKodeLabel").textContent = "Kode";
+      el.textContent = editingTx.kode || "— (transaksi lama)";
+      return;
+    }
+    document.getElementById("txKodeLabel").textContent = "Kode (perkiraan)";
+    el.textContent = previewKode({ bentuk: "satuan", account_type: txAccount, tanggal: dateInput.value });
+  }
+
+  document.querySelectorAll("#txAccountToggle .type-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (!btn.disabled) setTxAccount(btn.dataset.account);
+    });
+  });
 
   // Scope ke user aktif kalau bukan mode Both; kalau Both, baca toggle
   // "Dibuat oleh" di modal — null kalau belum dipilih (wajib pilih manual,
@@ -1422,6 +1499,7 @@
     const now = Date.now();
     dateInput.value = localDateStrOf(now);
     timeInput.value = formatTime(now, true);
+    setTxAccount(acctFilter !== "all" ? acctFilter : Core.DEFAULT_ACCOUNT); // default ikut tab yang dibuka
     setupByFieldForCreate("transactionByField", "transactionByLabel", "transactionByToggle");
     transactionModal.classList.add("open");
   }
@@ -1442,7 +1520,8 @@
     document.getElementById("noteInput").value = tx.note || "";
     dateInput.value = tx.date;
     timeInput.value = tx.time;
-    setImmutableFieldsLocked(true); // kunci tipe & kategori setelah prefill
+    setTxAccount(tx.account_type);
+    setImmutableFieldsLocked(true); // kunci tipe, kategori, tanggal, account setelah prefill
     setupByFieldForEdit("transactionByField", "transactionByLabel", "transactionByToggle", tx.by);
     transactionModal.classList.add("open");
   }
@@ -1478,8 +1557,11 @@
       return;
     }
 
+    if (!editingTx && !requireOnline()) return;
+
     const data = {
       type: currentTxType,
+      account: txAccount,
       amount: amount,
       category: categoryInput.value,
       note: document.getElementById("noteInput").value.trim(),
@@ -1492,7 +1574,7 @@
     const op = editingTx ? updateTransaction(editingTx, data) : addTransaction(data);
     op.catch((err) => {
       console.error("Gagal menyimpan transaksi:", err);
-      alert("Gagal menyimpan transaksi. Cek koneksi internet.");
+      alert("Gagal menyimpan transaksi: " + err.message);
     });
     closeTransactionModal();
     if (isAdd) goToPage("dashboard"); // habis tambah transaksi → ke Dashboard (edit tetap di halaman asal)
@@ -1501,6 +1583,7 @@
   // Ganti tanggal → waktu reset ke awal hari (key mulai dari 00:00:00).
   dateInput.addEventListener("change", () => {
     timeInput.value = "00:00:00";
+    updateKodePreview(); // bulan kode ikut tanggal
   });
 
   document.getElementById("cancelTransactionBtn").addEventListener("click", closeTransactionModal);
