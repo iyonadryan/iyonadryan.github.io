@@ -355,3 +355,7 @@ Uji: `npm run test:all` → **31 unit + 16 emulator lulus**. Integrasi: tanpa ta
 
 - **Pindah account diaktifkan** (`ENABLE_TRANSFER_DEFAULT = true`) atas keputusan user; web mobile/APK dibiarkan dulu (di sana pindah terbaca sbg pengeluaran sebesar nominal).
 - **Migrasi dijalankan ke produksi**: `account_type` ternyata sudah terisi `bank` di 144 transaksi (kemungkinan dijalankan lebih dulu); `--bentuk` → 144 field `bentuk: "satuan"`. Detail di `migration-guide.md` → Riwayat. `--kode` belum.
+
+### Versi Flutter/APK dihapus (2 Nov 2026)
+
+Atas keputusan user, project Flutter `app/mobile/`, file `app/downloads/iyon-app.apk`, dan section "Unduh Aplikasi Mobile" di hub `app/index.html` dihapus. Semua catatan soal Flutter/APK di dokumen ini (mis. §1.1 dan §7) sekarang hanya riwayat. Klien lain selain web desktop tinggal **web mobile** (`app/finance/`).

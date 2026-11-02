@@ -1,6 +1,6 @@
 # Finance Web Desktop: Changelog V2
 
-Tanggal: 2 November 2026 · Scope: **`app/finance/web/` saja** (web desktop). Web mobile (`app/finance/`) dan APK Flutter (`app/mobile/`) tidak diubah.
+Tanggal: 2 November 2026 · Scope: **`app/finance/web/` saja** (web desktop). Web mobile (`app/finance/`) tidak diubah. (APK Flutter `app/mobile/` sudah dihapus seluruhnya, 2 Nov 2026.)
 Rencana & keputusan lengkap: [`v2-plan.md`](v2-plan.md) · Panduan migrasi: [`migration-guide.md`](migration-guide.md).
 
 ---
@@ -29,7 +29,7 @@ Rencana & keputusan lengkap: [`v2-plan.md`](v2-plan.md) · Panduan migrasi: [`mi
 ### Pindah account (aktif sejak 2 Nov 2026)
 - Form Pindah (Dari ⇄ Ke, jumlah, biaya admin, ringkasan berkurang/bertambah), tampilan di tabel (⇄ di Semua, keluar di tab asal, masuk di tab tujuan), detail, edit, dan baris "Pindah masuk · keluar" di kartu saldo tab account.
 - Pindah **bukan pemasukan/pengeluaran**. Hanya biaya admin yang dihitung sebagai pengeluaran kategori Lainnya di account asal.
-- **Aktif**: `ENABLE_TRANSFER_DEFAULT = true` (`script.js`), keputusan user walau web mobile/APK belum diperbarui. Di klien lama, pindah terbaca sebagai **pengeluaran sebesar nominal** (risiko diterima). Set ke `false` untuk mengunci lagi.
+- **Aktif**: `ENABLE_TRANSFER_DEFAULT = true` (`script.js`), keputusan user walau web mobile belum diperbarui. Di klien lama, pindah terbaca sebagai **pengeluaran sebesar nominal** (risiko diterima). Set ke `false` untuk mengunci lagi.
 
 ### Halaman lain
 - **Analisis, Statistik Dashboard, Rencana, hitungan Kategori, filter kategori, pencarian** memakai rincian per kategori item nota. Pindah tidak dihitung, kecuali biaya admin.
@@ -70,8 +70,8 @@ Runtime tetap statis tanpa build, tanpa dependency.
 
 ## Belum / batasan yang diketahui
 
-- **Web mobile & APK menghitung transaksi pindah sebagai pengeluaran sebesar nominal** (Pindah sudah aktif di desktop, klien mobile belum diperbarui; keputusan user).
-- **Web mobile & APK belum diperbarui**: membaca total dengan benar, tapi mengedit transaksi berkode akan menghapus field V2 (desktop bisa memulihkan kode/account dari key, tapi item nota hilang). Transaksi baru dari HP tetap tanpa kode (dibaca Bank). Daftar perubahan untuk klien itu ada di `v2-plan.md` §7.
+- **Web mobile menghitung transaksi pindah sebagai pengeluaran sebesar nominal** (Pindah sudah aktif di desktop, klien mobile belum diperbarui; keputusan user).
+- **Web mobile belum diperbarui**: membaca total dengan benar, tapi mengedit transaksi berkode akan menghapus field V2 (desktop bisa memulihkan kode/account dari key, tapi item nota hilang). Transaksi baru dari web mobile tetap tanpa kode (dibaca Bank). Daftar perubahan untuk klien itu ada di `v2-plan.md` §7.
 - **Migrasi data lama sudah dijalankan** (2 Nov 2026, lihat `migration-guide.md` → Riwayat): 144 transaksi punya `account_type: bank` + `bentuk: satuan`. `--kode` **belum** dijalankan (ditunda sampai klien mobile diperbarui).
 - **Import "Kode Nota"** (beberapa baris jadi satu nota) ditunda. Catatan desain di `v2-plan.md` §6.
 - Belum ada tombol Hapus di halaman Nota (hapus dari tabel).

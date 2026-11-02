@@ -25,7 +25,6 @@ iyonadryan.github.io/
       patungan-app.md      # dulu patungan/.claude/CLAUDE.md
       note-app.md          # dulu note/.claude/CLAUDE.md
       wishlist-app.md      # app baru, langsung dibuat di sini sejak awal (bukan pindahan)
-      mobile-app.md        # port Flutter (Android & iOS) dari SEMUA app di atas — lihat "Versi mobile"
     kitchen/
     finance/             # Web Mobile
       web/               # Web Desktop Finance (data Firebase sama) — lihat finance-app.md "Versi Web Desktop"
@@ -33,10 +32,6 @@ iyonadryan.github.io/
     patungan/
     note/
     wishlist/
-    mobile/              # project Flutter — BUKAN app web baru, lihat "Versi mobile (Flutter)"
-    downloads/
-      iyon-app.apk        # APK release Android hasil `flutter build apk --release`,
-                          # dilink dari tombol "Download APK Android" di bawah — lihat "Unduh Aplikasi Mobile"
   index.html             # portfolio utama, TIDAK terhubung ke app/ (lihat TODO)
   webimg/, trialerror/, wedding/, dst.  # project portfolio lama, tidak berubah
 ```
@@ -66,34 +61,17 @@ Tiap app **tidak lagi punya folder `.claude/` sendiri** — semua dokumentasi pr
 - Ada `.empty-slot` placeholder dashed box di bawah list menandakan slot utk app berikutnya — update manual (tambah `<a class="app-card">` baru **di atas** `.empty-slot`, bukan di sembarang posisi) kalau ada app baru.
 - **Animasi masuk saat halaman dibuka**: tiap child langsung `.app-list` (semua `.app-card` + `.empty-slot` paling bawah) geser dari bawah (`translateY(24px)` → `0`) sambil fade in (`opacity 0` → `1`) lewat `@keyframes cardEnter` di `style-app.css`, dgn **delay 0.25 detik berjenjang** antar kartu (kartu ke-N delay `(N-1) × 0.25s`) — permintaan eksplisit user. Delay-nya **dihitung otomatis dari urutan DOM lewat JS** (`document.querySelectorAll(".app-list > *").forEach(...)` di `<script>` inline `index.html`, set `el.style.animationDelay`), **bukan** nth-child CSS manual — jadi nambah `.app-card` baru (lihat TODO di bawah) otomatis ikut kena stagger tanpa perlu sentuh CSS animasi ini sama sekali. Ada fallback `prefers-reduced-motion: reduce` (durasi dipangkas ke ~0, delay dibuang) di `style-app.css`.
 
-## Unduh Aplikasi Mobile
-
-Di bawah `.app-list` (sebelum `<footer class="hint">`), ada section baru berjudul "Unduh Aplikasi Mobile" berisi 2 tombol (`.download-btn`, styling meniru `.app-card` tapi dipakai bareng elemen `<a>` dan `<button>`):
-
-- **Download APK Android** (`<a href="downloads/iyon-app.apk" download>`) — link **download langsung** ke APK release sungguhan (`app/downloads/iyon-app.apk`, hasil `flutter build apk --release` di `app/mobile/`, lihat `app/.claude/mobile-app.md`). Atribut `download` HTML native memicu unduhan browser tanpa perlu JS. **File ini WAJIB ditimpa ulang tiap kali ada build baru** (nama file sengaja tidak versioned/tidak pakai tanggal, supaya link di halaman ini tidak perlu diubah tiap rilis).
-- **Download untuk iPhone (iOS)** (`<button id="iosDownloadBtn">`) — klik membuka popup info "🚧 Masih Dalam Pengembangan" (`#iosModalOverlay`, class `.confirm-overlay`/`.confirm-dialog` — **dipinjam dari pola app lain** yang sudah punya dialog konfirmasi terpusat, hub sebelumnya sama sekali tidak punya modal component). Ditutup lewat tombol "Tutup" atau klik area gelap di luar dialog (listener `e.target === iosOverlay`). Alasan belum ada build iOS: Xcode wajib jalan di macOS, tidak bisa dari Windows — lihat "Rencana / TODO ke depan" di `app/.claude/mobile-app.md`.
-
-Section ini **sengaja di luar `div.app-list`** (bukan `.app-card` tambahan di dalamnya) — supaya **tidak ikut** animasi stagger `cardEnter` yang cuma menyasar `.app-list > *`, dan supaya section-nya tidak dianggap bagian dari daftar 6 aplikasi utama.
-
 ## Tema light/dark
 
 `data-theme` di `<html>`, variabel CSS di `:root`/`[data-theme="dark"]` — pola sama dengan Kitchen/Finance/Routine/Patungan/Note/Wishlist (lihat `app/.claude/kitchen-app.md`, `app/.claude/finance-app.md`, `app/.claude/routine-app.md`, `app/.claude/patungan-app.md`, `app/.claude/note-app.md`, `app/.claude/wishlist-app.md`), tapi state disimpan sendiri: localStorage key **`iyonapp_theme`** (terpisah dari `kitchenapp_theme`/`financeapp_theme`/`routineapp_theme`/`patunganapp_theme`/`noteapp_theme`/`wishlistapp_theme` — ini shell/hub sendiri, bukan bagian dari app manapun). Fallback ke `prefers-color-scheme` kalau belum ada preferensi tersimpan.
 
-## Versi mobile (Flutter) — `app/mobile/`
+## Versi mobile (Flutter) — sudah dihapus
 
-Selain versi web di atas, ada **port Android & iOS** dari keenam app + hub ini, dikerjakan di `app/mobile/` sebagai satu project **Flutter** (dipilih karena user mau implementasi FCM ke depannya). Dokumentasi lengkapnya di `app/.claude/mobile-app.md`.
-
-Yang penting diingat saat menyentuh app web mana pun:
-
-- **`app/mobile/` bukan app web baru** — dia tidak punya `.app-card` di `app/index.html` dan tidak masuk daftar kartu hub versi web. Hub-nya di-*reimplementasi* di dalam Flutter (`lib/hub/hub_page.dart`), bukan me-link ke `app/index.html`.
-- **Database-nya SAMA PERSIS** dengan versi web (project `iyon-adryanlf-trialerror`, node `finance`/`kitchen`/`routine`/`patungan`/`note`/`wishlist`) — bukan salinan, bukan environment terpisah. Data nyambung dua arah.
-- **Konsekuensinya**: kalau skema Firebase salah satu app web berubah (field baru, node baru, migrasi), `app/mobile/lib/<app>/store.dart` **harus ikut diubah di perubahan yang sama** — dan sebaliknya. Tidak ada pipeline yang menyinkronkan keduanya; skema yang menyimpang akan merusak salah satu sisi diam-diam.
-- Warna tema di `app/mobile/lib/core/app_palette.dart` disalin **persis** dari `<app>/css/base.css` masing-masing. Ubah CSS → ubah juga di situ.
-- Folder `android/` & `ios/` sengaja belum ada (digenerate `app/mobile/bootstrap.ps1`), dan project-nya **belum pernah di-compile** — lihat TODO di `mobile-app.md`.
+Dulu ada port Flutter (Android & iOS) dari keenam app di `app/mobile/`, APK-nya di `app/downloads/iyon-app.apk`, plus section "Unduh Aplikasi Mobile" (tombol APK Android & popup iOS) di halaman ini. **Semuanya dihapus 2 Nov 2026** atas keputusan user (APK tidak jadi dipakai), termasuk `app/.claude/mobile-app.md`, CSS `.download-*`/`.confirm-*`/`.btn-secondary` di `style-app.css`, dan subjudul hero jadi "Kumpulan aplikasi web". Kalau perlu lagi, ambil dari git history sebelum commit penghapusan. Sekarang klien tiap app hanya versi web (dan Finance punya versi web desktop di `finance/web/`).
 
 ## Rencana / TODO ke depan
 
-- Tambah app baru: bikin folder baru **di dalam `app/`** (bukan di root repo lagi), tambah satu `.app-card` baru di `app/index.html` (ikon, nama, deskripsi, href ke `<folder>/index.html`), dan hapus/pindahkan `.empty-slot` placeholder kalau sudah tidak relevan. Kalau app itu juga mau ada di mobile, tambahkan `AppSpec` baru di `app/mobile/lib/core/app_palette.dart` (`AppSpecs.all`) + folder `lib/<app>/` sendiri. Jangan lupa tambah field "Semua Aplikasi" → `../index.html` (**relatif**, bukan absolut — lihat "Kenapa link relatif") di app baru itu sendiri (lihat pola di app lain). Dokumentasi app baru langsung dibuat di `app/.claude/<nama>-app.md`, **jangan** bikin folder `.claude/` terpisah di dalam folder app itu sendiri.
+- Tambah app baru: bikin folder baru **di dalam `app/`** (bukan di root repo lagi), tambah satu `.app-card` baru di `app/index.html` (ikon, nama, deskripsi, href ke `<folder>/index.html`), dan hapus/pindahkan `.empty-slot` placeholder kalau sudah tidak relevan. Jangan lupa tambah field "Semua Aplikasi" → `../index.html` (**relatif**, bukan absolut — lihat "Kenapa link relatif") di app baru itu sendiri (lihat pola di app lain). Dokumentasi app baru langsung dibuat di `app/.claude/<nama>-app.md`, **jangan** bikin folder `.claude/` terpisah di dalam folder app itu sendiri.
 - Belum ada favicon khusus — reuse `../webimg/iyon-favicon.ico` punya portfolio utama.
 - Belum dipikirkan apakah `app/index.html` nanti di-link dari `index.html` utama (portfolio) — saat ini berdiri sendiri, diakses langsung via URL `/app/` atau `/app/index.html`.
 

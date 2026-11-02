@@ -74,7 +74,7 @@
     settings: ["Info", "Tentang aplikasi dan daftar aplikasi lainnya"],
     nota: ["Nota Baru", "Satu transaksi berisi banyak item"],
   };
-  // Pindah account AKTIF (keputusan user, 2 Nov 2026) walau web mobile & APK
+  // Pindah account AKTIF (keputusan user, 2 Nov 2026) walau web mobile
   // belum diperbarui — di klien lama transaksi "pindah" terbaca sbg
   // pengeluaran sebesar nominal (risiko diterima). Set ke false untuk
   // mengunci lagi. Record pindah yang sudah ada tetap dibaca walau false.
