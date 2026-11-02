@@ -1492,7 +1492,10 @@
 
   function openTransactionModal() {
     editingTx = null;
+    editingTransfer = null;
     transactionModalTitle.textContent = "Tambah Transaksi";
+    document.getElementById("txModeToggle").hidden = false;
+    setTxMode("satuan");
     transactionForm.reset();
     setImmutableFieldsLocked(false);
     setTxType("expense");
@@ -1505,14 +1508,21 @@
   }
 
   function openEditModal(tx) {
-    // Form ini cuma untuk satuan — mengubah nominal nota/pindah dari sini
-    // akan membuat item/rincian tidak cocok lagi dengan totalnya.
-    if (tx.bentuk !== "satuan") {
-      alert((tx.bentuk === "nota" ? "Nota" : "Transaksi pindah") + " belum bisa diedit dari versi HP. Edit lewat web desktop dulu ya.");
+    // Form ini cuma untuk satuan — nota diedit di halaman Nota (item/rincian
+    // harus tetap cocok dengan totalnya).
+    if (tx.bentuk === "nota") {
+      openNota(tx);
+      return;
+    }
+    if (tx.type === "transfer") {
+      openEditTransfer(tx);
       return;
     }
     editingTx = tx;
+    editingTransfer = null;
     transactionModalTitle.textContent = "Edit Transaksi";
+    document.getElementById("txModeToggle").hidden = true;
+    setTxMode("satuan");
     transactionForm.reset();
     setTxType(tx.type);
     document.getElementById("amountInput").value = Math.round(tx.amount).toLocaleString("id-ID");
@@ -1529,6 +1539,7 @@
   function closeTransactionModal() {
     transactionModal.classList.remove("open");
     editingTx = null;
+    editingTransfer = null;
   }
 
   document.querySelectorAll("#transactionTypeToggle .type-btn").forEach((btn) => {
@@ -1595,6 +1606,651 @@
   document.getElementById("planLimitInput").addEventListener("input", function () {
     formatAmountInput(this);
   });
+
+  /* ================= Halaman Nota (V2, halaman penuh) ================= */
+
+  // State form nota. Angka (qty/harga/nilai) disimpan sbg TEKS input dan baru
+  // di-parse saat dihitung, supaya mengetik "0," atau "2,5" tidak terganggu.
+  // Perhitungan (subtotal, penyesuaian, alokasi kategori) → Core.computeNota,
+  // sama persis dgn halaman Nota desktop.
+  let nota = null; // { tx (null = baru), type, account, by, items, adj, dirty, showErrors }
+  let notaSaving = false;
+  let pageBeforeNota = "dashboard";
+
+  // Tombol cepat penyesuaian: [label, efek, mode, nilai awal].
+  const ADJ_PRESETS = {
+    expense: [
+      ["Diskon", "kurang", "persen", ""],
+      ["Promo", "kurang", "nominal", ""],
+      ["Voucher", "kurang", "nominal", ""],
+      ["Cashback", "kurang", "nominal", ""],
+      ["PPN", "tambah", "persen", "11"],
+      ["Ongkir", "tambah", "nominal", ""],
+      ["Biaya layanan", "tambah", "nominal", ""],
+    ],
+    income: [
+      ["Pajak", "kurang", "persen", ""],
+      ["PPh", "kurang", "persen", ""],
+      ["Biaya admin", "kurang", "nominal", ""],
+    ],
+  };
+
+  // Satuan item: pcs, kg & liter (qty boleh desimal, mis. 250 gram → 0.25 kg).
+  // Satuan lain dari nota lama tetap dipertahankan.
+  const NOTA_UNITS = ["pcs", "kg", "liter"];
+
+  function parseAmount(str) {
+    return Number(String(str).replace(/\D/g, "")) || 0;
+  }
+
+  // "2,5" / "2.5" / "1.250,5" → angka. Koma ada → titik = pemisah ribuan.
+  function parseDecimal(str) {
+    const s = String(str).trim();
+    const n = Number(s.indexOf(",") !== -1 ? s.replace(/\./g, "").replace(",", ".") : s);
+    return s && isFinite(n) ? n : NaN;
+  }
+
+  function blankItem(type) {
+    const first = CATEGORIES[type][0];
+    return { nama: "", category: first ? first.id : "", qty: "1", satuan: "pcs", harga: "" };
+  }
+
+  function openNota(tx, defaults) {
+    const now = Date.now();
+    if (tx) {
+      nota = {
+        tx,
+        type: tx.type,
+        account: tx.account_type,
+        by: tx.by,
+        items: tx.items.map((i) => ({
+          nama: i.nama || "",
+          category: i.category || "",
+          qty: formatQty(i.qty || 0),
+          satuan: i.satuan || "pcs",
+          harga: Number(i.harga || 0).toLocaleString("id-ID"),
+        })),
+        adj: tx.penyesuaian.map((p) => ({
+          label: p.label || "",
+          efek: p.efek === "tambah" ? "tambah" : "kurang",
+          mode: p.mode === "persen" ? "persen" : "nominal",
+          nilai: p.mode === "persen" ? formatQty(p.nilai || 0) : Number(p.nilai || 0).toLocaleString("id-ID"),
+        })),
+        dirty: false,
+        showErrors: false,
+      };
+      document.getElementById("notaTitle").value = tx.title || "";
+      document.getElementById("notaDate").value = tx.date;
+      document.getElementById("notaTime").value = tx.time;
+    } else {
+      const d = defaults || {};
+      const type = d.type || "expense";
+      nota = {
+        tx: null,
+        type,
+        account: d.account || (ACCOUNT_BY_ID[acctFilter] ? acctFilter : Core.DEFAULT_ACCOUNT),
+        by: currentUser === "both" ? d.by || null : currentUser,
+        items: [blankItem(type)],
+        adj: [],
+        dirty: false,
+        showErrors: false,
+      };
+      document.getElementById("notaTitle").value = "";
+      document.getElementById("notaDate").value = localDateStrOf(now);
+      document.getElementById("notaTime").value = formatTime(now, true);
+    }
+    if (!nota.items.length) nota.items.push(blankItem(nota.type));
+
+    const active = document.querySelector(".page.active");
+    pageBeforeNota = active && active.id !== "nota" ? active.id : "dashboard";
+    document.querySelectorAll(".page").forEach((el) => el.classList.toggle("active", el.id === "nota"));
+    document.body.classList.add("nota-open");
+    window.scrollTo(0, 0);
+    renderNotaForm();
+  }
+
+  function closeNota(force) {
+    if (!force && nota && nota.dirty && !notaSaving && !confirm("Perubahan nota belum disimpan. Tinggalkan halaman ini?")) return;
+    nota = null;
+    document.body.classList.remove("nota-open");
+    goToPage(pageBeforeNota);
+  }
+
+  // Set toggle data-<attr> ke satu nilai, opsional dikunci.
+  function setToggle(id, attr, value, locked) {
+    const toggle = document.getElementById(id);
+    toggle.querySelectorAll(".type-btn").forEach((b) => {
+      b.classList.toggle("active", b.dataset[attr] === value);
+      b.disabled = locked;
+    });
+    toggle.classList.toggle("locked", locked);
+  }
+
+  function renderNotaForm() {
+    const editing = !!nota.tx;
+    document.getElementById("notaPageTitle").textContent = editing ? "Edit Nota" : "Nota Baru";
+    document.getElementById("notaDate").disabled = editing;
+    document.getElementById("notaLockedHint").hidden = !editing;
+    setToggle("notaTypeToggle", "type", nota.type, editing);
+    setToggle("notaAccountToggle", "account", nota.account, editing);
+    // Dibuat oleh: aturan sama dgn form satuan — mode Both pilih manual, mode
+    // Iyon/Ciwul dikunci otomatis; saat edit dikunci ke pembuat asli.
+    setToggle("notaByToggle", "by", nota.by, editing || currentUser !== "both");
+    document.getElementById("notaByLabel").textContent = !editing && currentUser !== "both" ? "Dibuat oleh (otomatis)" : "Dibuat oleh";
+    document.getElementById("notaKodeLabel").textContent = editing ? "Kode" : "Kode (perkiraan)";
+    document.getElementById("notaQuickAdj").innerHTML = ADJ_PRESETS[nota.type]
+      .map((p, i) => `<button type="button" class="quick-chip" data-preset="${i}">+ ${p[0]}</button>`)
+      .join("");
+    renderNotaItems();
+    renderNotaAdj();
+    renderNotaSummary();
+  }
+
+  function notaCategoryOptions(type, selected) {
+    let html = CATEGORIES[type]
+      .map((c) => `<option value="${escapeHtml(c.id)}"${c.id === selected ? " selected" : ""}>${escapeHtml(c.icon + " " + c.label)}</option>`)
+      .join("");
+    if (selected && !categoryExists(type, selected)) {
+      html = `<option value="${escapeHtml(selected)}" selected>❓ ${escapeHtml(selected)} (terhapus)</option>` + html;
+    }
+    return html;
+  }
+
+  function unitOptions(selected) {
+    const units = selected && NOTA_UNITS.indexOf(selected) === -1 ? [selected].concat(NOTA_UNITS) : NOTA_UNITS;
+    return units.map((u) => `<option value="${escapeHtml(u)}"${u === (selected || "pcs") ? " selected" : ""}>${escapeHtml(u)}</option>`).join("");
+  }
+
+  // Item = kartu bertumpuk (tabel desktop tidak muat di layar HP).
+  function renderNotaItems() {
+    const only = nota.items.length === 1;
+    document.getElementById("notaItems").innerHTML = nota.items
+      .map((it, i) => `
+        <div class="nota-item" data-i="${i}">
+          <div class="nota-item-top">
+            <span class="nota-num">${i + 1}</span>
+            <input type="text" data-f="nama" placeholder="Nama item" aria-label="Nama item ${i + 1}" value="${escapeHtml(it.nama)}">
+            <button type="button" class="tx-btn tx-delete" data-del-item="${i}" aria-label="Hapus item ${i + 1}"${only ? " disabled" : ""}>🗑️</button>
+          </div>
+          <select data-f="category" aria-label="Kategori item ${i + 1}">${notaCategoryOptions(nota.type, it.category)}</select>
+          <div class="nota-item-nums">
+            <input type="text" data-f="qty" inputmode="decimal" aria-label="Qty item ${i + 1}" value="${escapeHtml(it.qty)}">
+            <select data-f="satuan" aria-label="Satuan item ${i + 1}">${unitOptions(it.satuan)}</select>
+            <div class="nota-money"><span>Rp</span><input type="text" data-f="harga" inputmode="numeric" placeholder="Harga satuan" aria-label="Harga satuan item ${i + 1}" value="${escapeHtml(it.harga)}"></div>
+          </div>
+          <p class="nota-sub">Subtotal <b data-sub="${i}">Rp 0</b></p>
+        </div>`)
+      .join("");
+  }
+
+  function renderNotaAdj() {
+    const opt = (v, label, cur) => `<option value="${v}"${v === cur ? " selected" : ""}>${label}</option>`;
+    document.getElementById("notaAdjRows").innerHTML = nota.adj
+      .map((p, j) => `
+        <div class="nota-item" data-j="${j}">
+          <div class="nota-item-top">
+            <input type="text" data-f="label" placeholder="mis. Diskon member" aria-label="Label penyesuaian ${j + 1}" value="${escapeHtml(p.label)}">
+            <button type="button" class="tx-btn tx-delete" data-del-adj="${j}" aria-label="Hapus penyesuaian ${j + 1}">🗑️</button>
+          </div>
+          <div class="nota-item-nums nota-adj-nums">
+            <select data-f="efek" aria-label="Efek penyesuaian ${j + 1}">${opt("kurang", "Kurangi", p.efek)}${opt("tambah", "Tambah", p.efek)}</select>
+            <select data-f="mode" aria-label="Mode penyesuaian ${j + 1}">${opt("nominal", "Rp", p.mode)}${opt("persen", "%", p.mode)}</select>
+            <div class="nota-money"><span>${p.mode === "persen" ? "%" : "Rp"}</span><input type="text" data-f="nilai" inputmode="decimal" placeholder="0" aria-label="Nilai penyesuaian ${j + 1}" value="${escapeHtml(p.nilai)}"></div>
+          </div>
+          <p class="nota-sub">Hasil <b class="adj-result ${p.efek}" data-res="${j}"></b></p>
+        </div>`)
+      .join("");
+  }
+
+  function notaInput() {
+    return {
+      items: nota.items.map((it) => ({ nama: it.nama, category: it.category, qty: parseDecimal(it.qty), satuan: it.satuan, harga: parseAmount(it.harga) })),
+      penyesuaian: nota.adj.map((p) => ({ label: p.label, efek: p.efek, mode: p.mode, nilai: p.mode === "persen" ? parseDecimal(p.nilai || "0") : parseAmount(p.nilai) })),
+    };
+  }
+
+  function notaFields() {
+    const raw = document.getElementById("notaTime").value;
+    return Object.assign(notaInput(), {
+      type: nota.type,
+      account_type: nota.account,
+      judul: document.getElementById("notaTitle").value,
+      by: nota.by,
+      tanggal: document.getElementById("notaDate").value,
+      waktu: /^\d{2}:\d{2}$/.test(raw) ? raw + ":00" : raw,
+      timestamp: nota.tx ? nota.tx.timestamp : Date.now(),
+    });
+  }
+
+  // Hitung ulang & perbarui angka/struk TANPA me-render ulang input (fokus &
+  // kursor keyboard HP tidak hilang saat mengetik).
+  function renderNotaSummary() {
+    if (!nota) return;
+    const calc = Core.computeNota(notaInput());
+    calc.items.forEach((it, i) => {
+      const el = document.querySelector('#notaItems [data-sub="' + i + '"]');
+      if (el) el.textContent = formatCurrency(it.subtotal);
+    });
+    calc.penyesuaian.forEach((p, j) => {
+      const el = document.querySelector('#notaAdjRows [data-res="' + j + '"]');
+      if (!el) return;
+      el.textContent = (p.efek === "kurang" ? "− " : "+ ") + formatCurrency(p.jumlah);
+      el.className = "adj-result " + p.efek;
+    });
+    document.getElementById("notaItemCount").textContent = "· " + nota.items.length + " item";
+    document.getElementById("notaTotalLabel").textContent = nota.type === "income" ? "Total diterima" : "Total dibayar";
+    const totalEl = document.getElementById("notaTotal");
+    totalEl.textContent = formatCurrency(calc.nominal);
+    totalEl.classList.toggle("negative", calc.nominal <= 0);
+
+    const kode = nota.tx
+      ? nota.tx.kode || "—"
+      : previewKode({ bentuk: "nota", account_type: nota.account, tanggal: document.getElementById("notaDate").value });
+    document.getElementById("notaKode").textContent = kode;
+    document.getElementById("notaReceipt").innerHTML = notaReceiptHtml(calc, kode);
+
+    // Peringatan langsung kalau total ≤ 0; daftar error lengkap muncul setelah
+    // Simpan ditekan (dan ikut diperbarui saat isian dibetulkan).
+    let msgs = [];
+    if (nota.showErrors) msgs = Core.buildNota(notaFields()).errors;
+    else if (calc.nominal <= 0 && (calc.subtotal > 0 || calc.penyesuaian.length)) {
+      msgs = ["Total nota " + (calc.nominal < 0 ? "negatif" : "Rp 0") + " — cek potongan/biaya."];
+    }
+    const box = document.getElementById("notaErrors");
+    box.hidden = !msgs.length;
+    box.innerHTML = msgs.map((m) => "<span>" + escapeHtml(m) + "</span>").join("");
+  }
+
+  function notaReceiptHtml(calc, kode) {
+    const date = document.getElementById("notaDate").value;
+    const time = document.getElementById("notaTime").value;
+    const meta = [date ? formatDateLong(date) : "", time.slice(0, 5), accountLabel(nota.account), USERS[nota.by] ? USERS[nota.by].label : ""]
+      .filter(Boolean)
+      .join(" · ");
+    const lines = calc.items
+      .map((it) => `
+        <div class="receipt-line"><div><p>${escapeHtml(it.nama || "Item tanpa nama")}</p>
+          <p class="receipt-sub">${formatQty(it.qty || 0)} ${escapeHtml(it.satuan || "")} × ${formatCurrency(it.harga || 0)}</p></div>
+          <span>${formatCurrency(it.subtotal || 0)}</span></div>`)
+      .join("");
+    const adj = calc.penyesuaian
+      .map((p) => `<div class="receipt-row"><span>${escapeHtml(p.label || "Penyesuaian")}${p.mode === "persen" ? " (" + formatQty(p.nilai || 0) + "%)" : ""}</span>
+        <span>${p.efek === "kurang" ? "− " : "+ "}${formatCurrency(p.jumlah || 0)}</span></div>`)
+      .join("");
+    const cats = Object.keys(calc.rincian_kategori)
+      .filter((k) => calc.rincian_kategori[k] > 0)
+      .sort((a, b) => calc.rincian_kategori[b] - calc.rincian_kategori[a])
+      .map((k) => {
+        const c = findCategory(nota.type, k);
+        return `<div class="receipt-row"><span>${c.icon} ${escapeHtml(c.label)}</span><span>${formatCurrency(calc.rincian_kategori[k])}</span></div>`;
+      })
+      .join("");
+    return `
+      <p class="receipt-kicker">NOTA</p>
+      <p class="receipt-title">${escapeHtml(document.getElementById("notaTitle").value.trim() || "Judul nota")}</p>
+      <p class="receipt-sub">${escapeHtml(meta)}</p>
+      <p class="receipt-sub kode">${escapeHtml(kode)}</p>
+      <div class="receipt-cut"></div>
+      ${lines}
+      <div class="receipt-cut"></div>
+      <div class="receipt-row"><span>Subtotal · ${calc.items.length} item</span><span>${formatCurrency(calc.subtotal)}</span></div>
+      ${adj}
+      <div class="receipt-row receipt-total"><span>${nota.type === "income" ? "TOTAL DITERIMA" : "TOTAL DIBAYAR"}</span><span>${formatCurrency(calc.nominal)}</span></div>
+      ${cats ? '<div class="receipt-cut"></div><p class="receipt-sub">Per kategori</p>' + cats : ""}`;
+  }
+
+  function saveNota() {
+    if (notaSaving) return;
+    const built = Core.buildNota(notaFields());
+    if (built.errors.length) {
+      nota.showErrors = true;
+      renderNotaSummary();
+      document.getElementById("notaErrors").scrollIntoView({ block: "center" });
+      return;
+    }
+    const tx = nota.tx;
+    if (!tx && !requireOnline()) return;
+    notaSaving = true;
+    const btn = document.getElementById("notaSaveBtn");
+    btn.disabled = true;
+    btn.textContent = "Menyimpan…";
+    // Baru: kode atomik (Data.saveNew). Edit: update parsial — kode, tanggal,
+    // account & jenis tidak ikut dikirim (terkunci).
+    const op = tx ? Data.updateNota(tx.ym, tx.id, built.record) : Data.saveNew(built.record);
+    op.then(() => {
+      // Tampilkan nota di halaman Transaksi pada bulan & tab account-nya.
+      const d = built.record.tanggal;
+      viewDate = new Date(Number(d.slice(0, 4)), Number(d.slice(5, 7)) - 1, 1);
+      if (acctFilter !== "all" && acctFilter !== built.record.account_type) acctFilter = "all";
+      pageBeforeNota = "transactions";
+      closeNota(true);
+    })
+      .catch((err) => {
+        console.error("Gagal menyimpan nota:", err);
+        alert("Gagal menyimpan nota: " + err.message);
+      })
+      .finally(() => {
+        notaSaving = false;
+        btn.disabled = false;
+        btn.textContent = "Simpan";
+      });
+  }
+
+  /* ---------- Event halaman Nota ---------- */
+
+  function markNotaDirty() {
+    nota.dirty = true;
+    renderNotaSummary();
+  }
+
+  document.getElementById("notaTitle").addEventListener("input", markNotaDirty);
+  document.getElementById("notaTime").addEventListener("input", markNotaDirty);
+  // Ganti tanggal → waktu reset ke awal hari (aturan sama dgn form satuan);
+  // bulan kode ikut tanggal.
+  document.getElementById("notaDate").addEventListener("change", () => {
+    document.getElementById("notaTime").value = "00:00:00";
+    markNotaDirty();
+  });
+
+  document.querySelectorAll("#notaTypeToggle .type-btn").forEach((b) =>
+    b.addEventListener("click", () => {
+      if (nota.tx || b.dataset.type === nota.type) return;
+      nota.type = b.dataset.type;
+      // Kategori item ikut jenis nota → reset ke kategori pertama jenis baru.
+      nota.items.forEach((it) => {
+        if (!categoryExists(nota.type, it.category)) it.category = blankItem(nota.type).category;
+      });
+      nota.dirty = true;
+      renderNotaForm();
+    })
+  );
+  document.querySelectorAll("#notaAccountToggle .type-btn").forEach((b) =>
+    b.addEventListener("click", () => {
+      if (nota.tx) return;
+      nota.account = b.dataset.account;
+      setToggle("notaAccountToggle", "account", nota.account, false);
+      markNotaDirty();
+    })
+  );
+  document.querySelectorAll("#notaByToggle .type-btn").forEach((b) =>
+    b.addEventListener("click", () => {
+      if (b.disabled) return;
+      nota.by = b.dataset.by;
+      setToggle("notaByToggle", "by", nota.by, false);
+      markNotaDirty();
+    })
+  );
+
+  const notaItemsEl = document.getElementById("notaItems");
+  notaItemsEl.addEventListener("input", (e) => {
+    const f = e.target.dataset.f;
+    const row = e.target.closest("[data-i]");
+    if (!f || !row) return;
+    if (f === "harga") formatAmountInput(e.target);
+    nota.items[Number(row.dataset.i)][f] = e.target.value;
+    markNotaDirty();
+  });
+  // Select item (kategori/satuan) di sebagian browser HP cuma memicu "change".
+  notaItemsEl.addEventListener("change", (e) => {
+    const f = e.target.dataset.f;
+    const row = e.target.closest("[data-i]");
+    if (!row || (f !== "category" && f !== "satuan")) return;
+    nota.items[Number(row.dataset.i)][f] = e.target.value;
+    markNotaDirty();
+  });
+  notaItemsEl.addEventListener("click", (e) => {
+    const del = e.target.closest("[data-del-item]");
+    if (!del || nota.items.length <= 1) return;
+    nota.items.splice(Number(del.dataset.delItem), 1);
+    renderNotaItems();
+    markNotaDirty();
+  });
+  document.getElementById("notaAddItem").addEventListener("click", () => {
+    const last = nota.items[nota.items.length - 1];
+    const it = blankItem(nota.type);
+    if (last && last.category) it.category = last.category; // item baru biasanya sejenis
+    nota.items.push(it);
+    renderNotaItems();
+    markNotaDirty();
+    notaItemsEl.querySelector('[data-i="' + (nota.items.length - 1) + '"] [data-f="nama"]').focus();
+  });
+
+  const notaAdjEl = document.getElementById("notaAdjRows");
+  function addNotaAdj(p) {
+    nota.adj.push(p);
+    renderNotaAdj();
+    markNotaDirty();
+    const row = notaAdjEl.querySelector('[data-j="' + (nota.adj.length - 1) + '"]');
+    row.querySelector(p.label ? '[data-f="nilai"]' : '[data-f="label"]').focus();
+  }
+
+  document.getElementById("notaAddAdj").addEventListener("click", () => addNotaAdj({ label: "", efek: "kurang", mode: "nominal", nilai: "" }));
+  document.getElementById("notaQuickAdj").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-preset]");
+    if (!b) return;
+    const p = ADJ_PRESETS[nota.type][Number(b.dataset.preset)];
+    addNotaAdj({ label: p[0], efek: p[1], mode: p[2], nilai: p[3] });
+  });
+  notaAdjEl.addEventListener("input", (e) => {
+    const f = e.target.dataset.f;
+    const row = e.target.closest("[data-j]");
+    if (!f || !row || e.target.tagName === "SELECT") return;
+    const p = nota.adj[Number(row.dataset.j)];
+    if (f === "nilai" && p.mode === "nominal") formatAmountInput(e.target);
+    p[f] = e.target.value;
+    markNotaDirty();
+  });
+  notaAdjEl.addEventListener("change", (e) => {
+    const f = e.target.dataset.f;
+    const row = e.target.closest("[data-j]");
+    if (!row || (f !== "efek" && f !== "mode")) return;
+    const p = nota.adj[Number(row.dataset.j)];
+    p[f] = e.target.value;
+    if (f === "mode") p.nilai = p.mode === "nominal" ? (parseAmount(p.nilai) ? parseAmount(p.nilai).toLocaleString("id-ID") : "") : String(p.nilai).replace(/\./g, "");
+    renderNotaAdj();
+    markNotaDirty();
+  });
+  notaAdjEl.addEventListener("click", (e) => {
+    const del = e.target.closest("[data-del-adj]");
+    if (!del) return;
+    nota.adj.splice(Number(del.dataset.delAdj), 1);
+    renderNotaAdj();
+    markNotaDirty();
+  });
+
+  document.getElementById("notaSaveBtn").addEventListener("click", saveNota);
+  document.getElementById("notaCancelBtn").addEventListener("click", () => closeNota());
+  document.getElementById("notaBackBtn").addEventListener("click", () => closeNota());
+
+  /* ================= Pindah account (V2) ================= */
+
+  // Mode "Pindah" di popup Tambah (form #transferForm, menggantikan form
+  // satuan) + edit transaksi pindah. Pindah bukan pemasukan/pengeluaran —
+  // cuma biaya admin yang dihitung pengeluaran Lainnya di account asal.
+  const transferForm = document.getElementById("transferForm");
+  const tfState = { from: "bank", to: "cash" };
+  let editingTransfer = null; // null = tambah; berisi tx pindah = edit
+
+  // Popup Tambah: Satuan | Nota | Pindah. Nota → halaman penuh (lihat atas).
+  function setTxMode(mode) {
+    document.querySelectorAll("#txModeToggle .mode-btn").forEach((b) => b.classList.toggle("active", b.dataset.mode === mode));
+    const pindah = mode === "pindah";
+    document.getElementById("transactionTypeToggle").hidden = pindah;
+    transactionForm.hidden = pindah;
+    transferForm.hidden = !pindah;
+    if (pindah && !editingTransfer) resetTransferForm();
+  }
+
+  function resetTransferForm() {
+    tfState.from = ACCOUNT_BY_ID[acctFilter] ? acctFilter : Core.DEFAULT_ACCOUNT;
+    tfState.to = tfState.from === "cash" ? "bank" : "cash";
+    const now = Date.now();
+    transferForm.reset();
+    document.getElementById("tfDate").value = localDateStrOf(now);
+    document.getElementById("tfTime").value = formatTime(now, true);
+    setTransferLocked(false);
+    // Pembuat ikut pilihan di form satuan kalau sudah dipilih (mode Both).
+    setupByFieldForCreate("transferByField", "transferByLabel", "transferByToggle");
+    const picked = transactionFormBy();
+    if (currentUser === "both" && picked) setByToggleValue("transferByToggle", picked, false);
+    document.getElementById("tfKodeLabel").textContent = "Kode (perkiraan)";
+    renderTransferForm();
+  }
+
+  function setTransferLocked(locked) {
+    document.getElementById("tfDate").disabled = locked;
+    document.getElementById("tfTime").disabled = locked;
+    document.getElementById("tfSwap").hidden = locked;
+    ["tfFromToggle", "tfToToggle"].forEach((id) => document.getElementById(id).classList.toggle("locked", locked));
+  }
+
+  // Ke ≠ Dari: opsi yang sama dgn asal dinonaktifkan di pemilih tujuan.
+  function renderTransferForm() {
+    const locked = !!editingTransfer;
+    document.querySelectorAll("#tfFromToggle .type-btn").forEach((b) => {
+      b.classList.toggle("active", b.dataset.account === tfState.from);
+      b.disabled = locked;
+    });
+    document.querySelectorAll("#tfToToggle .type-btn").forEach((b) => {
+      b.classList.toggle("active", b.dataset.account === tfState.to);
+      b.disabled = locked || b.dataset.account === tfState.from;
+    });
+    renderTransferSummary();
+  }
+
+  function renderTransferSummary() {
+    const amount = parseAmount(document.getElementById("tfAmount").value);
+    const fee = parseAmount(document.getElementById("tfFee").value);
+    const from = ACCOUNT_BY_ID[tfState.from], to = ACCOUNT_BY_ID[tfState.to];
+    document.getElementById("tfSummary").innerHTML = `
+      <p class="tf-route">${from.icon} ${from.label} <span aria-hidden="true">→</span> ${to.icon} ${to.label}</p>
+      <div class="tf-kv"><span>${from.label} berkurang</span><b class="tf-out">− ${formatCurrency(amount + fee)}</b></div>
+      <div class="tf-kv"><span>${to.label} bertambah</span><b class="tf-in">+ ${formatCurrency(amount)}</b></div>
+      <p class="tf-note">Pemindahan tidak dihitung sebagai pemasukan atau pengeluaran. Hanya biaya admin yang tercatat sebagai pengeluaran (kategori Lainnya).</p>`;
+    document.getElementById("tfKodePreview").textContent = editingTransfer
+      ? editingTransfer.kode || "—"
+      : previewKode({ bentuk: "pindah", dari: tfState.from, ke: tfState.to, tanggal: document.getElementById("tfDate").value });
+  }
+
+  function openEditTransfer(tx) {
+    editingTransfer = tx;
+    editingTx = null;
+    transactionModalTitle.textContent = "Edit Pindah Account";
+    document.getElementById("txModeToggle").hidden = true;
+    transferForm.reset();
+    tfState.from = tx.dari;
+    tfState.to = tx.ke;
+    document.getElementById("tfAmount").value = Math.round(tx.amount).toLocaleString("id-ID");
+    document.getElementById("tfFee").value = tx.fee ? tx.fee.toLocaleString("id-ID") : "";
+    document.getElementById("tfNote").value = tx.note || "";
+    document.getElementById("tfDate").value = tx.date;
+    document.getElementById("tfTime").value = tx.time;
+    setTransferLocked(true);
+    setupByFieldForEdit("transferByField", "transferByLabel", "transferByToggle", tx.by);
+    document.getElementById("tfKodeLabel").textContent = "Kode";
+    setTxMode("pindah");
+    renderTransferForm();
+    transactionModal.classList.add("open");
+  }
+
+  document.querySelectorAll("#tfFromToggle .type-btn").forEach((b) =>
+    b.addEventListener("click", () => {
+      if (b.disabled) return;
+      // Memilih Dari = Ke saat ini → otomatis ditukar.
+      if (b.dataset.account === tfState.to) tfState.to = tfState.from;
+      tfState.from = b.dataset.account;
+      renderTransferForm();
+    })
+  );
+  document.querySelectorAll("#tfToToggle .type-btn").forEach((b) =>
+    b.addEventListener("click", () => {
+      if (b.disabled) return;
+      tfState.to = b.dataset.account;
+      renderTransferForm();
+    })
+  );
+  document.getElementById("tfSwap").addEventListener("click", () => {
+    const x = tfState.from;
+    tfState.from = tfState.to;
+    tfState.to = x;
+    renderTransferForm();
+  });
+  ["tfAmount", "tfFee"].forEach((id) =>
+    document.getElementById(id).addEventListener("input", function () {
+      formatAmountInput(this);
+      renderTransferSummary();
+    })
+  );
+  // Ganti tanggal → waktu reset ke awal hari (sama dgn satuan/nota).
+  document.getElementById("tfDate").addEventListener("change", () => {
+    document.getElementById("tfTime").value = "00:00:00";
+    renderTransferSummary();
+  });
+  wireByToggle("transferByToggle");
+
+  transferForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const amount = parseAmount(document.getElementById("tfAmount").value);
+    const fee = parseAmount(document.getElementById("tfFee").value);
+    const note = document.getElementById("tfNote").value.trim();
+
+    if (editingTransfer) {
+      // Edit: cuma jumlah, biaya admin, catatan (update parsial).
+      if (!(amount > 0)) {
+        alert("Jumlah dipindah harus lebih dari 0.");
+        return;
+      }
+      const tx = editingTransfer;
+      Data.update(tx.ym, tx.id, { nominal: amount, biaya_admin: fee, catatan: note }).catch((err) => {
+        console.error("Gagal menyimpan pindah:", err);
+        alert("Gagal menyimpan: " + err.message);
+      });
+      closeTransactionModal();
+      return;
+    }
+
+    const activeBy = document.querySelector("#transferByToggle .type-btn.active");
+    const by = currentUser === "both" ? (activeBy ? activeBy.dataset.by : null) : currentUser;
+    const rawTime = document.getElementById("tfTime").value;
+    const { errors, record } = Core.buildPindah({
+      dari: tfState.from,
+      ke: tfState.to,
+      nominal: amount,
+      biaya_admin: fee,
+      catatan: note,
+      by,
+      tanggal: document.getElementById("tfDate").value,
+      waktu: /^\d{2}:\d{2}$/.test(rawTime) ? rawTime + ":00" : rawTime,
+      timestamp: Date.now(),
+    });
+    if (errors.length) {
+      alert(errors.join("\n"));
+      return;
+    }
+    if (!requireOnline()) return;
+    Data.saveNew(record).catch((err) => {
+      console.error("Gagal memindahkan saldo:", err);
+      alert("Gagal memindahkan saldo: " + err.message);
+    });
+    closeTransactionModal();
+    goToPage("dashboard"); // sama dgn tambah satuan
+  });
+
+  document.getElementById("cancelTransferBtn").addEventListener("click", closeTransactionModal);
+
+  document.querySelectorAll("#txModeToggle .mode-btn").forEach((b) =>
+    b.addEventListener("click", () => {
+      if (b.dataset.mode === "nota") {
+        // Nota → tutup popup, buka halaman Nota dgn jenis/account/pembuat
+        // yang sudah dipilih di popup.
+        const defaults = { type: currentTxType, account: txAccount, by: transactionFormBy() };
+        closeTransactionModal();
+        openNota(null, defaults);
+        return;
+      }
+      setTxMode(b.dataset.mode);
+    })
+  );
 
   /* ================= Transaction detail modal ================= */
 

@@ -514,3 +514,58 @@
 .detail-rincian {
   margin-top: 4px;
 }
+
+/* ---------- Form Pindah account (V2) ---------- */
+
+.tf-swap {
+  display: block;
+  margin: -6px auto 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+/* Opsi tujuan yang sama dgn asal (tidak bisa dipilih). */
+#tfToToggle .type-btn:disabled:not(.active) {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tf-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  font-size: 13px;
+}
+
+.tf-summary p {
+  margin: 0;
+}
+
+.tf-route {
+  font-weight: 700;
+}
+
+.tf-kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--color-text-muted);
+}
+
+.tf-out { color: var(--color-expense); }
+.tf-in { color: var(--color-income); }
+
+.tf-note {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}

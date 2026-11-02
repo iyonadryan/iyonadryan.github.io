@@ -135,6 +135,12 @@
   box-sizing: border-box;
 }
 
+/* Atribut hidden selalu menang atas display milik class (.field, .type-toggle,
+   dst) — tanpa ini elemen ber-[hidden] tetap tampil. */
+[hidden] {
+  display: none !important;
+}
+
 html, body {
   margin: 0;
   padding: 0;

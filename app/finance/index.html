@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="css/transactions.css">
 <link rel="stylesheet" href="css/plans.css">
 <link rel="stylesheet" href="css/settings.css">
+<link rel="stylesheet" href="css/nota.css">
 
 <!-- Firebase (compat SDK) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -242,6 +243,89 @@
       </div>
     </section>
 
+    <!-- ===================== NOTA (halaman penuh, V2) =====================
+         Dibuka dari popup Tambah (mode Nota) atau tombol edit nota. Bottom nav
+         disembunyikan selama halaman ini terbuka (body.nota-open). -->
+    <section id="nota" class="page">
+      <div class="nota-head">
+        <button type="button" class="icon-btn small" id="notaBackBtn" aria-label="Kembali">‹</button>
+        <h2 id="notaPageTitle">Nota Baru</h2>
+      </div>
+
+      <div class="nota-card">
+        <label class="field">
+          <span>Judul nota</span>
+          <input type="text" id="notaTitle" placeholder="mis. Belanja bulanan Alfamart" autocomplete="off">
+        </label>
+        <div class="nota-two">
+          <label class="field">
+            <span>Tanggal</span>
+            <input type="date" id="notaDate">
+          </label>
+          <label class="field">
+            <span>Waktu</span>
+            <input type="time" id="notaTime" step="1">
+          </label>
+        </div>
+        <div class="field by-field">
+          <span>Jenis</span>
+          <div class="type-toggle" id="notaTypeToggle">
+            <button type="button" data-type="expense" class="type-btn">Pengeluaran</button>
+            <button type="button" data-type="income" class="type-btn">Pemasukan</button>
+          </div>
+        </div>
+        <div class="field by-field">
+          <span>Account</span>
+          <div class="type-toggle" id="notaAccountToggle">
+            <button type="button" data-account="bank" class="type-btn">🏦 Bank</button>
+            <button type="button" data-account="cash" class="type-btn">💵 Cash</button>
+            <button type="button" data-account="e_money" class="type-btn">📱 E-Money</button>
+          </div>
+        </div>
+        <div class="field by-field">
+          <span id="notaByLabel">Dibuat oleh</span>
+          <div class="type-toggle" id="notaByToggle">
+            <button type="button" data-by="iyon" class="type-btn">Iyon</button>
+            <button type="button" data-by="ciwul" class="type-btn">Ciwul</button>
+          </div>
+        </div>
+        <p class="kode-preview"><span id="notaKodeLabel">Kode (perkiraan)</span> <span class="kode" id="notaKode">&mdash;</span></p>
+        <p class="field-note" id="notaLockedHint" hidden>Tanggal, jenis, dan account tidak bisa diubah setelah nota disimpan (kode bergantung padanya). Salah isi? Hapus nota lalu buat baru.</p>
+      </div>
+
+      <div class="nota-section-head">
+        <h3>Item <span id="notaItemCount" class="nota-count"></span></h3>
+        <button type="button" class="btn-primary btn-sm" id="notaAddItem">+ Item</button>
+      </div>
+      <div id="notaItems" class="nota-items"></div>
+      <p class="field-note">Qty boleh desimal untuk kg/liter, mis. 250 gram → <b>0.25</b> kg. Subtotal dibulatkan ke rupiah terdekat.</p>
+
+      <div class="nota-section-head">
+        <h3>Penyesuaian</h3>
+        <button type="button" class="btn-secondary btn-sm" id="notaAddAdj">+ Potongan/Biaya</button>
+      </div>
+      <p class="field-note">Diskon, promo, pajak, ongkir, dll. Persen dihitung dari subtotal item.</p>
+      <div id="notaQuickAdj" class="quick-chips"></div>
+      <div id="notaAdjRows" class="nota-items"></div>
+
+      <div class="nota-section-head">
+        <h3>Pratinjau struk</h3>
+      </div>
+      <div id="notaReceipt" class="receipt"></div>
+
+      <div id="notaErrors" class="nota-errors" role="alert" hidden></div>
+
+      <!-- Bar bawah menempel: total + aksi. -->
+      <div class="nota-bar">
+        <div class="nota-bar-total">
+          <span id="notaTotalLabel">Total dibayar</span>
+          <strong id="notaTotal">Rp 0</strong>
+        </div>
+        <button type="button" class="btn-secondary" id="notaCancelBtn">Batal</button>
+        <button type="button" class="btn-primary" id="notaSaveBtn">Simpan</button>
+      </div>
+    </section>
+
   </main>
 
   <nav class="bottom-nav">
@@ -269,6 +353,13 @@
     <div class="modal-sheet">
       <div class="modal-handle"></div>
       <h3 id="transactionModalTitle">Tambah Transaksi</h3>
+
+      <!-- Bentuk transaksi (cuma saat tambah). Nota → halaman penuh #nota. -->
+      <div class="mode-toggle" id="txModeToggle">
+        <button type="button" data-mode="satuan" class="mode-btn active">Satuan</button>
+        <button type="button" data-mode="nota" class="mode-btn">🧾 Nota</button>
+        <button type="button" data-mode="pindah" class="mode-btn">⇄ Pindah</button>
+      </div>
 
       <div class="type-toggle" id="transactionTypeToggle">
         <button type="button" data-type="expense" class="type-btn active">Pengeluaran</button>
@@ -329,6 +420,67 @@
 
         <div class="modal-actions">
           <button type="button" class="btn-secondary" id="cancelTransactionBtn">Batal</button>
+          <button type="submit" class="btn-primary">Simpan</button>
+        </div>
+      </form>
+
+      <!-- Mode Pindah (V2): pindah saldo antar account. Bukan pemasukan/
+           pengeluaran — cuma biaya admin yang dicatat sbg pengeluaran Lainnya.
+           Saat edit: dari/ke, tanggal, waktu, & pembuat dikunci. -->
+      <form id="transferForm" hidden>
+        <div class="field by-field">
+          <span>Dari</span>
+          <div class="type-toggle" id="tfFromToggle">
+            <button type="button" data-account="bank" class="type-btn">🏦 Bank</button>
+            <button type="button" data-account="cash" class="type-btn">💵 Cash</button>
+            <button type="button" data-account="e_money" class="type-btn">📱 E-Money</button>
+          </div>
+        </div>
+        <button type="button" class="tf-swap" id="tfSwap" aria-label="Tukar asal dan tujuan">⇅ Tukar</button>
+        <div class="field by-field">
+          <span>Ke</span>
+          <div class="type-toggle" id="tfToToggle">
+            <button type="button" data-account="bank" class="type-btn">🏦 Bank</button>
+            <button type="button" data-account="cash" class="type-btn">💵 Cash</button>
+            <button type="button" data-account="e_money" class="type-btn">📱 E-Money</button>
+          </div>
+        </div>
+
+        <label class="field">
+          <span>Jumlah dipindah (Rp)</span>
+          <input type="text" id="tfAmount" placeholder="0" inputmode="numeric" autocomplete="off">
+        </label>
+        <label class="field">
+          <span>Biaya admin (opsional)</span>
+          <input type="text" id="tfFee" placeholder="0" inputmode="numeric" autocomplete="off">
+        </label>
+        <label class="field">
+          <span>Catatan (opsional)</span>
+          <input type="text" id="tfNote" placeholder="mis. Tarik tunai ATM">
+        </label>
+        <div class="nota-two">
+          <label class="field">
+            <span>Tanggal</span>
+            <input type="date" id="tfDate">
+          </label>
+          <label class="field">
+            <span>Waktu</span>
+            <input type="time" id="tfTime" step="1">
+          </label>
+        </div>
+        <div class="field by-field" id="transferByField">
+          <span id="transferByLabel">Dibuat oleh</span>
+          <div class="type-toggle" id="transferByToggle">
+            <button type="button" data-by="iyon" class="type-btn">Iyon</button>
+            <button type="button" data-by="ciwul" class="type-btn">Ciwul</button>
+          </div>
+        </div>
+
+        <div class="tf-summary" id="tfSummary"></div>
+        <p class="kode-preview"><span id="tfKodeLabel">Kode (perkiraan)</span> <span class="kode" id="tfKodePreview">&mdash;</span></p>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="cancelTransferBtn">Batal</button>
           <button type="submit" class="btn-primary">Simpan</button>
         </div>
       </form>
