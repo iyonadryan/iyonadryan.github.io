@@ -12,26 +12,6 @@
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/components.css">
 <link rel="stylesheet" href="css/pages.css">
-
-<!-- Firebase (compat SDK) — config SAMA PERSIS dengan versi mobile (../index.html) -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
-    authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
-    databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
-    projectId: "iyon-adryanlf-trialerror",
-    storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
-    messagingSenderId: "519669963248",
-    appId: "1:519669963248:web:feab50008d27c2a7226535",
-    measurementId: "G-4MFLB4B68F"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-  // Root data : /finance
-  const FINANCE_PATH = "finance";
-</script>
 </head>
 <body>
 
@@ -1020,6 +1000,10 @@
   </div>
 </div>
 
+<!-- Firebase (compat SDK) + config (firebase-config.js, sama persis dgn versi mobile) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="firebase-config.js"></script>
 <!-- SheetJS (baca file import & export .xlsx) + helper export bersama dari versi mobile -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="../generate-excel.js"></script>
