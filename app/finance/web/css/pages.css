@@ -1353,16 +1353,6 @@ button.cal-cell:hover:not(.edge) {
   min-width: 0;
 }
 
-.code-chip {
-  align-self: flex-start;
-  font-size: 12px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-}
-
 .kode-format {
   display: flex;
   flex-wrap: wrap;
