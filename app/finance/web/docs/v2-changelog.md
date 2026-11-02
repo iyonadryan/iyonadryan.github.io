@@ -29,7 +29,7 @@ Rencana & keputusan lengkap: [`v2-plan.md`](v2-plan.md) · Panduan migrasi: [`mi
 ### Pindah account (aktif sejak 2 Nov 2026)
 - Form Pindah (Dari ⇄ Ke, jumlah, biaya admin, ringkasan berkurang/bertambah), tampilan di tabel (⇄ di Semua, keluar di tab asal, masuk di tab tujuan), detail, edit, dan baris "Pindah masuk · keluar" di kartu saldo tab account.
 - Pindah **bukan pemasukan/pengeluaran**. Hanya biaya admin yang dihitung sebagai pengeluaran kategori Lainnya di account asal.
-- **Aktif**: `ENABLE_TRANSFER_DEFAULT = true` (`script.js`), keputusan user walau web mobile belum diperbarui. Di klien lama, pindah terbaca sebagai **pengeluaran sebesar nominal** (risiko diterima). Set ke `false` untuk mengunci lagi.
+- **Aktif**: `ENABLE_TRANSFER_DEFAULT = true` (`script.js`), keputusan user (saat itu web mobile belum diperbarui; sejak V2 M1 mobile sudah membaca pindah dgn benar). Di klien lama (cache), pindah terbaca sebagai **pengeluaran sebesar nominal** (risiko diterima). Set ke `false` untuk mengunci lagi.
 
 ### Rencana: Target untuk (2 Nov 2026)
 - Field baru `target` (`iyon` / `ciwul` / `both`) di tiap rencana. `by` tetap ada sebagai pembuat.
@@ -75,7 +75,7 @@ Runtime tetap statis tanpa build, tanpa dependency.
 
 ## Belum / batasan yang diketahui
 
-- **Web mobile sedang di-upgrade bertahap** (M1–M5, lihat `app/.claude/finance-app.md` → "V2 di web mobile"). Sejak M1 (2 Nov 2026) mobile memakai `finance-core.js`/`finance-data.js` yang sama: pindah tidak lagi dihitung sebagai pengeluaran, nota dihitung per kategori, edit pakai update parsial (field V2 aman), rencana paham `target`. Sejak M2: tab Account Type + transaksi baru dari HP sudah berkode (counter yang sama). Sejak M3: nota bisa dibuat & diedit dari HP (halaman penuh). Sejak M4: pindah account bisa dibuat & diedit dari HP. Sisa M5: kolom Kode & Account Type di export mobile + info di Pengaturan.
+- **Web mobile sedang di-upgrade bertahap** (M1–M5, lihat `app/.claude/finance-app.md` → "V2 di web mobile"). Sejak M1 (2 Nov 2026) mobile memakai `finance-core.js`/`finance-data.js` yang sama: pindah tidak lagi dihitung sebagai pengeluaran, nota dihitung per kategori, edit pakai update parsial (field V2 aman), rencana paham `target`. Sejak M2: tab Account Type + transaksi baru dari HP sudah berkode (counter yang sama). Sejak M3: nota bisa dibuat & diedit dari HP (halaman penuh). Sejak M4: pindah account bisa dibuat & diedit dari HP. M5: export mobile = kolom export desktop, kartu Account Type & Format Kode di Pengaturan, versi v2.1. **Web mobile sudah V2 penuh** (tanpa Analisis). `--kode` untuk transaksi lama sekarang bisa dipertimbangkan (butuh persetujuan).
 - **Migrasi data lama sudah dijalankan** (2 Nov 2026, lihat `migration-guide.md` → Riwayat): 144 transaksi punya `account_type: bank` + `bentuk: satuan`. `--kode` **belum** dijalankan (ditunda sampai klien mobile diperbarui).
 - **Import "Kode Nota"** (beberapa baris jadi satu nota) ditunda. Catatan desain di `v2-plan.md` §6.
 - Belum ada tombol Hapus di halaman Nota (hapus dari tabel).

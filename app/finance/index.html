@@ -234,10 +234,39 @@
           <a class="btn-secondary btn-hub" href="../index.html">Iyon App</a>
         </div>
 
+        <!-- Info V2 (sama isinya dgn kartu Info di web desktop). -->
+        <div class="settings-item settings-info">
+          <div class="settings-info-body">
+            <p class="settings-title">Account Type</p>
+            <p class="settings-desc">Jenis tempat uang disimpan. Dipakai untuk memisahkan saldo di Dashboard.</p>
+            <ul class="info-list">
+              <li><span aria-hidden="true">🏦</span><b>Bank</b> Rekening bank (BCA, Mandiri, dll)</li>
+              <li><span aria-hidden="true">💵</span><b>Cash</b> Uang tunai / dompet fisik</li>
+              <li><span aria-hidden="true">📱</span><b>E-Money</b> Dompet digital (GoPay, OVO, DANA, dll)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="settings-item settings-info">
+          <div class="settings-info-body">
+            <p class="settings-title">Format Kode Transaksi</p>
+            <p class="settings-desc">Dibuat otomatis. Urutan dimulai dari 000001 untuk setiap account type di setiap bulan (bulan mengikuti tanggal transaksi). Kode tidak bisa diubah.</p>
+            <p class="kode-big">T<span class="k-acct">B</span>-<span class="k-ym">202611</span>-<span class="k-seq">000001</span></p>
+            <p class="settings-desc"><b class="k-acct">B</b> kode account · <b class="k-ym">202611</b> tahun &amp; bulan · <b class="k-seq">000001</b> nomor urut</p>
+            <ul class="info-list">
+              <li><span aria-hidden="true">🏦</span><b>Bank</b> <code class="kode">TB-202611-000001</code></li>
+              <li><span aria-hidden="true">💵</span><b>Cash</b> <code class="kode">TC-202611-000001</code></li>
+              <li><span aria-hidden="true">📱</span><b>E-Money</b> <code class="kode">TE-202611-000001</code></li>
+              <li><span aria-hidden="true">⇄</span><b>Pindah</b> <code class="kode">TF-BC-202611-000001</code></li>
+            </ul>
+            <p class="settings-desc">Transaksi lama (sebelum V2) tidak punya kode dan tampil "—"; dianggap account Bank.</p>
+          </div>
+        </div>
+
         <div class="settings-item settings-info">
           <div>
             <p class="settings-title">Tentang</p>
-            <p class="settings-desc">Finance App v0.1 &middot; Data tersinkronisasi otomatis ke cloud (Firebase) &mdash; transaksi &amp; rencana tersimpan di server dan langsung update di semua perangkat. Preferensi tema disimpan di perangkat ini.</p>
+            <p class="settings-desc">Finance App v2.1 &middot; Data tersinkronisasi otomatis ke cloud (Firebase) &mdash; transaksi &amp; rencana tersimpan di server dan langsung update di semua perangkat. Preferensi tema disimpan di perangkat ini.</p>
           </div>
         </div>
       </div>
@@ -613,6 +642,21 @@
     </div>
   </div>
 
+  <!-- ===================== MODAL: KONFIRMASI KE HALAMAN NOTA =====================
+       Muncul di atas popup Tambah saat tab "Nota" diklik. Lanjut → buka halaman
+       Nota; Tidak → tetap di popup Tambah (mode Satuan). -->
+  <div id="notaConfirmModal" class="modal-overlay confirm-overlay">
+    <div class="confirm-dialog">
+      <div class="confirm-icon">🧾</div>
+      <h3>Buat Nota?</h3>
+      <p>Kamu akan pindah ke halaman khusus untuk membuat nota (banyak item). Jenis, account, dan pembuat yang sudah dipilih ikut terbawa.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="notaConfirmNoBtn">Tidak</button>
+        <button type="button" class="btn-primary" id="notaConfirmYesBtn">Lanjut</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===================== MODAL: DELETE CONFIRMATION ===================== -->
   <div id="confirmModal" class="modal-overlay confirm-overlay">
     <div class="confirm-dialog">
@@ -672,7 +716,7 @@
           <span class="export-option-icon">📋</span>
           <span>
             <span class="export-option-title">Transaksi per bulan</span>
-            <span class="export-option-desc">Semua transaksi pada bulan yang dipilih</span>
+            <span class="export-option-desc">Semua transaksi pada bulan yang dipilih (+ kode &amp; account type)</span>
           </span>
         </button>
         <button type="button" class="export-option" id="exportSummaryBtn">

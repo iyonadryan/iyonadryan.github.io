@@ -2241,16 +2241,30 @@
   document.querySelectorAll("#txModeToggle .mode-btn").forEach((b) =>
     b.addEventListener("click", () => {
       if (b.dataset.mode === "nota") {
-        // Nota → tutup popup, buka halaman Nota dgn jenis/account/pembuat
-        // yang sudah dipilih di popup.
-        const defaults = { type: currentTxType, account: txAccount, by: transactionFormBy() };
-        closeTransactionModal();
-        openNota(null, defaults);
+        // Nota pindah ke halaman lain → tanya dulu (popup Tambah tetap terbuka
+        // di belakang sampai user memilih).
+        notaConfirmModal.classList.add("open");
         return;
       }
       setTxMode(b.dataset.mode);
     })
   );
+
+  const notaConfirmModal = document.getElementById("notaConfirmModal");
+  const closeNotaConfirm = () => notaConfirmModal.classList.remove("open");
+
+  // Lanjut → tutup popup, buka halaman Nota dgn jenis/account/pembuat yang
+  // sudah dipilih di popup. Tidak → tetap di popup Tambah, mode tidak berubah.
+  document.getElementById("notaConfirmYesBtn").addEventListener("click", () => {
+    const defaults = { type: currentTxType, account: txAccount, by: transactionFormBy() };
+    closeNotaConfirm();
+    closeTransactionModal();
+    openNota(null, defaults);
+  });
+  document.getElementById("notaConfirmNoBtn").addEventListener("click", closeNotaConfirm);
+  notaConfirmModal.addEventListener("click", (e) => {
+    if (e.target === notaConfirmModal) closeNotaConfirm();
+  });
 
   /* ================= Transaction detail modal ================= */
 
@@ -2984,13 +2998,21 @@
       alert("Tidak ada data untuk diekspor.");
       return;
     }
+    // Kolom sama persis dgn export desktop (= template import desktop + Kode
+    // & Dibuat oleh), jadi file dari HP bisa diimport ulang lewat desktop.
     const rows = monthTx.map((t) => ({
+      Kode: t.kode || "",
       Tanggal: t.date,
       Waktu: t.time,
+      "Account Type": t.type === "transfer" ? t.dari + " → " + t.ke : t.account_type || "",
       Tipe: TYPE_LABELS[t.type],
-      Kategori: t.type === "transfer" ? transferRoute(t) : findCategory(t.type, t.category).label,
+      Kategori: t.type === "transfer" ? "" : findCategory(t.type, t.category).label + (t.type === "income" ? " (masuk)" : " (keluar)"),
       Nominal: t.amount,
-      Catatan: t.note || "",
+      Catatan:
+        t.bentuk === "nota" ? t.title + " (nota " + t.items.length + " item)"
+        : t.type === "transfer" ? (t.note || "Pindah " + transferRoute(t)) + (t.fee ? " (biaya admin " + t.fee + ")" : "")
+        : t.note || "",
+      "Dibuat oleh": USERS[t.by] ? USERS[t.by].label : t.by,
     }));
     FinanceExcel.download("transaksi-" + ym + ".xlsx", "Transaksi " + monthLabelFromYm(ym), rows);
     closeMonthPicker();
