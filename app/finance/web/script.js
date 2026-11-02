@@ -1197,7 +1197,7 @@
       const hasMonthData = scopedTransactions().some((t) => ymOf(t.date) === viewYm());
       rows.innerHTML = '<p class="empty-state">' + (hasMonthData ? "Tidak ada transaksi yang cocok." : "Belum ada transaksi bulan ini.") + "</p>";
     } else {
-      rows.innerHTML = pageList.map(txRowHtml).join("");
+      rows.innerHTML = pageList.map((tx, i) => txRowHtml(tx, start + i + 1)).join("");
     }
     renderPager(list.length, pages, start, pageList.length);
     renderTxDetail(pageList.find((t) => t.id === selectedTxId));
@@ -1256,7 +1256,8 @@
 
   const expandedNota = new Set(); // id nota yg item-nya sedang dibuka di tabel
 
-  function txRowHtml(tx) {
+  // no = nomor urut di daftar terfilter (lanjut antar halaman: hal. 2 mulai 11, dst).
+  function txRowHtml(tx, no) {
     const cat = findCategory(tx.type, tx.category);
     const sel = tx.id === selectedTxId;
     const id = escapeHtml(tx.id);
@@ -1270,6 +1271,7 @@
         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>'
       : "";
     return '<div class="tx-grid tx-row' + (sel ? " selected" : "") + '">' +
+      '<span class="tx-no tnum">' + no + "</span>" +
       '<button type="button" class="tx-main" data-select="' + id + '" aria-pressed="' + sel + '">' + tileHtml(cat, 40) +
       '<span class="item-text"><span class="tx-title-line"><span class="item-title">' + escapeHtml(txTitle(tx)) + "</span>" +
       (multi ? '<span class="nota-badge">' + tx.items.length + " item</span>" : "") + "</span>" +

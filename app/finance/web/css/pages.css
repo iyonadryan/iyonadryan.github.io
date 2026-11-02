@@ -357,12 +357,19 @@ button.list-row:hover .item-title {
 }
 
 .tx-table {
-  min-width: 760px; /* kolom tidak terjepit; tabel di-scroll di layar sempit */
+  min-width: 812px; /* kolom tidak terjepit; tabel di-scroll di layar sempit */
+}
+
+.tx-no {
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 13px;
+  text-align: center;
 }
 
 .tx-grid {
   display: grid;
-  grid-template-columns: minmax(0, 2.6fr) minmax(0, 1.3fr) 64px minmax(0, 1.3fr) 124px; /* aksi: buka item nota + edit + hapus */
+  grid-template-columns: 36px minmax(0, 2.6fr) minmax(0, 1.3fr) 64px minmax(0, 1.3fr) 124px; /* no · transaksi · tanggal · oleh · nominal · aksi (buka item nota + edit + hapus) */
   gap: 16px;
   align-items: center;
 }
@@ -1835,7 +1842,7 @@ button.cal-cell:hover:not(.edge) {
 }
 
 .tx-items {
-  margin: 0 12px 8px 66px;
+  margin: 0 12px 8px 118px; /* sejajar judul transaksi (setelah kolom no + tile) */
   padding: 10px 14px;
   border-radius: 12px;
   background: var(--surface2);
