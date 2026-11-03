@@ -1560,10 +1560,11 @@
       alert("Tidak ada data untuk diekspor.");
       return;
     }
-    // Kolom sama dgn template import (+ Kode & Dibuat oleh, diabaikan importer),
+    // Kolom sama dgn template import (+ Kode, Nota, & Dibuat oleh — diabaikan importer),
     // jadi file hasil export bisa diimport lagi.
-    const rows = list.map((t) => ({
+    const txRows = list.map((t) => ({
       Kode: t.kode || "",
+      Nota: t.bentuk === "nota" ? "Y" : "", // Y = nota (banyak item), kosong = satuan/pindah
       Tanggal: t.date,
       Waktu: t.time,
       "Account Type": t.type === "transfer" ? t.dari + " → " + t.ke : t.account_type || "",
@@ -1576,7 +1577,30 @@
         : t.note || "",
       "Dibuat oleh": USERS[t.by] ? USERS[t.by].label : t.by,
     }));
-    FinanceExcel.download("transaksi-" + viewYm() + ".xlsx", "Transaksi", rows);
+    // Biaya admin pindah = baris Pengeluaran tersendiri TEPAT di bawah baris
+    // pindahnya (kode/tanggal/waktu/pembuat sama, account = asal).
+    const rows = [];
+    list.forEach((t, i) => {
+      rows.push(txRows[i]);
+      if (t.type !== "transfer" || !(t.fee > 0)) return;
+      rows.push({
+        Kode: t.kode || "",
+        Nota: "",
+        Tanggal: t.date,
+        Waktu: t.time,
+        "Account Type": t.dari,
+        Tipe: TYPE_LABELS.expense,
+        Kategori: categoryExcelLabel("expense", Core.TRANSFER_FEE_CATEGORY),
+        Nominal: t.fee,
+        Catatan: "Biaya Admin",
+        "Dibuat oleh": USERS[t.by] ? USERS[t.by].label : t.by,
+      });
+    });
+    // Kolom Nota (Y/kosong) rata tengah → ExcelJS (lihat generate-excel.js).
+    FinanceExcel.downloadStyled("transaksi-" + viewYm() + ".xlsx", "Transaksi", rows, { center: ["Nota"] }).catch((err) => {
+      console.error("Gagal export:", err);
+      alert("Gagal membuat file export: " + err.message);
+    });
   });
 
   /* ---------- Edit & hapus transaksi ---------- */

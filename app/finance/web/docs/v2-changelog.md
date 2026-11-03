@@ -41,7 +41,7 @@ Rencana & keputusan lengkap: [`v2-plan.md`](v2-plan.md) · Panduan migrasi: [`mi
 - **Info**: kartu Account Type dan Format Kode Transaksi.
 - **Edit transaksi satuan**: sekarang bisa ubah kategori, jumlah, catatan, waktu, dan dibuat oleh (sebelumnya hanya jumlah & catatan). Penyimpanan memakai update parsial, tidak lagi menimpa seluruh record.
 - **Import Excel**: template punya kolom **Account Type** (dropdown, kosong = bank). Tiap baris jadi transaksi berkode, berurutan sesuai baris. Urutan kolom = Export Excel, jadi file export bisa diimport ulang. Header template menyertakan format ("Tanggal (yyyy-mm-dd)", "Waktu (hh:mm:ss)") dan baris 2 berisi contoh tanggal & waktu saat diunduh (diabaikan kalau tidak ditimpa).
-- **Export Excel**: kolom Kode dan Account Type.
+- **Export Excel**: kolom Kode, **Nota** (Y = nota, kosong = satuan/pindah; antara Kode & Tanggal, rata tengah via ExcelJS). Tepat di bawah tiap baris pindah ber-biaya admin: satu baris Pengeluaran biaya admin (account asal, kategori Lainnya, catatan "Biaya Admin", kode sama dgn pindahnya), dan Account Type. Sama di web mobile.
 - Simpan diblokir dengan pesan jelas kalau sedang offline (kode butuh server).
 - Saldo negatif ditulis "−Rp 45.000".
 

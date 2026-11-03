@@ -2998,10 +2998,11 @@
       alert("Tidak ada data untuk diekspor.");
       return;
     }
-    // Kolom sama persis dgn export desktop (= template import desktop + Kode
+    // Kolom sama persis dgn export desktop (= template import desktop + Kode, Nota
     // & Dibuat oleh), jadi file dari HP bisa diimport ulang lewat desktop.
-    const rows = monthTx.map((t) => ({
+    const txRows = monthTx.map((t) => ({
       Kode: t.kode || "",
+      Nota: t.bentuk === "nota" ? "Y" : "", // Y = nota (banyak item), kosong = satuan/pindah
       Tanggal: t.date,
       Waktu: t.time,
       "Account Type": t.type === "transfer" ? t.dari + " → " + t.ke : t.account_type || "",
@@ -3014,7 +3015,30 @@
         : t.note || "",
       "Dibuat oleh": USERS[t.by] ? USERS[t.by].label : t.by,
     }));
-    FinanceExcel.download("transaksi-" + ym + ".xlsx", "Transaksi " + monthLabelFromYm(ym), rows);
+    // Biaya admin pindah = baris Pengeluaran tersendiri TEPAT di bawah baris
+    // pindahnya (kode/tanggal/waktu/pembuat sama, account = asal).
+    const rows = [];
+    monthTx.forEach((t, i) => {
+      rows.push(txRows[i]);
+      if (t.type !== "transfer" || !(t.fee > 0)) return;
+      rows.push({
+        Kode: t.kode || "",
+        Nota: "",
+        Tanggal: t.date,
+        Waktu: t.time,
+        "Account Type": t.dari,
+        Tipe: TYPE_LABELS.expense,
+        Kategori: findCategory("expense", Core.TRANSFER_FEE_CATEGORY).label + " (keluar)",
+        Nominal: t.fee,
+        Catatan: "Biaya Admin",
+        "Dibuat oleh": USERS[t.by] ? USERS[t.by].label : t.by,
+      });
+    });
+    // Kolom Nota (Y/kosong) rata tengah → ExcelJS (lihat generate-excel.js).
+    FinanceExcel.downloadStyled("transaksi-" + ym + ".xlsx", "Transaksi " + monthLabelFromYm(ym), rows, { center: ["Nota"] }).catch((err) => {
+      console.error("Gagal export:", err);
+      alert("Gagal membuat file export: " + err.message);
+    });
     closeMonthPicker();
   }
 
