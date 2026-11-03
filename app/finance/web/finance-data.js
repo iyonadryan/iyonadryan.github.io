@@ -80,7 +80,7 @@
     // yang dihapus ikut hilang, field lain lewat update biasa.
     function updateNota(ym, id, record) {
       const fields = {};
-      ["judul", "by", "waktu", "items", "penyesuaian", "subtotal", "total_penyesuaian", "nominal", "category", "rincian_kategori"].forEach((k) => {
+      ["judul", "catatan", "by", "waktu", "items", "penyesuaian", "subtotal", "total_penyesuaian", "nominal", "category", "rincian_kategori"].forEach((k) => {
         if (k in record) fields[k] = record[k];
       });
       return update(ym, id, fields);

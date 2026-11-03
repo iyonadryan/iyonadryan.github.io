@@ -1374,7 +1374,8 @@
       '<div class="item-line" style="gap:14px">' + tileHtml(cat, 56) + head + "</div>" +
       '<span class="tx-detail-amount tnum ' + amountClass(tx) + '">' + signedAmount(tx) + "</span>" +
       (isNota
-        ? '<div class="receipt-mini">' + receiptBodyHtml(tx.type, tx.items, tx.penyesuaian, tx.subtotal, tx.amount, tx.rincian, money) + "</div>"
+        ? '<div class="receipt-mini">' + receiptBodyHtml(tx.type, tx.items, tx.penyesuaian, tx.subtotal, tx.amount, tx.rincian, money) + "</div>" +
+          (tx.note ? '<div class="note-box"><span class="overline">Catatan</span><span>' + escapeHtml(tx.note) + "</span></div>" : "")
         : '<div class="note-box"><span class="overline">Catatan</span><span>' + escapeHtml(tx.note || "—") + "</span></div>") +
       '<dl class="dl">' +
       '<dt>Kode</dt><dd class="kode">' + escapeHtml(tx.kode || "—") + "</dd>" +
@@ -1644,6 +1645,8 @@
         Kategori: kategori,
         Nominal: nominal,
         Catatan: catatan,
+        // Catatan milik nota (bukan item) — diulang di tiap baris nota itu.
+        "Catatan Nota": t.bentuk === "nota" ? t.note || "" : "",
         "Dibuat oleh": USERS[t.by] ? USERS[t.by].label : t.by,
       });
     list.forEach((t) => {
@@ -1661,7 +1664,7 @@
         }
       } else {
         // Satuan (atau nota lama yg itemnya hilang → 1 baris sebesar nominal).
-        push(t, t.bentuk === "nota" ? t.title : "", t.account_type || "", TYPE_LABELS[t.type], categoryExcelLabel(t.type, t.category), t.amount, t.note || "");
+        push(t, t.bentuk === "nota" ? t.title : "", t.account_type || "", TYPE_LABELS[t.type], categoryExcelLabel(t.type, t.category), t.amount, t.bentuk === "nota" ? "" : t.note || "");
       }
     });
     FinanceExcel.download("transaksi-" + viewYm() + ".xlsx", "Transaksi", rows);
@@ -3181,6 +3184,7 @@
         showErrors: false,
       };
       $("notaTitle").value = tx.title || "";
+      $("notaNote").value = tx.note || "";
       $("notaDate").value = tx.date;
       $("notaTime").value = tx.time;
     } else {
@@ -3197,6 +3201,7 @@
         showErrors: false,
       };
       $("notaTitle").value = "";
+      $("notaNote").value = "";
       $("notaDate").value = localDateStrOf(now);
       $("notaTime").value = formatTime(now);
     }
@@ -3343,6 +3348,7 @@
       type: nota.type,
       account_type: nota.account,
       judul: $("notaTitle").value,
+      catatan: $("notaNote").value,
       by: nota.by,
       tanggal: $("notaDate").value,
       waktu: /^\d{2}:\d{2}$/.test(raw) ? raw + ":00" : raw,
@@ -3393,6 +3399,7 @@
     return '<div class="receipt-head"><span class="receipt-kicker">NOTA</span>' +
       '<span class="receipt-title">' + escapeHtml($("notaTitle").value.trim() || "Judul nota") + "</span>" +
       '<span class="receipt-meta tnum">' + escapeHtml(meta) + "</span>" +
+      ($("notaNote").value.trim() ? '<span class="receipt-meta">' + escapeHtml($("notaNote").value.trim()) + "</span>" : "") +
       '<span class="receipt-kode">' + escapeHtml(kode) + "</span></div>" +
       '<div class="receipt-cut"></div>' +
       receiptBodyHtml(nota.type, calc.items, calc.penyesuaian, calc.subtotal, calc.nominal, calc.rincian_kategori, formatCurrency);
@@ -3475,6 +3482,7 @@
   }
 
   $("notaTitle").addEventListener("input", markNotaDirty);
+  $("notaNote").addEventListener("input", markNotaDirty);
   $("notaTime").addEventListener("input", markNotaDirty);
   // Ganti tanggal → waktu reset ke awal hari (aturan sama dgn form satuan);
   // bulan kode ikut tanggal.

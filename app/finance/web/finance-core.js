@@ -304,7 +304,7 @@
     };
   }
 
-  // f: { type, account_type, judul, items, penyesuaian, by, tanggal, waktu, timestamp }
+  // f: { type, account_type, judul, catatan, items, penyesuaian, by, tanggal, waktu, timestamp }
   function buildNota(f) {
     const errors = [];
     validateCommon(f, errors);
@@ -321,6 +321,7 @@
         account_type: f.account_type,
         transaksi: typeToFs(f.type),
         judul: String(f.judul || "").trim(),
+        catatan: String(f.catatan || "").trim(),
         by: f.by,
         tanggal: f.tanggal,
         waktu: f.waktu,

@@ -1681,6 +1681,7 @@
         showErrors: false,
       };
       document.getElementById("notaTitle").value = tx.title || "";
+      document.getElementById("notaNote").value = tx.note || "";
       document.getElementById("notaDate").value = tx.date;
       document.getElementById("notaTime").value = tx.time;
     } else {
@@ -1697,6 +1698,7 @@
         showErrors: false,
       };
       document.getElementById("notaTitle").value = "";
+      document.getElementById("notaNote").value = "";
       document.getElementById("notaDate").value = localDateStrOf(now);
       document.getElementById("notaTime").value = formatTime(now, true);
     }
@@ -1816,6 +1818,7 @@
       type: nota.type,
       account_type: nota.account,
       judul: document.getElementById("notaTitle").value,
+      catatan: document.getElementById("notaNote").value,
       by: nota.by,
       tanggal: document.getElementById("notaDate").value,
       waktu: /^\d{2}:\d{2}$/.test(raw) ? raw + ":00" : raw,
@@ -1865,6 +1868,7 @@
   function notaReceiptHtml(calc, kode) {
     const date = document.getElementById("notaDate").value;
     const time = document.getElementById("notaTime").value;
+    const notaNote = document.getElementById("notaNote").value.trim();
     const meta = [date ? formatDateLong(date) : "", time.slice(0, 5), accountLabel(nota.account), USERS[nota.by] ? USERS[nota.by].label : ""]
       .filter(Boolean)
       .join(" · ");
@@ -1890,6 +1894,7 @@
       <p class="receipt-kicker">NOTA</p>
       <p class="receipt-title">${escapeHtml(document.getElementById("notaTitle").value.trim() || "Judul nota")}</p>
       <p class="receipt-sub">${escapeHtml(meta)}</p>
+      ${notaNote ? `<p class="receipt-sub">${escapeHtml(notaNote)}</p>` : ""}
       <p class="receipt-sub kode">${escapeHtml(kode)}</p>
       <div class="receipt-cut"></div>
       ${lines}
@@ -1945,6 +1950,7 @@
   }
 
   document.getElementById("notaTitle").addEventListener("input", markNotaDirty);
+  document.getElementById("notaNote").addEventListener("input", markNotaDirty);
   document.getElementById("notaTime").addEventListener("input", markNotaDirty);
   // Ganti tanggal → waktu reset ke awal hari (aturan sama dgn form satuan);
   // bulan kode ikut tanggal.
@@ -3016,6 +3022,8 @@
         Kategori: kategori,
         Nominal: nominal,
         Catatan: catatan,
+        // Catatan milik nota (bukan item) — diulang di tiap baris nota itu.
+        "Catatan Nota": t.bentuk === "nota" ? t.note || "" : "",
         "Dibuat oleh": USERS[t.by] ? USERS[t.by].label : t.by,
       });
     monthTx.forEach((t) => {
@@ -3032,7 +3040,7 @@
           push(t, t.title, t.account_type || "", TYPE_LABELS[t.type], "", t.totalAdjust, "Penyesuaian: " + adj.join(", "));
         }
       } else {
-        push(t, t.bentuk === "nota" ? t.title : "", t.account_type || "", TYPE_LABELS[t.type], categoryLabel(t.type, t.category), t.amount, t.note || "");
+        push(t, t.bentuk === "nota" ? t.title : "", t.account_type || "", TYPE_LABELS[t.type], categoryLabel(t.type, t.category), t.amount, t.bentuk === "nota" ? "" : t.note || "");
       }
     });
     FinanceExcel.download("transaksi-" + ym + ".xlsx", "Transaksi " + monthLabelFromYm(ym), rows);

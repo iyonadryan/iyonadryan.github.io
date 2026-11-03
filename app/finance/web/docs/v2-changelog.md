@@ -20,6 +20,7 @@ Rencana & keputusan lengkap: [`v2-plan.md`](v2-plan.md) · Panduan migrasi: [`mi
 
 ### Nota (banyak item)
 - Popup Tambah Transaksi → tab Manual punya mode **Satuan | Nota | Pindah**. Mode Nota membuka **halaman Buat Nota** (`#nota`, breadcrumb "Transaksi / Nota Baru").
+- **Catatan** opsional (field `catatan`, sejak 3 Nov 2026), tampil di struk & detail.
 - Item: nama, kategori, qty (boleh desimal), satuan (pilihan `pcs` / `kg` / `liter`; mis. 250 gram ditulis 0.25 kg), harga satuan, subtotal otomatis dibulatkan ke rupiah terdekat (0,25 × Rp 20.139 = 5.034,75 → Rp 5.035).
 - **Penyesuaian**: potongan/biaya Rp atau %, Kurangi/Tambah, tombol cepat (Diskon, Promo, Voucher, Cashback, PPN 11%, Ongkir, Biaya layanan; pemasukan: Pajak, PPh, Biaya admin). Persen dihitung dari subtotal item.
 - **Pratinjau struk** dengan TOTAL DIBAYAR / TOTAL DITERIMA dan rincian per kategori. Muncul peringatan kalau total ≤ 0, daftar error saat simpan, dan konfirmasi saat keluar dengan perubahan belum disimpan.
@@ -44,13 +45,13 @@ Rencana & keputusan lengkap: [`v2-plan.md`](v2-plan.md) · Panduan migrasi: [`mi
 - **Info**: kartu Account Type dan Format Kode Transaksi.
 - **Edit transaksi satuan**: sekarang bisa ubah kategori, jumlah, catatan, waktu, dan dibuat oleh (sebelumnya hanya jumlah & catatan). Penyimpanan memakai update parsial, tidak lagi menimpa seluruh record.
 - **Import Excel**: template punya kolom **Account Type** (dropdown, kosong = bank). Tiap baris jadi transaksi berkode, berurutan sesuai baris. Urutan kolom = Export Excel, jadi file export bisa diimport ulang. Header template menyertakan format ("Tanggal (yyyy-mm-dd)", "Waktu (hh:mm:ss)") dan baris 2 berisi contoh tanggal & waktu saat diunduh (diabaikan kalau tidak ditimpa).
-- **Export Excel**: kolom Kode, **Nota** (judul nota, kosong = satuan/pindah; antara Kode & Tanggal). Nota dipecah: 1 baris per item (kategori & subtotal item) + 1 baris gabungan penyesuaian (nominal bertanda), Σ per kode = total nota. Tepat di bawah tiap baris pindah ber-biaya admin: satu baris Pengeluaran biaya admin (account asal, kategori Lainnya, catatan "Biaya Admin", kode sama dgn pindahnya), dan Account Type. Sama di web mobile.
+- **Export Excel**: kolom Kode, **Nota** (judul nota, kosong = satuan/pindah; antara Kode & Tanggal). Nota dipecah: 1 baris per item (kategori & subtotal item) + 1 baris gabungan penyesuaian (nominal bertanda), Σ per kode = total nota. Kolom **Catatan Nota** (catatan nota, diulang di tiap baris nota). Tepat di bawah tiap baris pindah ber-biaya admin: satu baris Pengeluaran biaya admin (account asal, kategori Lainnya, catatan "Biaya Admin", kode sama dgn pindahnya), dan Account Type. Sama di web mobile.
 - Simpan diblokir dengan pesan jelas kalau sedang offline (kode butuh server).
 - Saldo negatif ditulis "−Rp 45.000".
 
 ## Perubahan data (Firebase `/finance`)
 
-- **Hanya menambah field.** Record lama tidak diubah dan tidak di-re-key. Field baru: `kode`, `account_type`, `bentuk`, `judul`, `items{i1..}`, `penyesuaian{p1..}`, `subtotal`, `total_penyesuaian`, `rincian_kategori`, `dari`, `ke`, `biaya_admin`, plus node `/finance/counters`.
+- **Hanya menambah field.** Record lama tidak diubah dan tidak di-re-key. Field baru: `kode`, `account_type`, `bentuk`, `judul`, `catatan` (nota), `items{i1..}`, `penyesuaian{p1..}`, `subtotal`, `total_penyesuaian`, `rincian_kategori`, `dari`, `ke`, `biaya_admin`, plus node `/finance/counters`.
 - `nominal` selalu total bersih. Nota juga menulis `category` (kategori terbesar) supaya klien lama tetap membaca total & kategori utama.
 - Rules Firebase: hanya ditambah `.indexOn` di `finance/$bulan` (sudah dipublish). **Tidak ada `.validate`** (keputusan user), jadi kode dan field terkunci dijaga di sisi aplikasi desktop.
 - Kalau record berkode kehilangan field V2 (mis. diedit web mobile), desktop **memulihkan kode/account/dari/ke dari key**.
