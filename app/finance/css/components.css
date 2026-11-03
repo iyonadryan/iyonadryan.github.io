@@ -524,3 +524,66 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color: var(--color-text);
 }
+
+/* ---------- Dialog "Start Bulan …" (saldo start bulan baru) ---------- */
+
+.start-dialog {
+  max-width: 380px;
+}
+
+.start-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 14px 0 10px;
+  text-align: left;
+}
+
+.start-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.start-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.start-user img {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.start-row {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.start-row input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+  text-align: right;
+}
+
+.start-note {
+  margin: 0 0 14px !important;
+  font-size: 11px !important;
+}

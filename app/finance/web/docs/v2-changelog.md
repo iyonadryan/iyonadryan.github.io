@@ -36,6 +36,9 @@ Rencana & keputusan lengkap: [`v2-plan.md`](v2-plan.md) · Panduan migrasi: [`mi
 - Pemakaian rencana hanya menghitung transaksi milik target (Both = semua transaksi, siapa pun pembuatnya), tidak ikut mode user yang sedang dilihat.
 - Mode Iyon/Ciwul menampilkan rencana untuk dia + rencana Both. Target bisa diubah dari modal Edit.
 
+### Saldo start bulan baru (3 Nov 2026, desktop & mobile)
+- Awal bulan, kalau user belum punya transaksi di bulan berjalan tapi saldo akhir bulan lalu per account > 0, muncul popup "Start Bulan …" dengan saldo per account (bisa diubah). Start → pemasukan Lainnya "Saldo start bulan ini" per account, tgl 1 jam 00:00:00. Per user (mode Both: Iyon & Ciwul). Lewati → ditawarkan lagi saat halaman dibuka lagi.
+
 ### Halaman lain
 - **Analisis, Statistik Dashboard, Rencana, hitungan Kategori, filter kategori, pencarian** memakai rincian per kategori item nota. Pindah tidak dihitung, kecuali biaya admin.
 - **Info**: kartu Account Type dan Format Kode Transaksi.

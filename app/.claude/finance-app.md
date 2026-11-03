@@ -102,6 +102,14 @@ Upgrade V1 → V2 (account type bank/cash/e_money, kode transaksi sbg key `TB-20
 - **Hardening (Fase 9):** QA otomatis semua halaman/modal × tema × lebar 1440/1024/768/390 di emulator. Perbaikan layar sempit: tooltip grafik dibatasi dalam kotak grafik, preset Analisis `seg-wrap`, baris penyesuaian nota bisa di-scroll (min 620px), tabel Transaksi min-width 760px.
 - **Sisa:** selesaikan V2 di web mobile (lihat bawah) lalu pertimbangkan `--kode`; import "Kode Nota" (ditunda sesuai brief); tombol Hapus di halaman Nota.
 
+### Saldo start bulan baru (desktop & mobile, 3 Nov 2026)
+
+Saat halaman dibuka (data pertama tiba, atau saat ganti/pilih user), `maybeOfferStart()` mengecek **bulan kalender berjalan** (bukan bulan yang sedang dilihat): kalau user **belum punya transaksi sama sekali** di bulan itu tapi saldo akhir **bulan lalu** per account > 0 (`Core.accountBalances` = `summarize` per account, ikut pindah masuk/keluar; saldo ≤ 0 tidak ditawarkan), muncul popup **"Start Bulan <Nama Bulan>"** (`#startModal`; desktop `.modal`, mobile `.confirm-dialog.start-dialog`) berisi input Rp per account yang bisa diubah (kosong/0 = tidak dicatat). **Start** → satu transaksi satuan **pemasukan** per account: kategori `lainnya-masuk`, catatan **"Saldo start bulan ini"**, tanggal **tgl 1 jam 00:00:00**, berkode (`Data.saveNew`, berurutan). Keputusan user:
+- **Per user**: mode Iyon/Ciwul → saldo & transaksi atas nama dia; mode Both → bagian Iyon & Ciwul (masing-masing hanya kalau dia belum punya transaksi bulan ini), dibuat atas nama pemiliknya.
+- **Lewati** → ditawarkan lagi tiap halaman dibuka (selama bulan itu belum ada transaksi). Dalam satu page load tiap user cuma ditawari sekali (`startOffered`).
+- Setelah dicatat bulan itu sudah punya transaksi → tidak ditawarkan lagi di perangkat mana pun (tidak ada node/flag baru di Firebase).
+- Catatan: saldo = hasil **bulan lalu saja** (app menghitung saldo per bulan); kalau bulan lalu tidak di-start, sisa dua bulan lalu tidak ikut — makanya angkanya bisa diedit. Saldo start ikut terhitung sbg **Pemasukan** bulan itu.
+
 ### V2 di web mobile (`app/finance/`), bertahap — mulai 2 Nov 2026
 
 Keputusan user: logika V2 **dipakai bersama** — `index.html` mobile me-load `web/finance-core.js` & `web/finance-data.js` (global `Core`/`Data` di `script.js`), jadi mengubah dua file itu berdampak ke HP & desktop. **Tanpa fitur Analisis**, tanpa fitur extra desktop (pencarian, pagination, import, edit satuan lengkap). Nota nanti = halaman penuh. Dikerjakan per fase, berhenti tiap fase untuk dicek user:

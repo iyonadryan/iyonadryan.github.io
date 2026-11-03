@@ -481,6 +481,14 @@
     return { income, expense, transferIn, transferOut, balance: income - expense + transferIn - transferOut };
   }
 
+  // Saldo akhir tiap account dari sekumpulan record (mis. satu bulan milik satu
+  // user) → { bank, cash, e_money }. Dipakai tawaran "Saldo start bulan ini".
+  function accountBalances(list) {
+    const out = {};
+    ACCOUNT_TYPES.forEach((a) => (out[a] = summarize(list, a).balance));
+    return out;
+  }
+
   // Total per kategori untuk satu tipe ("income"|"expense").
   function totalsByCategory(list, type) {
     const out = {};
@@ -535,6 +543,7 @@
     flowOf,
     categoryAmounts,
     summarize,
+    accountBalances,
     totalsByCategory,
     expenseInCategory,
     compareChrono,

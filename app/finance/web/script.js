@@ -159,6 +159,7 @@
         rebuildFromSnapshot(snapshot.val() || {});
         renderAll();
         hideLoading();
+        maybeOfferStart();
         if (pendingNotaHash) {
           const h = pendingNotaHash;
           pendingNotaHash = null;
@@ -562,6 +563,7 @@
     selectedTxId = null;
     txPage = 1;
     renderAll();
+    maybeOfferStart(); // user lain mungkin belum ditawari di page load ini
   }
 
   function setView(view) {
@@ -3617,6 +3619,96 @@
     if (!requireOnline()) return;
     Data.saveNew(record).catch(reportWriteError("memindahkan saldo"));
     closeModal("txModal");
+  });
+
+  /* ================= Saldo start bulan baru ================= */
+
+  // Saat halaman dibuka: kalau user belum punya transaksi di bulan kalender
+  // berjalan (bukan bulan yang sedang dilihat) tapi saldo akhir bulan lalu per
+  // account > 0, tawarkan mencatatnya sbg pemasukan Lainnya "Saldo start bulan
+  // ini" tgl 1 jam 00:00:00 (satu transaksi per account). Per user; mode Both →
+  // Iyon & Ciwul sekaligus. Ditolak → ditawarkan lagi saat halaman dibuka lagi.
+  // Setelah dicatat, bulan itu sudah punya transaksi → tidak ditawarkan lagi.
+  const START_NOTE = "Saldo start bulan ini";
+  const START_CATEGORY = "lainnya-masuk";
+  const startOffered = new Set(); // user yang sudah ditawari di page load ini
+  let startOffer = null; // { tanggal, groups: [{ by, accounts: [{ id, amount }] }] }
+  let startSaving = false;
+
+  function startOfferFor(by, ym, prevYm) {
+    const mine = transactions.filter((t) => t.by === by);
+    if (mine.some((t) => t.date.slice(0, 7) === ym)) return null;
+    const bal = Core.accountBalances(mine.filter((t) => t.date.slice(0, 7) === prevYm));
+    const accounts = ACCOUNTS.filter((a) => bal[a.id] > 0).map((a) => ({ id: a.id, amount: bal[a.id] }));
+    return accounts.length ? { by, accounts } : null;
+  }
+
+  function maybeOfferStart() {
+    if (!loadingHidden || !currentUser || startSaving) return;
+    const now = new Date();
+    const ym = now.getFullYear() + "-" + pad2(now.getMonth() + 1);
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevYm = prev.getFullYear() + "-" + pad2(prev.getMonth() + 1);
+    const users = (currentUser === "both" ? ["iyon", "ciwul"] : [currentUser]).filter((u) => !startOffered.has(u));
+    users.forEach((u) => startOffered.add(u));
+    const groups = users.map((u) => startOfferFor(u, ym, prevYm)).filter(Boolean);
+    if (!groups.length) return;
+
+    startOffer = { tanggal: ym + "-01", groups };
+    const month = MONTH_NAMES[now.getMonth()];
+    $("startTitle").textContent = "Start Bulan " + month;
+    $("startIntro").textContent = "Bulan ini belum ada transaksi, tapi masih ada sisa saldo " + MONTH_NAMES[prev.getMonth()] + " " + prev.getFullYear() +
+      ". Mulai " + month + " dari saldo ini? Angka bisa disesuaikan kalau ada yang salah (kosongkan = tidak dicatat).";
+    $("startNote").textContent = "Dicatat sebagai pemasukan Lainnya dengan catatan \"" + START_NOTE + "\", tanggal 1 " + month + " " + now.getFullYear() + " jam 00:00:00.";
+    $("startGroups").innerHTML = groups
+      .map((g, gi) =>
+        '<div class="start-group">' +
+        (groups.length > 1 || currentUser === "both" ? '<div class="start-user">' + avatarHtml(g.by, 24) + '<span class="strong">' + escapeHtml(USERS[g.by].label) + "</span></div>" : "") +
+        g.accounts
+          .map((a, ai) => {
+            const acct = ACCOUNT_BY_ID[a.id];
+            return '<label class="start-row"><span class="start-acct"><span aria-hidden="true">' + acct.icon + "</span>" + acct.label + "</span>" +
+              '<span class="money-input"><span>Rp</span><input inputmode="numeric" data-g="' + gi + '" data-a="' + ai + '" value="' + a.amount.toLocaleString("id-ID") + '" aria-label="Saldo start ' + acct.label + " " + escapeHtml(USERS[g.by].label) + '"></span></label>';
+          })
+          .join("") +
+        "</div>"
+      )
+      .join("");
+    $("startGroups").querySelectorAll("input").forEach((inp) => inp.addEventListener("input", () => formatAmountInput(inp)));
+    openModal("startModal");
+  }
+
+  $("startForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!startOffer || startSaving) return;
+    const records = [];
+    $("startGroups").querySelectorAll("input").forEach((inp) => {
+      const g = startOffer.groups[Number(inp.dataset.g)];
+      const a = g.accounts[Number(inp.dataset.a)];
+      const nominal = parseAmount(inp.value);
+      if (!(nominal > 0)) return;
+      const built = Core.buildSatuan({
+        type: "income", account_type: a.id, category: START_CATEGORY, nominal, catatan: START_NOTE,
+        by: g.by, tanggal: startOffer.tanggal, waktu: "00:00:00", timestamp: Date.now(),
+      });
+      if (!built.errors.length) records.push(built.record);
+    });
+    if (!records.length) {
+      closeModal("startModal");
+      return;
+    }
+    if (!requireOnline()) return;
+    startSaving = true;
+    $("startSaveBtn").disabled = true;
+    // Berurutan supaya nomor kode ikut urutan baris.
+    records
+      .reduce((p, rec) => p.then(() => Data.saveNew(rec)), Promise.resolve())
+      .then(() => closeModal("startModal"))
+      .catch(reportWriteError("mencatat saldo start"))
+      .finally(() => {
+        startSaving = false;
+        $("startSaveBtn").disabled = false;
+      });
   });
 
   /* ================= Init ================= */

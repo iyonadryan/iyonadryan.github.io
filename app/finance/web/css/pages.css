@@ -1973,3 +1973,37 @@ button.cal-cell:hover:not(.edge) {
   gap: 10px;
   padding: 0 12px;
 }
+
+/* Modal "Start Bulan …" (saldo start bulan baru): satu grup per user, satu
+   baris per account (label + input Rp). */
+.start-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.start-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.start-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.start-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 0.8fr) minmax(0, 1.6fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.start-acct {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
