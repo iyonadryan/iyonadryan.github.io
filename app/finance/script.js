@@ -3000,47 +3000,42 @@
       alert("Tidak ada data untuk diekspor.");
       return;
     }
-    // Kolom sama persis dgn export desktop (= template import desktop + Kode, Nota
-    // & Dibuat oleh), jadi file dari HP bisa diimport ulang lewat desktop.
-    const txRows = monthTx.map((t) => ({
-      Kode: t.kode || "",
-      Nota: t.bentuk === "nota" ? "Y" : "", // Y = nota (banyak item), kosong = satuan/pindah
-      Tanggal: t.date,
-      Waktu: t.time,
-      "Account Type": t.type === "transfer" ? t.dari + " → " + t.ke : t.account_type || "",
-      Tipe: TYPE_LABELS[t.type],
-      Kategori: t.type === "transfer" ? "" : findCategory(t.type, t.category).label + (t.type === "income" ? " (masuk)" : " (keluar)"),
-      Nominal: t.amount,
-      Catatan:
-        t.bentuk === "nota" ? t.title + " (nota " + t.items.length + " item)"
-        : t.type === "transfer" ? (t.note || "Pindah " + transferRoute(t)) + (t.fee ? " (biaya admin " + t.fee + ")" : "")
-        : t.note || "",
-      "Dibuat oleh": USERS[t.by] ? USERS[t.by].label : t.by,
-    }));
-    // Biaya admin pindah = baris Pengeluaran tersendiri TEPAT di bawah baris
-    // pindahnya (kode/tanggal/waktu/pembuat sama, account = asal).
+    // Kolom & pemecahan baris sama persis dgn export desktop: nota → 1 baris per
+    // item (kolom Nota = judul) + 1 baris gabungan penyesuaian; biaya admin pindah
+    // → baris Pengeluaran tepat di bawah pindahnya.
+    const categoryLabel = (type, id) => findCategory(type, id).label + (type === "income" ? " (masuk)" : " (keluar)");
     const rows = [];
-    monthTx.forEach((t, i) => {
-      rows.push(txRows[i]);
-      if (t.type !== "transfer" || !(t.fee > 0)) return;
+    const push = (t, nota, account, tipe, kategori, nominal, catatan) =>
       rows.push({
         Kode: t.kode || "",
-        Nota: "",
+        Nota: nota,
         Tanggal: t.date,
         Waktu: t.time,
-        "Account Type": t.dari,
-        Tipe: TYPE_LABELS.expense,
-        Kategori: findCategory("expense", Core.TRANSFER_FEE_CATEGORY).label + " (keluar)",
-        Nominal: t.fee,
-        Catatan: "Biaya Admin",
+        "Account Type": account,
+        Tipe: tipe,
+        Kategori: kategori,
+        Nominal: nominal,
+        Catatan: catatan,
         "Dibuat oleh": USERS[t.by] ? USERS[t.by].label : t.by,
       });
+    monthTx.forEach((t) => {
+      if (t.type === "transfer") {
+        push(t, "", t.dari + " → " + t.ke, TYPE_LABELS.transfer, "", t.amount, (t.note || "Pindah " + transferRoute(t)) + (t.fee ? " (biaya admin " + t.fee + ")" : ""));
+        if (t.fee > 0) push(t, "", t.dari, TYPE_LABELS.expense, categoryLabel("expense", Core.TRANSFER_FEE_CATEGORY), t.fee, "Biaya Admin");
+      } else if (t.bentuk === "nota" && t.items.length) {
+        t.items.forEach((it) =>
+          push(t, t.title, t.account_type || "", TYPE_LABELS[t.type], categoryLabel(t.type, it.category), Number(it.subtotal) || 0,
+            it.nama + " · " + [formatQty(it.qty), it.satuan].filter(Boolean).join(" ") + " × " + (Number(it.harga) || 0).toLocaleString("id-ID"))
+        );
+        if (t.penyesuaian.length) {
+          const adj = t.penyesuaian.map((p) => p.label + " " + (p.efek === "tambah" ? "+" : "−") + (Number(p.jumlah) || 0).toLocaleString("id-ID"));
+          push(t, t.title, t.account_type || "", TYPE_LABELS[t.type], "", t.totalAdjust, "Penyesuaian: " + adj.join(", "));
+        }
+      } else {
+        push(t, t.bentuk === "nota" ? t.title : "", t.account_type || "", TYPE_LABELS[t.type], categoryLabel(t.type, t.category), t.amount, t.note || "");
+      }
     });
-    // Kolom Nota (Y/kosong) rata tengah → ExcelJS (lihat generate-excel.js).
-    FinanceExcel.downloadStyled("transaksi-" + ym + ".xlsx", "Transaksi " + monthLabelFromYm(ym), rows, { center: ["Nota"] }).catch((err) => {
-      console.error("Gagal export:", err);
-      alert("Gagal membuat file export: " + err.message);
-    });
+    FinanceExcel.download("transaksi-" + ym + ".xlsx", "Transaksi " + monthLabelFromYm(ym), rows);
     closeMonthPicker();
   }
 
