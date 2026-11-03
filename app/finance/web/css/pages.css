@@ -2036,3 +2036,17 @@ button.cal-cell:hover:not(.edge) {
 .filter-cat-list.exclude .filter-cat-item input {
   accent-color: var(--danger);
 }
+
+/* Modal Filter Transaksi di tengah layar (.modal-center). Kalau layar pendek,
+   daftar kategori yang memendek (tetap bisa di-scroll) — bukan konten yang
+   meluber keluar kotak modal — jadi tombol aksi selalu terlihat. Layar yang
+   sangat pendek: modal sendiri yang di-scroll (overflow .modal-center). */
+.filter-cat-group {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.filter-cat-group .filter-cat-list {
+  flex: 0 1 auto;
+  min-height: 120px;
+}
