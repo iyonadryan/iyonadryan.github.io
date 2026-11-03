@@ -809,7 +809,12 @@
       <div id="filterAcctList" class="filter-acct-list"></div>
     </div>
     <div class="field-group">
-      <span class="overline">Kategori</span>
+      <div class="filter-cat-head">
+        <span class="overline">Kategori</span>
+        <!-- Include = hanya kategori dicentang; Exclude = sembunyikan kategori dicentang. -->
+        <div id="filterCatMode" class="seg seg-sm" role="group" aria-label="Mode filter kategori"></div>
+      </div>
+      <span id="filterCatHint" class="muted small"></span>
       <div id="filterCatList" class="filter-cat-list"></div>
     </div>
     <div class="modal-actions">

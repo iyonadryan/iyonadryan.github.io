@@ -115,6 +115,7 @@
   let txTypeFilter = "all";
   let filterCats = [];
   let filterAccts = []; // filter Account Type (multi) di modal Filter; [] = semua
+  let filterCatMode = "include"; // filterCats: "include" = hanya itu, "exclude" = sembunyikan itu
   let filterFrom = null; // filter rentang hari (angka tanggal) dalam bulan aktif
   let filterTo = null;
   let selectedTxId = null;
@@ -1176,12 +1177,12 @@
         // Account Type: cocok kalau salah satu yang dipilih (pindah: asal atau tujuan).
         if (filterAccts.length && !filterAccts.some((a) => Core.matchesAccount(t, a))) return false;
         if (filterCats.length) {
-          // Nota cocok kalau salah satu kategori item-nya dipilih. Pindah tidak
-          // punya kategori → tidak ikut saat filter kategori aktif.
-          if (t.type === "transfer") return false;
-          const cats = txCategoryIds(t);
-          const hit = cats.some((c) => (categoryExists(t.type, c) ? filterCats.indexOf(c) !== -1 : filterCats.indexOf(UNKNOWN_CATEGORY_ID) !== -1));
-          if (!hit) return false;
+          // Nota "kena" kalau salah satu kategori item-nya dipilih. Pindah tidak
+          // punya kategori → tidak pernah kena (Include: tersembunyi, Exclude:
+          // tetap tampil). Include & Exclude saling melengkapi.
+          const hit = t.type !== "transfer" &&
+            txCategoryIds(t).some((c) => (categoryExists(t.type, c) ? filterCats.indexOf(c) !== -1 : filterCats.indexOf(UNKNOWN_CATEGORY_ID) !== -1));
+          if (filterCatMode === "exclude" ? hit : !hit) return false;
         }
         if (q && txSearchText(t).indexOf(q) === -1) return false;
         return true;
@@ -1487,7 +1488,7 @@
       chips.push(filterFrom && filterTo ? filterFrom + "–" + filterTo + " " + mon : filterFrom ? "Mulai " + filterFrom + " " + mon : "Sampai " + filterTo + " " + mon);
     }
     filterAccts.forEach((id) => chips.push(accountLabel(id)));
-    filterCats.forEach((id) => chips.push(categoryChipLabel(id)));
+    filterCats.forEach((id) => chips.push((filterCatMode === "exclude" ? "Tanpa " : "") + categoryChipLabel(id)));
     chipsEl.innerHTML = '<span class="muted" style="font-weight:600">Filter aktif</span>' +
       chips.map((c) => '<span class="filter-chip">' + escapeHtml(c) + "</span>").join("") +
       '<button type="button" class="link-btn" id="chipResetBtn" style="margin-left:4px">Reset</button>';
@@ -1495,7 +1496,7 @@
   }
 
   function openFilterModal() {
-    filterDraft = { from: filterFrom, to: filterTo, accts: filterAccts.slice(), cats: filterCats.slice() };
+    filterDraft = { from: filterFrom, to: filterTo, accts: filterAccts.slice(), cats: filterCats.slice(), catMode: filterCatMode };
     const nd = daysInMonth(viewDate.getFullYear(), viewDate.getMonth());
     const mon = MONTH_SHORT[viewDate.getMonth()];
     let opts = '<option value="">—</option>';
@@ -1525,7 +1526,23 @@
     );
   }
 
+  function renderFilterCatMode() {
+    const exclude = filterDraft.catMode === "exclude";
+    $("filterCatMode").innerHTML = segTabsHtml([["include", "Include"], ["exclude", "Exclude"]], filterDraft.catMode, "data-catmode");
+    $("filterCatMode").querySelectorAll("[data-catmode]").forEach((b) =>
+      b.addEventListener("click", () => {
+        filterDraft.catMode = b.dataset.catmode;
+        renderFilterCatMode();
+      })
+    );
+    $("filterCatHint").textContent = exclude
+      ? "Sembunyikan transaksi dengan kategori yang dicentang."
+      : "Hanya tampilkan transaksi dengan kategori yang dicentang.";
+    $("filterCatList").classList.toggle("exclude", exclude);
+  }
+
   function renderFilterCats() {
+    renderFilterCatMode();
     const types = txTypeFilter === "all" ? ["expense", "income"] : [txTypeFilter];
     const items = [];
     types.forEach((type) => {
@@ -1560,6 +1577,7 @@
     txTypeFilter = "all";
     filterAccts = [];
     filterCats = [];
+    filterCatMode = "include";
     filterFrom = null;
     filterTo = null;
     txPage = 1;
@@ -1581,6 +1599,7 @@
     filterTo = to;
     filterAccts = ACCOUNTS.map((a) => a.id).filter((id) => filterDraft.accts.indexOf(id) !== -1); // urut Bank → Cash → E-Money
     filterCats = filterDraft.cats.slice();
+    filterCatMode = filterDraft.catMode;
     txPage = 1;
     closeModal("filterModal");
     renderTransactions();

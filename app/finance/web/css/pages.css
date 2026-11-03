@@ -2007,3 +2007,32 @@ button.cal-cell:hover:not(.edge) {
   gap: 8px;
   font-weight: 600;
 }
+
+/* Filter Kategori: judul + toggle Include | Exclude sejajar. Mode Exclude →
+   item dicentang berwarna bahaya (= "dibuang"), bukan accent. */
+.filter-cat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.seg-sm {
+  padding: 3px;
+  border-radius: 10px;
+}
+
+.seg-sm .seg-btn {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.filter-cat-list.exclude .filter-cat-item.checked {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 9%, transparent);
+}
+
+.filter-cat-list.exclude .filter-cat-item input {
+  accent-color: var(--danger);
+}
