@@ -108,6 +108,7 @@
   viewDate.setDate(1); // selalu tgl 1 supaya geser bulan tidak loncat (31 → bulan berikutnya)
   let balanceVisible = false; // tersembunyi tiap buka app (sama spt mobile)
 
+  let txChartMode = "daily"; // grafik halaman Transaksi: "daily" | "cumulative"
   let dashRange = "week"; // grafik Perbandingan Pengeluaran: "week" | "month"
   let acctFilter = "all"; // tab Account Type — dibagi Dashboard & Transaksi
 
@@ -1408,33 +1409,49 @@
     return a ? '<span aria-hidden="true">' + a.icon + "</span> " + a.label : "—";
   }
 
+  // Grafik halaman Transaksi: pengeluaran saja (pemasukan sengaja tidak
+  // ditampilkan), mode "daily" (per hari) atau "cumulative" (total berjalan
+  // sejak tgl 1). Kumulatif bulan berjalan berhenti di hari ini.
   function renderTxChart() {
+    $("txChartModeTabs").innerHTML = segTabsHtml([["daily", "Per hari"], ["cumulative", "Kumulatif"]], txChartMode, "data-chartmode");
+    $("txChartModeTabs").querySelectorAll("[data-chartmode]").forEach((b) =>
+      b.addEventListener("click", () => {
+        txChartMode = b.dataset.chartmode;
+        renderTxChart();
+      })
+    );
     const y = viewDate.getFullYear(), m = viewDate.getMonth();
     const nd = daysInMonth(y, m);
-    const inc = new Array(nd).fill(0), exp = new Array(nd).fill(0);
+    const exp = new Array(nd).fill(0);
     const ym = viewYm();
     flowTransactions(scopedTransactions()).forEach((t) => {
       if (ymOf(t.date) !== ym) return;
       const i = Number(t.date.slice(8, 10)) - 1;
       if (i < 0 || i >= nd) return;
-      const f = Core.flowOf(t);
-      inc[i] += f.income;
-      exp[i] += f.expense;
+      exp[i] += Core.flowOf(t).expense;
     });
-    $("txChartSub").textContent = "Per hari, " + monthLabel(viewDate);
     const today = todayStr();
+    const isThisMonth = ymOf(today) === ym;
+    const lastIdx = isThisMonth ? Number(today.slice(8)) - 1 : nd - 1;
     const dateOf = (i) => ym + "-" + pad2(i + 1);
+
+    const cumulative = txChartMode === "cumulative";
+    let run = 0;
+    const cum = exp.map((v) => (run += v)).slice(0, lastIdx + 1);
+    $("txChartSub").textContent = (cumulative ? "Kumulatif, " : "Per hari, ") + monthLabel(viewDate);
+    $("txChartLegend").textContent = cumulative ? "Total pengeluaran berjalan" : "Pengeluaran per hari";
 
     renderLineChart($("txChart"), {
       n: nd,
-      label: "Grafik pemasukan dan pengeluaran per hari bulan ini",
-      series: [
-        { values: exp, color: "var(--exp)", width: 2.5, dash: "1 6", dotR: 3 },
-        { values: inc, color: "var(--inc)", width: 3, area: 0.26, dotR: 3 },
-      ],
-      hover: ymOf(today) === ym ? Number(today.slice(8)) - 1 : nd - 1,
+      label: cumulative ? "Grafik total pengeluaran berjalan bulan ini" : "Grafik pengeluaran per hari bulan ini",
+      series: [{ values: cumulative ? cum : exp, color: "var(--exp)", width: 3, area: 0.26, dotR: 3 }],
+      hover: lastIdx,
       hitLabel: (i) => "Lihat detail " + shortDate(dateOf(i)),
-      tip: (i) => tipHtml(shortDateYear(dateOf(i)), [{ text: "Pemasukan " + money(inc[i]) }, { text: "Pengeluaran " + money(exp[i]) }]),
+      tip: (i) => {
+        if (!cumulative) return tipHtml(shortDateYear(dateOf(i)), [{ text: "Pengeluaran " + money(exp[i]) }]);
+        if (i > lastIdx) return tipHtml(shortDateYear(dateOf(i)), [{ text: "Belum berjalan" }]);
+        return tipHtml(shortDateYear(dateOf(i)), [{ text: "Total s/d tanggal ini " + money(cum[i]) }, { text: "Hari itu " + money(exp[i]), dim: true }]);
+      },
       xLabel: (i) => {
         const label = i === 0 ? shortDate(dateOf(0)) : (i + 1) % 5 === 0 || i === nd - 1 ? String(i + 1) : "";
         return label ? '<div class="chart-xl-main">' + label + "</div>" : "";

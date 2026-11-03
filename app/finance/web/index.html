@@ -178,14 +178,16 @@
     <section id="view-transactions" class="view" hidden>
       <div id="txAcctTabs" class="acct-tabs" role="tablist" aria-label="Account type"></div>
       <section class="card card-chart">
-        <div class="card-title">
-          <h2>Pemasukan vs Pengeluaran</h2>
-          <span id="txChartSub" class="muted"></span>
+        <div class="card-head">
+          <div class="card-title">
+            <h2>Pengeluaran</h2>
+            <span id="txChartSub" class="muted"></span>
+          </div>
+          <div id="txChartModeTabs" class="seg" role="group" aria-label="Tampilan grafik"></div>
         </div>
         <div id="txChart" class="chart"></div>
         <div class="chart-legend">
-          <span><span class="legend-line" style="border-top-color:var(--inc)"></span>Pemasukan</span>
-          <span><span class="legend-line legend-dotted" style="border-top-color:var(--exp)"></span>Pengeluaran</span>
+          <span><span class="legend-line" style="border-top-color:var(--exp)"></span><span id="txChartLegend">Pengeluaran per hari</span></span>
         </div>
       </section>
 
