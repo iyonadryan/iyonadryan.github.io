@@ -804,9 +804,19 @@
         </div>
       </div>
     </div>
+    <!-- Account Type tidak di sini — sudah ada tab account di atas grafik. -->
     <div class="field-group">
-      <span class="overline">Account Type</span>
-      <div id="filterAcctList" class="filter-acct-list"></div>
+      <span class="overline">Rentang nominal</span>
+      <div class="field-row">
+        <div class="field">
+          <label for="filterMin" class="label-muted">Minimal</label>
+          <div class="money-input"><span>Rp</span><input id="filterMin" inputmode="numeric" placeholder="0" autocomplete="off"></div>
+        </div>
+        <div class="field">
+          <label for="filterMax" class="label-muted">Maksimal</label>
+          <div class="money-input"><span>Rp</span><input id="filterMax" inputmode="numeric" placeholder="Tanpa batas" autocomplete="off"></div>
+        </div>
+      </div>
     </div>
     <div class="field-group filter-cat-group">
       <div class="filter-cat-head">

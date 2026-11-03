@@ -1960,20 +1960,6 @@ button.cal-cell:hover:not(.edge) {
   margin: 0;
 }
 
-/* Filter Transaksi — pilihan Account Type (multi), 3 kolom sejajar; item
-   memakai gaya .filter-cat-item yang sama (lebih rendah). */
-.filter-acct-list {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.filter-acct-list .filter-cat-item {
-  height: 48px;
-  gap: 10px;
-  padding: 0 12px;
-}
-
 /* Modal "Start Bulan …" (saldo start bulan baru): satu grup per user, satu
    baris per account (label + input Rp). */
 .start-groups {

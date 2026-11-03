@@ -114,7 +114,8 @@
 
   let txTypeFilter = "all";
   let filterCats = [];
-  let filterAccts = []; // filter Account Type (multi) di modal Filter; [] = semua
+  let filterMin = null; // filter rentang nominal (Rp, nominal transaksi); null = tanpa batas
+  let filterMax = null;
   let filterCatMode = "include"; // filterCats: "include" = hanya itu, "exclude" = sembunyikan itu
   let filterFrom = null; // filter rentang hari (angka tanggal) dalam bulan aktif
   let filterTo = null;
@@ -1174,8 +1175,9 @@
         const day = Number(t.date.slice(8, 10));
         if (filterFrom && day < filterFrom) return false;
         if (filterTo && day > filterTo) return false;
-        // Account Type: cocok kalau salah satu yang dipilih (pindah: asal atau tujuan).
-        if (filterAccts.length && !filterAccts.some((a) => Core.matchesAccount(t, a))) return false;
+        // Rentang nominal (inklusif): nominal transaksi = total nota / jumlah pindah.
+        if (filterMin !== null && t.amount < filterMin) return false;
+        if (filterMax !== null && t.amount > filterMax) return false;
         if (filterCats.length) {
           // Nota "kena" kalau salah satu kategori item-nya dipilih. Pindah tidak
           // punya kategori → tidak pernah kena (Include: tersembunyi, Exclude:
@@ -1474,7 +1476,8 @@
 
   function renderFilterState() {
     const hasDate = !!(filterFrom || filterTo);
-    const count = (hasDate ? 1 : 0) + (filterAccts.length ? 1 : 0) + (filterCats.length ? 1 : 0);
+    const hasAmount = filterMin !== null || filterMax !== null;
+    const count = (hasDate ? 1 : 0) + (hasAmount ? 1 : 0) + (filterCats.length ? 1 : 0);
     $("filterBtn").classList.toggle("active", count > 0);
     $("filterCount").hidden = count === 0;
     $("filterCount").textContent = count;
@@ -1487,7 +1490,10 @@
     if (hasDate) {
       chips.push(filterFrom && filterTo ? filterFrom + "–" + filterTo + " " + mon : filterFrom ? "Mulai " + filterFrom + " " + mon : "Sampai " + filterTo + " " + mon);
     }
-    filterAccts.forEach((id) => chips.push(accountLabel(id)));
+    if (hasAmount) {
+      chips.push(filterMin !== null && filterMax !== null ? formatCurrency(filterMin) + " – " + formatCurrency(filterMax)
+        : filterMin !== null ? "≥ " + formatCurrency(filterMin) : "≤ " + formatCurrency(filterMax));
+    }
     filterCats.forEach((id) => chips.push((filterCatMode === "exclude" ? "Tanpa " : "") + categoryChipLabel(id)));
     chipsEl.innerHTML = '<span class="muted" style="font-weight:600">Filter aktif</span>' +
       chips.map((c) => '<span class="filter-chip">' + escapeHtml(c) + "</span>").join("") +
@@ -1496,7 +1502,7 @@
   }
 
   function openFilterModal() {
-    filterDraft = { from: filterFrom, to: filterTo, accts: filterAccts.slice(), cats: filterCats.slice(), catMode: filterCatMode };
+    filterDraft = { from: filterFrom, to: filterTo, cats: filterCats.slice(), catMode: filterCatMode };
     const nd = daysInMonth(viewDate.getFullYear(), viewDate.getMonth());
     const mon = MONTH_SHORT[viewDate.getMonth()];
     let opts = '<option value="">—</option>';
@@ -1505,26 +1511,17 @@
     $("filterTo").innerHTML = opts;
     $("filterFrom").value = filterDraft.from ? String(filterDraft.from) : "";
     $("filterTo").value = filterDraft.to ? String(filterDraft.to) : "";
-    renderFilterAccts();
+    $("filterMin").value = filterMin !== null ? filterMin.toLocaleString("id-ID") : "";
+    $("filterMax").value = filterMax !== null ? filterMax.toLocaleString("id-ID") : "";
     renderFilterCats();
     openModal("filterModal");
   }
 
-  // Pilihan Account Type (boleh lebih dari satu), gaya sama dgn item kategori.
-  function renderFilterAccts() {
-    $("filterAcctList").innerHTML = ACCOUNTS.map((a) => {
-      const on = filterDraft.accts.indexOf(a.id) !== -1;
-      return '<label class="filter-cat-item' + (on ? " checked" : "") + '">' +
-        '<input type="checkbox" value="' + a.id + '"' + (on ? " checked" : "") + ">" +
-        '<span aria-hidden="true">' + a.icon + '</span><span class="strong">' + a.label + "</span></label>";
-    }).join("");
-    $("filterAcctList").querySelectorAll("input").forEach((cb) =>
-      cb.addEventListener("change", () => {
-        filterDraft.accts = cb.checked ? filterDraft.accts.concat([cb.value]) : filterDraft.accts.filter((x) => x !== cb.value);
-        cb.closest(".filter-cat-item").classList.toggle("checked", cb.checked);
-      })
-    );
-  }
+  ["filterMin", "filterMax"].forEach((id) =>
+    $(id).addEventListener("input", function () {
+      formatAmountInput(this);
+    })
+  );
 
   function renderFilterCatMode() {
     const exclude = filterDraft.catMode === "exclude";
@@ -1575,7 +1572,8 @@
 
   function resetFilter() {
     txTypeFilter = "all";
-    filterAccts = [];
+    filterMin = null;
+    filterMax = null;
     filterCats = [];
     filterCatMode = "include";
     filterFrom = null;
@@ -1597,7 +1595,16 @@
     }
     filterFrom = from;
     filterTo = to;
-    filterAccts = ACCOUNTS.map((a) => a.id).filter((id) => filterDraft.accts.indexOf(id) !== -1); // urut Bank → Cash → E-Money
+    // Kosong = tanpa batas; minimal > maksimal → ditukar (sama dgn tanggal).
+    let min = $("filterMin").value.trim() ? parseAmount($("filterMin").value) : null;
+    let max = $("filterMax").value.trim() ? parseAmount($("filterMax").value) : null;
+    if (min !== null && max !== null && min > max) {
+      const x = min;
+      min = max;
+      max = x;
+    }
+    filterMin = min;
+    filterMax = max;
     filterCats = filterDraft.cats.slice();
     filterCatMode = filterDraft.catMode;
     txPage = 1;
