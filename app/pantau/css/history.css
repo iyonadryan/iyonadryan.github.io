@@ -1,0 +1,19 @@
+/* =========================================================
+   Pantau App — history.css
+   Halaman Riwayat: catatan lintas item, dikelompokkan per
+   tanggal (label grup). Kartu catatannya sendiri pakai
+   .record-item dari analysis.css.
+   ========================================================= */
+
+.history-group-label {
+  margin: 18px 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.history-group-label:first-child {
+  margin-top: 0;
+}

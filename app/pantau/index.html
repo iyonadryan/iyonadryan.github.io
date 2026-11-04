@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0284c7">
+<title>Pantau App</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/forms.css">
+<link rel="stylesheet" href="css/dashboard.css">
+<link rel="stylesheet" href="css/analysis.css">
+<link rel="stylesheet" href="css/history.css">
+<link rel="stylesheet" href="css/settings.css">
+
+<!-- Firebase (compat SDK) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAzjLIkaqXKZ4L1xJe7U-vx8t1ITkNGt08",
+    authDomain: "iyon-adryanlf-trialerror.firebaseapp.com",
+    databaseURL: "https://iyon-adryanlf-trialerror.firebaseio.com",
+    projectId: "iyon-adryanlf-trialerror",
+    storageBucket: "iyon-adryanlf-trialerror.firebasestorage.app",
+    messagingSenderId: "519669963248",
+    appId: "1:519669963248:web:feab50008d27c2a7226535",
+    measurementId: "G-4MFLB4B68F"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  // Root data : /pantau
+  const PANTAU_PATH = "pantau";
+</script>
+</head>
+<body>
+
+<!-- Loading overlay saat menghubungkan ke Firebase -->
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="loading-icons">
+    <span>📈</span>
+    <span>⚡</span>
+    <span>💧</span>
+  </div>
+  <p class="loading-text">Menghubungkan ke server…</p>
+</div>
+
+<div class="app-shell">
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-top">
+      <div class="brand">
+        <span class="brand-logo">📈</span>
+        <h1>Pantau App</h1>
+      </div>
+      <button id="themeToggle" class="icon-btn" title="Ganti tema" aria-label="Ganti tema">🌙</button>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- ===================== BERANDA ===================== -->
+    <section id="home" class="page active">
+      <div class="section-heading">
+        <h3>Yang Dipantau</h3>
+        <a href="#" id="addItemLink">+ Item Baru</a>
+      </div>
+      <div id="itemCards" class="item-card-list"></div>
+    </section>
+
+    <!-- ===================== ANALISIS ===================== -->
+    <section id="analysis" class="page">
+      <div class="page-header">
+        <h2>Analisis</h2>
+      </div>
+      <div id="analysisChips" class="chip-row"></div>
+      <div id="analysisBody"></div>
+    </section>
+
+    <!-- ===================== RIWAYAT ===================== -->
+    <section id="history" class="page">
+      <div class="page-header">
+        <h2>Riwayat</h2>
+      </div>
+      <div id="historyChips" class="chip-row"></div>
+      <div id="historyList"></div>
+    </section>
+
+    <!-- ===================== PENGATURAN ===================== -->
+    <section id="settings" class="page">
+      <div class="page-header">
+        <h2>Pengaturan</h2>
+      </div>
+
+      <div class="settings-list">
+        <div class="settings-item">
+          <div>
+            <p class="settings-title">Mode Tampilan</p>
+            <p class="settings-desc">Terang atau gelap</p>
+          </div>
+          <button id="settingsThemeToggle" class="btn-secondary">Ganti Tema</button>
+        </div>
+
+        <div class="settings-item">
+          <div>
+            <p class="settings-title">Semua Aplikasi</p>
+            <p class="settings-desc">Lihat daftar aplikasi lainnya</p>
+          </div>
+          <a class="btn-secondary btn-hub" href="../index.html">Iyon App</a>
+        </div>
+
+        <div class="settings-item settings-info">
+          <div>
+            <p class="settings-title">Cara Hitung</p>
+            <p class="settings-desc">Pemakaian = selisih antar dua catatan, lalu dibagi rata ke rentang waktu di antaranya (mis. catatan Senin 20:00 &rarr; Rabu 08:00 dibagi ke Senin, Selasa, & Rabu sesuai jamnya). Makin sering mencatat, makin akurat analisis per hari &amp; per waktu. Untuk item jenis <strong>Sisa</strong>, kalau barusan isi ulang (beli token), isi kolom &ldquo;Isi ulang&rdquo; supaya pemakaiannya tetap terhitung.</p>
+          </div>
+        </div>
+
+        <div class="settings-item settings-info">
+          <div>
+            <p class="settings-title">Tentang</p>
+            <p class="settings-desc">Pantau App v0.1 &middot; Data tersinkronisasi otomatis ke cloud (Firebase) &mdash; item &amp; catatan tersimpan di server dan langsung update di semua perangkat. Preferensi tema disimpan di perangkat ini.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="bottom-nav">
+    <button data-nav="home" class="nav-item active">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-text">Beranda</span>
+    </button>
+    <button data-nav="analysis" class="nav-item">
+      <span class="nav-icon">📊</span>
+      <span class="nav-text">Analisis</span>
+    </button>
+    <button id="navAdd" class="nav-add" aria-label="Catat">+</button>
+    <button data-nav="history" class="nav-item">
+      <span class="nav-icon">📜</span>
+      <span class="nav-text">Riwayat</span>
+    </button>
+    <button data-nav="settings" class="nav-item">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-text">Pengaturan</span>
+    </button>
+  </nav>
+
+  <!-- ===================== MODAL: TAMBAH/UBAH ITEM ===================== -->
+  <div id="itemModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h3 id="itemModalTitle">Item Baru</h3>
+
+      <form id="itemForm">
+        <label class="field">
+          <span>Nama Item</span>
+          <input type="text" id="itemNameInput" placeholder="mis. Token Listrik" required autocomplete="off">
+        </label>
+
+        <div class="field">
+          <span>Ikon</span>
+          <div id="itemIconPicker" class="icon-picker"></div>
+        </div>
+
+        <label class="field">
+          <span>Satuan</span>
+          <input type="text" id="itemUnitInput" placeholder="mis. kWh, GB, liter, m³, kg" autocomplete="off" maxlength="12">
+        </label>
+
+        <div class="field">
+          <span>Jenis</span>
+          <div class="type-options">
+            <label class="type-option">
+              <input type="radio" name="itemType" value="sisa" checked>
+              <div>
+                <strong>Sisa</strong>
+                <small>Angkanya berkurang &amp; sesekali diisi ulang. Cocok utk token listrik, kuota internet, gas, galon.</small>
+              </div>
+            </label>
+            <label class="type-option">
+              <input type="radio" name="itemType" value="meteran">
+              <div>
+                <strong>Meteran</strong>
+                <small>Angkanya naik terus. Cocok utk meteran air PDAM, kilometer motor/mobil.</small>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="cancelItemBtn">Batal</button>
+          <button type="submit" class="btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: CATAT / UBAH CATATAN ===================== -->
+  <div id="recordModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h3 id="recordModalTitle">Catat</h3>
+
+      <form id="recordForm">
+        <label class="field">
+          <span>Item</span>
+          <select id="recordItemInput"></select>
+        </label>
+
+        <div class="field-row">
+          <label class="field">
+            <span>Tanggal</span>
+            <input type="date" id="recordDateInput" required>
+          </label>
+          <label class="field">
+            <span>Jam <button type="button" class="now-btn" id="recordNowBtn">Sekarang</button></span>
+            <input type="time" id="recordTimeInput" required>
+          </label>
+        </div>
+
+        <label class="field">
+          <span id="recordValueLabel">Sisa saat ini</span>
+          <input type="text" id="recordValueInput" inputmode="decimal" placeholder="mis. 45,6" required autocomplete="off">
+        </label>
+
+        <label class="field" id="recordTopupField">
+          <span id="recordTopupLabel">Isi ulang (opsional)</span>
+          <input type="text" id="recordTopupInput" inputmode="decimal" placeholder="0" autocomplete="off">
+          <small class="field-hint">Kalau barusan beli/isi ulang, tulis berapa yang masuk. Kosongkan kalau tidak.</small>
+        </label>
+
+        <p id="recordPreview" class="record-preview" hidden></p>
+
+        <label class="field">
+          <span>Catatan (opsional)</span>
+          <input type="text" id="recordNoteInput" placeholder="mis. beli token 100rb" autocomplete="off">
+        </label>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-danger-solid" id="deleteRecordBtn" hidden>Hapus</button>
+          <button type="button" class="btn-secondary" id="cancelRecordBtn">Batal</button>
+          <button type="submit" class="btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: DELETE CONFIRMATION ===================== -->
+  <div id="confirmModal" class="modal-overlay confirm-overlay">
+    <div class="confirm-dialog">
+      <div class="confirm-icon">🗑️</div>
+      <h3 id="confirmTitle">Hapus?</h3>
+      <p id="confirmText">Apakah Anda yakin? Tindakan ini tidak dapat dibatalkan.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="cancelDeleteBtn">Batal</button>
+        <button type="button" class="btn-danger-solid" id="confirmDeleteBtn">Ya, Hapus</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

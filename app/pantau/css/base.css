@@ -1,0 +1,339 @@
+/* =========================================================
+   Pantau App — Mobile-first styles
+   base.css: variabel tema, reset global, loading overlay, app
+   shell, header, page shell. Dipakai di semua halaman — dimuat
+   pertama sebelum css/* lainnya.
+   ========================================================= */
+
+:root {
+  /* Surfaces */
+  --color-bg: #f1f7fb;
+  --color-surface: #ffffff;
+  --color-surface-alt: #e6f1f8;
+  --color-border: #d4e6f1;
+
+  /* Text */
+  --color-text: #0f2230;
+  --color-text-muted: #5f7a8c;
+
+  /* Brand / primary accent — biru "listrik" (sky) */
+  --color-primary: #0284c7;
+  --color-primary-dark: #075985;
+
+  /* Brand gradient (dipakai .btn-primary, .icon-btn.accent, .nav-add) */
+  --gradient-start: var(--color-primary-dark);
+  --gradient-mid: var(--color-primary);
+  --gradient-end: var(--color-primary-dark);
+  --gradient-primary: linear-gradient(to right, var(--gradient-start) 0%, var(--gradient-mid) 51%, var(--gradient-end) 100%);
+  --shadow-btn-grad: 0 4px 16px rgba(2, 132, 199, 0.35);
+
+  --gradient-fab: var(--gradient-primary);
+  --fab-bg-size: 200% auto;
+
+  /* Card gradient (kartu item di Beranda) */
+  --gradient-card: linear-gradient(145deg, #0ea5e9, #075985);
+
+  /* Bar chart (Analisis) — satu hue (single series), ikut primary */
+  --chart-bar: var(--color-primary);
+  --chart-bar-active: var(--color-primary-dark);
+  --chart-grid: #c9dcea;
+
+  /* Semantic — peringatan (nilai tidak wajar, hampir habis) */
+  --color-warning: #b45309;
+  --color-warning-bg: #fef3c7;
+  --color-negative: #dc2626;
+  --color-negative-bg: #fdeaea;
+  --color-positive: #16a34a;
+  --color-positive-bg: #e8f8ee;
+
+  /* Shadows */
+  --shadow-card: 0 8px 24px rgba(15, 34, 48, 0.08);
+  --shadow-fab: 0 10px 20px rgba(2, 132, 199, 0.35);
+
+  /* Layout */
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --nav-height: 64px;
+  --header-height: 60px;
+}
+
+[data-theme="dark"] {
+  /* Surfaces */
+  --color-bg: #0e1920;
+  --color-surface: #14232c;
+  --color-surface-alt: #1a2c37;
+  --color-border: #263b48;
+
+  /* Text */
+  --color-text: #e8f2f8;
+  --color-text-muted: #8aa5b5;
+
+  /* Brand / primary accent */
+  --color-primary: #38bdf8;
+  --color-primary-dark: #0369a1;
+
+  --gradient-start: #0369a1;
+  --gradient-mid: #38bdf8;
+  --gradient-end: #0369a1;
+  --gradient-primary: linear-gradient(to right, var(--gradient-start) 0%, var(--gradient-mid) 51%, var(--gradient-end) 100%);
+  --shadow-btn-grad: 0 4px 16px rgba(3, 105, 161, 0.5);
+
+  --gradient-fab: var(--gradient-primary);
+  --fab-bg-size: 200% auto;
+
+  --gradient-card: linear-gradient(145deg, #0284c7, #0c3a57);
+
+  --chart-bar: #38bdf8;
+  --chart-bar-active: #7dd3fc;
+  --chart-grid: #2b4352;
+
+  --color-warning: #fbbf24;
+  --color-warning-bg: rgba(251, 191, 36, 0.12);
+  --color-negative: #f87171;
+  --color-negative-bg: rgba(248, 113, 113, 0.12);
+  --color-positive: #34d17c;
+  --color-positive-bg: rgba(52, 209, 124, 0.12);
+
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-fab: 0 10px 24px rgba(56, 189, 248, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  color: inherit;
+}
+
+/* ---------- Loading overlay (koneksi Firebase) ---------- */
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: var(--color-bg);
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+.loading-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.loading-icons {
+  display: flex;
+  gap: 14px;
+  font-size: 36px;
+  line-height: 1;
+}
+
+.loading-icons span {
+  display: inline-block;
+  animation: iconBounce 0.9s ease-in-out infinite;
+}
+
+.loading-icons span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.loading-icons span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes iconBounce {
+  0%, 100% {
+    transform: translateY(6px);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(-14px);
+    opacity: 1;
+  }
+}
+
+.loading-text {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-icons span {
+    animation-duration: 1.6s;
+  }
+}
+
+/* ---------- App shell (mobile screen simulation) ---------- */
+
+.app-shell {
+  position: relative;
+  max-width: 480px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background: var(--color-bg);
+  overflow-x: hidden;
+}
+
+@media (min-width: 481px) {
+  body {
+    background: var(--color-surface-alt);
+  }
+  .app-shell {
+    min-height: 100vh;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* ---------- Header ---------- */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--color-bg);
+  padding: env(safe-area-inset-top) 20px 8px;
+  border-bottom: 1px solid transparent;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-height);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-logo {
+  font-size: 22px;
+}
+
+.brand h1 {
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* ---------- Main / pages ---------- */
+
+.app-main {
+  padding: 4px 20px calc(var(--nav-height) + 28px);
+}
+
+.page {
+  display: none;
+  animation: fadeIn 0.2s ease;
+}
+
+.page.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 0 16px;
+}
+
+.page-header h2 {
+  font-size: 22px;
+  margin: 0;
+}
+
+/* ---------- Section heading (dipakai lintas halaman) ---------- */
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 20px 0 10px;
+}
+
+.section-heading h3 {
+  font-size: 15px;
+  margin: 0;
+}
+
+.section-heading a {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+/* ---------- Chip selector (pilih item: Analisis & filter Riwayat) ---------- */
+
+.chip-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 14px;
+  scrollbar-width: none;
+}
+
+.chip-row[hidden] {
+  display: none;
+}
+
+.chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  flex: 0 0 auto;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chip.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+[data-theme="dark"] .chip.active {
+  color: #06202e;
+}

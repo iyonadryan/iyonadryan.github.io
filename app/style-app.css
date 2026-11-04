@@ -172,6 +172,7 @@ main {
 .app-icon.patungan { background: linear-gradient(135deg, #fb7185, #e11d48); }
 .app-icon.note { background: linear-gradient(135deg, #fbbf24, #d97706); }
 .app-icon.wishlist { background: linear-gradient(135deg, #e879f9, #c026d3); }
+.app-icon.pantau { background: linear-gradient(135deg, #38bdf8, #0284c7); }
 
 .app-info { flex: 1; min-width: 0; }
 

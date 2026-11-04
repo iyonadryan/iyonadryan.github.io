@@ -1,0 +1,186 @@
+/* =========================================================
+   Pantau App — dashboard.css
+   Beranda: kartu item (gradient, satu per item yang dipantau)
+   berisi estimasi sisa/angka sekarang + tombol Catat cepat,
+   dan empty state "mulai pantau token listrik".
+   ========================================================= */
+
+.item-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.item-card {
+  position: relative;
+  background: var(--gradient-card);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: 18px 18px 16px;
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+}
+
+.item-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.item-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.item-card-name {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.item-card-name small {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.item-card-catat {
+  flex-shrink: 0;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: #fff;
+  color: #075985;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.item-card-main {
+  margin: 16px 0 2px;
+}
+
+.item-card-label {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.item-card-value {
+  margin: 2px 0 0;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.item-card-value small {
+  font-size: 15px;
+  font-weight: 600;
+  opacity: 0.85;
+  margin-left: 4px;
+}
+
+.item-card-sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.item-card-sub.warn {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.95);
+  color: #b45309;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.item-card-stats {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.item-card-stat {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.item-card-stat strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-card-stat span {
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.item-card-hint {
+  margin: 14px 0 0;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  line-height: 1.45;
+}
+
+/* ---------- Empty state (belum ada item) ---------- */
+
+.welcome-card {
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 26px 20px;
+  text-align: center;
+}
+
+.welcome-card .welcome-icon {
+  font-size: 40px;
+}
+
+.welcome-card h3 {
+  margin: 8px 0 6px;
+  font-size: 17px;
+}
+
+.welcome-card p {
+  margin: 0 0 18px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.welcome-card .btn-primary {
+  width: 100%;
+}
+
+.welcome-card .link-btn {
+  margin-top: 12px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px;
+}

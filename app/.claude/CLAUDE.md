@@ -1,6 +1,6 @@
 # Iyon App (hub)
 
-`app/index.html` — halaman prototype yang mengumpulkan link ke aplikasi web/mobile yang dibuat (bukan project showcase biasa seperti di `index.html` utama di root repo, tapi khusus app "beneran" yang dipakai sehari-hari: Kitchen App, Finance App, Routine App, Patungan App, Note App, Wishlist App, dst).
+`app/index.html` — halaman prototype yang mengumpulkan link ke aplikasi web/mobile yang dibuat (bukan project showcase biasa seperti di `index.html` utama di root repo, tapi khusus app "beneran" yang dipakai sehari-hari: Kitchen App, Finance App, Routine App, Patungan App, Note App, Wishlist App, Pantau App, dst).
 
 ## Status saat ini
 
@@ -25,6 +25,7 @@ iyonadryan.github.io/
       patungan-app.md      # dulu patungan/.claude/CLAUDE.md
       note-app.md          # dulu note/.claude/CLAUDE.md
       wishlist-app.md      # app baru, langsung dibuat di sini sejak awal (bukan pindahan)
+      pantau-app.md        # app baru (Nov 2026), langsung dibuat di sini
     kitchen/
     finance/             # Web Mobile
       web/               # Web Desktop Finance (data Firebase sama) — lihat finance-app.md "Versi Web Desktop"
@@ -32,6 +33,7 @@ iyonadryan.github.io/
     patungan/
     note/
     wishlist/
+    pantau/              # track record token listrik & kebutuhan rumah (Nov 2026)
   index.html             # portfolio utama, TIDAK terhubung ke app/ (lihat TODO)
   webimg/, trialerror/, wedding/, dst.  # project portfolio lama, tidak berubah
 ```
@@ -39,7 +41,7 @@ iyonadryan.github.io/
 Karena semua app tetap **sejajar sebagai anak langsung `app/`** (cuma pindah satu level lebih dalam bareng-bareng), link antar mereka **tidak berubah** — `kitchen/index.html`, `finance/index.html`, dst di `app/index.html` tetap relatif apa adanya. Yang berubah:
 - Tiap app's tombol "Semua Aplikasi" di Pengaturan: `../app.html` → **`../index.html`** (nama file hub berubah, tetap relatif).
 - Favicon hub: `webimg/iyon-favicon.ico` → **`../webimg/iyon-favicon.ico`** (naik satu level ke root dulu sebelum ke `webimg/`, tetap relatif).
-- Firebase path (`kitchen`, `finance`, `routine`, `patungan`, `note` di root Realtime Database) **tidak berubah** — itu struktur data cloud, sama sekali independen dari struktur file lokal.
+- Firebase path (`kitchen`, `finance`, `routine`, `patungan`, `note`, `wishlist`, `pantau` di root Realtime Database) **tidak berubah** — itu struktur data cloud, sama sekali independen dari struktur file lokal.
 
 ### Kenapa link relatif (`../index.html`), BUKAN path absolut (`/app/index.html`)
 
@@ -56,14 +58,14 @@ Tiap app **tidak lagi punya folder `.claude/` sendiri** — semua dokumentasi pr
 ## Struktur halaman
 
 - Header/hero (gradient ungu `--gradient-hero`, beda dari oranye Kitchen & teal Finance — sengaja netral karena ini halaman "pembungkus" keduanya) — judul "Iyon App" + tombol toggle tema (☀️/🌙) di pojok kanan atas. **Tidak ada bottom nav** (beda dari Kitchen/Finance) karena halaman ini cuma daftar link, bukan app dengan banyak halaman.
-- List card aplikasi (`.app-card`) — tiap card: ikon emoji berwarna gradient khas app-nya (🍳 oranye utk Kitchen, 💰 teal utk Finance, 🔁 ungu-indigo utk Routine, 🧾 rose/merah muda utk Patungan, 📝 amber/kuning utk Note, 🎁 fuchsia/magenta utk Wishlist — warna icon sengaja meniru primary color masing-masing app), nama, deskripsi singkat, panah `›`. Klik card → link langsung ke `<folder>/index.html`.
-- Urutan card **bukan** urut abjad/urut dibuat — Finance → Kitchen → Routine → Patungan → Note → Wishlist (app baru ditaruh paling bawah, di atas `.empty-slot`, sesuai permintaan user tiap kali nambah app baru).
+- List card aplikasi (`.app-card`) — tiap card: ikon emoji berwarna gradient khas app-nya (🍳 oranye utk Kitchen, 💰 teal utk Finance, 🔁 ungu-indigo utk Routine, 🧾 rose/merah muda utk Patungan, 📝 amber/kuning utk Note, 🎁 fuchsia/magenta utk Wishlist, 📈 biru sky utk Pantau — warna icon sengaja meniru primary color masing-masing app), nama, deskripsi singkat, panah `›`. Klik card → link langsung ke `<folder>/index.html`.
+- Urutan card **bukan** urut abjad/urut dibuat — Finance → Kitchen → Routine → Patungan → Note → Wishlist → Pantau (app baru ditaruh paling bawah, di atas `.empty-slot`, sesuai permintaan user tiap kali nambah app baru).
 - Ada `.empty-slot` placeholder dashed box di bawah list menandakan slot utk app berikutnya — update manual (tambah `<a class="app-card">` baru **di atas** `.empty-slot`, bukan di sembarang posisi) kalau ada app baru.
 - **Animasi masuk saat halaman dibuka**: tiap child langsung `.app-list` (semua `.app-card` + `.empty-slot` paling bawah) geser dari bawah (`translateY(24px)` → `0`) sambil fade in (`opacity 0` → `1`) lewat `@keyframes cardEnter` di `style-app.css`, dgn **delay 0.25 detik berjenjang** antar kartu (kartu ke-N delay `(N-1) × 0.25s`) — permintaan eksplisit user. Delay-nya **dihitung otomatis dari urutan DOM lewat JS** (`document.querySelectorAll(".app-list > *").forEach(...)` di `<script>` inline `index.html`, set `el.style.animationDelay`), **bukan** nth-child CSS manual — jadi nambah `.app-card` baru (lihat TODO di bawah) otomatis ikut kena stagger tanpa perlu sentuh CSS animasi ini sama sekali. Ada fallback `prefers-reduced-motion: reduce` (durasi dipangkas ke ~0, delay dibuang) di `style-app.css`.
 
 ## Tema light/dark
 
-`data-theme` di `<html>`, variabel CSS di `:root`/`[data-theme="dark"]` — pola sama dengan Kitchen/Finance/Routine/Patungan/Note/Wishlist (lihat `app/.claude/kitchen-app.md`, `app/.claude/finance-app.md`, `app/.claude/routine-app.md`, `app/.claude/patungan-app.md`, `app/.claude/note-app.md`, `app/.claude/wishlist-app.md`), tapi state disimpan sendiri: localStorage key **`iyonapp_theme`** (terpisah dari `kitchenapp_theme`/`financeapp_theme`/`routineapp_theme`/`patunganapp_theme`/`noteapp_theme`/`wishlistapp_theme` — ini shell/hub sendiri, bukan bagian dari app manapun). Fallback ke `prefers-color-scheme` kalau belum ada preferensi tersimpan.
+`data-theme` di `<html>`, variabel CSS di `:root`/`[data-theme="dark"]` — pola sama dengan Kitchen/Finance/Routine/Patungan/Note/Wishlist/Pantau (lihat `app/.claude/kitchen-app.md`, `app/.claude/finance-app.md`, `app/.claude/routine-app.md`, `app/.claude/patungan-app.md`, `app/.claude/note-app.md`, `app/.claude/wishlist-app.md`, `app/.claude/pantau-app.md`), tapi state disimpan sendiri: localStorage key **`iyonapp_theme`** (terpisah dari `kitchenapp_theme`/`financeapp_theme`/`routineapp_theme`/`patunganapp_theme`/`noteapp_theme`/`wishlistapp_theme`/`pantauapp_theme` — ini shell/hub sendiri, bukan bagian dari app manapun). Fallback ke `prefers-color-scheme` kalau belum ada preferensi tersimpan.
 
 ## Versi mobile (Flutter) — sudah dihapus
 
@@ -77,5 +79,5 @@ Dulu ada port Flutter (Android & iOS) dari keenam app di `app/mobile/`, APK-nya 
 
 ## Catatan implementasi
 
-- Semua teks UI berbahasa Indonesia, konsisten dengan Kitchen, Finance, Routine, Patungan, Note, & Wishlist App.
+- Semua teks UI berbahasa Indonesia, konsisten dengan Kitchen, Finance, Routine, Patungan, Note, Wishlist, & Pantau App.
 - **Wajib**: setiap kali ada perubahan struktur/fitur di `app/index.html` (app baru ditambahkan, halaman dipecah jadi banyak file, dll.), update dokumen ini di perubahan yang sama.

@@ -1,0 +1,342 @@
+/* =========================================================
+   Pantau App — analysis.css
+   Halaman Analisis: header item, grid stat, kartu chart
+   (bar chart harian / per hari-dalam-seminggu / per waktu),
+   rekap bulanan, & list catatan terbaru (juga dipakai Riwayat).
+   ========================================================= */
+
+.analysis-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.analysis-head-icon {
+  font-size: 26px;
+}
+
+.analysis-head-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.analysis-head-text h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.analysis-head-text span {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Stat grid ---------- */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.stat-tile {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  min-width: 0;
+}
+
+.stat-tile-label {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.stat-tile-value {
+  margin: 4px 0 0;
+  font-size: 20px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stat-tile-value small {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-left: 2px;
+}
+
+.stat-tile-sub {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.stat-tile.warn {
+  border-color: var(--color-warning);
+  background: var(--color-warning-bg);
+}
+
+/* ---------- Chart card ---------- */
+
+.chart-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px 14px 12px;
+  margin-top: 12px;
+}
+
+.chart-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.chart-subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* Bar chart — div-based, satu series. Tiap kolom = tombol (hit
+   target selebar kolom, lebih besar dari batangnya) yang mengisi
+   .chart-readout saat di-tap/hover. */
+.bar-chart {
+  --plot: 120px;
+  --lab: 20px;
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  margin-top: 26px;
+}
+
+.bar-ref {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px dashed var(--color-text-muted);
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 1;
+}
+
+
+.bar-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.bar-track {
+  position: relative;
+  width: 100%;
+  height: var(--plot);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  border-bottom: 1px solid var(--chart-grid);
+}
+
+.bar {
+  position: relative;
+  width: 62%;
+  max-width: 26px;
+  min-height: 2px;
+  background: var(--chart-bar);
+  border-radius: 4px 4px 0 0;
+  transition: background 0.15s ease;
+}
+
+.bar-col.empty .bar {
+  background: none;
+  border: 1px dashed var(--chart-grid);
+  border-bottom: none;
+  height: 10px !important;
+}
+
+.bar-col.current .bar,
+.bar-col.active .bar {
+  background: var(--chart-bar-active);
+}
+
+.bar-col.active {
+  background: var(--color-surface-alt);
+}
+
+.bar-value {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.bar-label {
+  height: var(--lab);
+  line-height: var(--lab);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.bar-col.current .bar-label {
+  color: var(--color-text);
+  font-weight: 800;
+}
+
+.chart-readout {
+  margin: 8px 0 0;
+  min-height: 34px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+.chart-readout strong {
+  color: var(--color-text);
+}
+
+.chart-empty {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+
+/* ---------- Rekap bulanan ---------- */
+
+.month-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.month-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--color-border);
+  font-size: 13px;
+}
+
+.month-row:first-child {
+  border-top: none;
+}
+
+.month-name {
+  flex: 1;
+  font-weight: 700;
+}
+
+.month-meta {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.month-total {
+  font-weight: 800;
+}
+
+/* ---------- List catatan (Analisis & Riwayat) ---------- */
+
+.record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.record-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  cursor: pointer;
+}
+
+.record-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.record-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.record-time {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.record-meta {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.record-meta.warn {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+.record-value {
+  text-align: right;
+  font-size: 15px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.record-value small {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.badge-topup {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-positive);
+  background: var(--color-positive-bg);
+  border-radius: 999px;
+  padding: 1px 7px;
+  margin-left: 4px;
+  vertical-align: 1px;
+}
+
+.see-all-btn {
+  width: 100%;
+  margin-top: 10px;
+}
